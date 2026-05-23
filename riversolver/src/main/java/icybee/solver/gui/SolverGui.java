@@ -7,8 +7,6 @@ import icybee.solver.solver.*;
 import icybee.solver.trainable.CfrPlusTrainable;
 import icybee.solver.trainable.DiscountedCfrTrainable;
 import icybee.solver.utils.PrivateRangeConverter;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -291,159 +289,113 @@ public class SolverGui {
         System.setErr(printStream);
 
         // run initize
-        new Thread() {
-            public void run() {
-                initize();
-            }
-        }.start();
+        new Thread(this::initize).start();
 
         // build trree
-        buildTreeButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                new Thread() {
-                    public void run() {
-                        onBuildTree();
-                    }
-                }.start();
+        buildTreeButton.addActionListener(_ -> new Thread(this::onBuildTree).start());
+        startSolvingButton.addActionListener(_ -> {
+            if (game_tree == null) {
+                System.out.println("Please build tree first");
+                return;
             }
-        });
-        startSolvingButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (game_tree == null) {
-                    System.out.println("Please build tree first");
-                    return;
-                }
-                new Thread() {
-                    public void run() {
+            new Thread(() -> {
                         try {
                             solve();
                         } catch (Exception err) {
                             err.printStackTrace();
                         }
-                    }
-                }.start();
+                    })
+                    .start();
+        });
+        showTreeButton.addActionListener(_ -> {
+            if (game_tree == null) {
+                System.out.println("Please build tree first");
+            } else {
+                game_tree.printTree(100);
             }
         });
-        showTreeButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (game_tree == null) {
-                    System.out.println("Please build tree first");
-                } else {
-                    game_tree.printTree(100);
-                }
+        clearLogButton.addActionListener(_ -> log.setText(""));
+        showResult.addActionListener(_ -> {
+            if (game_tree == null) {
+                System.out.println("Please build tree first");
+                return;
             }
-        });
-        clearLogButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                log.setText("");
-            }
-        });
-        showResult.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (game_tree == null) {
-                    System.out.println("Please build tree first");
-                    return;
-                }
-                SolverResult sr = new SolverResult(game_tree, game_tree.getRoot(), boardstr.getText());
-                JFrame frame = new JFrame("SolverResult");
-                frame.setContentPane(sr.resultPanel);
-                frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-                frame.pack();
-                frame.setVisible(true);
-            }
+            SolverResult sr = new SolverResult(game_tree, game_tree.getRoot(), boardstr.getText());
+            JFrame frame = new JFrame("SolverResult");
+            frame.setContentPane(sr.resultPanel);
+            frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+            frame.pack();
+            frame.setVisible(true);
         });
         ooprange.setLineWrap(true);
         iprange.setLineWrap(true);
-        selectOOPRangeButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                RangeSelectorCallback rsc = new RangeSelectorCallback() {
-                    @Override
-                    void onFinish(String content) {
-                        ooprange.setText(content);
-                    }
-                };
-                JFrame frame = new JFrame("RangeSelector");
-                RangeSelector rr = new RangeSelector(
-                        rsc,
-                        ooprange.getText(),
-                        mode.getSelectedIndex() == 0
-                                ? RangeSelector.RangeType.HOLDEM
-                                : RangeSelector.RangeType.SHORTDECK,
-                        frame);
-                frame.setContentPane(rr.range_selector_main_panel);
-                frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-                frame.pack();
-                frame.setVisible(true);
-            }
+        selectOOPRangeButton.addActionListener(_ -> {
+            RangeSelectorCallback rsc = new RangeSelectorCallback() {
+                @Override
+                void onFinish(String content) {
+                    ooprange.setText(content);
+                }
+            };
+            JFrame frame = new JFrame("RangeSelector");
+            RangeSelector rr = new RangeSelector(
+                    rsc,
+                    ooprange.getText(),
+                    mode.getSelectedIndex() == 0 ? RangeSelector.RangeType.HOLDEM : RangeSelector.RangeType.SHORTDECK,
+                    frame);
+            frame.setContentPane(rr.range_selector_main_panel);
+            frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+            frame.pack();
+            frame.setVisible(true);
         });
 
-        selectIPRangeButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                RangeSelectorCallback rsc = new RangeSelectorCallback() {
-                    @Override
-                    void onFinish(String content) {
-                        iprange.setText(content);
-                    }
-                };
-                JFrame frame = new JFrame("RangeSelector");
-                RangeSelector rr = new RangeSelector(
-                        rsc,
-                        iprange.getText(),
-                        mode.getSelectedIndex() == 0
-                                ? RangeSelector.RangeType.HOLDEM
-                                : RangeSelector.RangeType.SHORTDECK,
-                        frame);
-                frame.setContentPane(rr.range_selector_main_panel);
-                frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-                frame.pack();
-                frame.setVisible(true);
-            }
+        selectIPRangeButton.addActionListener(_ -> {
+            RangeSelectorCallback rsc = new RangeSelectorCallback() {
+                @Override
+                void onFinish(String content) {
+                    iprange.setText(content);
+                }
+            };
+            JFrame frame = new JFrame("RangeSelector");
+            RangeSelector rr = new RangeSelector(
+                    rsc,
+                    iprange.getText(),
+                    mode.getSelectedIndex() == 0 ? RangeSelector.RangeType.HOLDEM : RangeSelector.RangeType.SHORTDECK,
+                    frame);
+            frame.setContentPane(rr.range_selector_main_panel);
+            frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+            frame.pack();
+            frame.setVisible(true);
         });
-        selectBoardCardButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                BoardSelectorCallback bsc = new BoardSelectorCallback() {
-                    @Override
-                    void onFinish(String content) {
-                        boardstr.setText(content);
-                    }
-                };
-                JFrame frame = new JFrame("BoardSelector");
-                BoardSelector br = new BoardSelector(
-                        bsc,
-                        boardstr.getText(),
-                        mode.getSelectedIndex() == 0
-                                ? RangeSelector.RangeType.HOLDEM
-                                : RangeSelector.RangeType.SHORTDECK,
-                        frame);
-                frame.setContentPane(br.main_panel);
-                frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-                frame.pack();
-                frame.setVisible(true);
-            }
+        selectBoardCardButton.addActionListener(_ -> {
+            BoardSelectorCallback bsc = new BoardSelectorCallback() {
+                @Override
+                void onFinish(String content) {
+                    boardstr.setText(content);
+                }
+            };
+            JFrame frame = new JFrame("BoardSelector");
+            BoardSelector br = new BoardSelector(
+                    bsc,
+                    boardstr.getText(),
+                    mode.getSelectedIndex() == 0 ? RangeSelector.RangeType.HOLDEM : RangeSelector.RangeType.SHORTDECK,
+                    frame);
+            frame.setContentPane(br.main_panel);
+            frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+            frame.pack();
+            frame.setVisible(true);
         });
-        copy.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent actionEvent) {
-                flop_oop_allin.setSelected(flop_ip_allin.isSelected());
-                flop_oop_raise.setText(flop_ip_raise.getText());
-                flop_oop_bet.setText(flop_ip_bet.getText());
+        copy.addActionListener(_ -> {
+            flop_oop_allin.setSelected(flop_ip_allin.isSelected());
+            flop_oop_raise.setText(flop_ip_raise.getText());
+            flop_oop_bet.setText(flop_ip_bet.getText());
 
-                turn_oop_allin.setSelected(turn_ip_allin.isSelected());
-                turn_oop_raise.setText(turn_ip_raise.getText());
-                turn_oop_bet.setText(turn_ip_bet.getText());
+            turn_oop_allin.setSelected(turn_ip_allin.isSelected());
+            turn_oop_raise.setText(turn_ip_raise.getText());
+            turn_oop_bet.setText(turn_ip_bet.getText());
 
-                river_oop_allin.setSelected(river_ip_allin.isSelected());
-                river_oop_raise.setText(river_ip_raise.getText());
-                river_oop_bet.setText(river_ip_bet.getText());
-            }
+            river_oop_allin.setSelected(river_ip_allin.isSelected());
+            river_oop_raise.setText(river_ip_raise.getText());
+            river_oop_bet.setText(river_ip_bet.getText());
         });
     }
 }
