@@ -1,6 +1,5 @@
 package icybee.solver.trainable;
 
-import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
@@ -8,7 +7,6 @@ import tools.jackson.databind.node.ObjectNode;
  * include code for a abstract class trainable,which describes a class that can be trained by cfr
  */
 public abstract class Trainable {
-    protected static final ObjectMapper MAPPER = new ObjectMapper();
 
     public abstract float[] getAverageStrategy();
     public abstract float[] getcurrentStrategy();

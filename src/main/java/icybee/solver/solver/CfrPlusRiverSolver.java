@@ -1,7 +1,7 @@
 package icybee.solver.solver;
 
-import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
+import static icybee.solver.utils.JsonUtil.MAPPER;
 import icybee.solver.Card;
 import icybee.solver.Deck;
 import icybee.solver.GameTree;
@@ -25,8 +25,6 @@ import java.util.concurrent.ThreadLocalRandom;
  * contains code for cfr solver
  */
 public class CfrPlusRiverSolver extends Solver{
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
     PrivateCards[][] ranges;
     PrivateCards[] range1;
     PrivateCards[] range2;

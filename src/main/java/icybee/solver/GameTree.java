@@ -1,7 +1,7 @@
 package icybee.solver;
 
-import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.node.ObjectNode;
+import static icybee.solver.utils.JsonUtil.MAPPER;
 import icybee.solver.exceptions.ActionNotFoundException;
 import icybee.solver.exceptions.NodeLengthMismatchException;
 import icybee.solver.exceptions.NodeNotFoundException;
@@ -23,8 +23,6 @@ import java.util.stream.Collectors;
  * This file contains code for GameTree construction
  */
 public class GameTree {
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-
     String tree_json_dir;
     GameTreeNode root = null;
     Deck deck;

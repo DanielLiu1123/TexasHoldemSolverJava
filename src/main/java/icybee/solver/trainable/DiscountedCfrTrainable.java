@@ -1,6 +1,7 @@
 package icybee.solver.trainable;
 
 import tools.jackson.databind.node.ObjectNode;
+import static icybee.solver.utils.JsonUtil.MAPPER;
 import icybee.solver.nodes.ActionNode;
 import icybee.solver.nodes.GameActions;
 import icybee.solver.ranges.PrivateCards;
