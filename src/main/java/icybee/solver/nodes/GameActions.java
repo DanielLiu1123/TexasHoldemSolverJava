@@ -31,7 +31,7 @@ public class GameActions {
         if(amount == null) {
             return this.action.toString();
         }else{
-            return this.action.toString() + " " + amount.toString();
+            return this.action.toString() + " " + amount;
         }
     }
 }

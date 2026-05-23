@@ -9,7 +9,7 @@ import java.util.Iterator;
 
 public class Range implements Iterable<Integer> {
 
-    private int limit;
+    private final int limit;
 
     public Range(int limit) {
         this.limit = limit;

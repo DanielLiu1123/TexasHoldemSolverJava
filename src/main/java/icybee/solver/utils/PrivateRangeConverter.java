@@ -6,23 +6,24 @@ import icybee.solver.ranges.PrivateCards;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 public class PrivateRangeConverter {
     public static PrivateCards[] rangeStr2Cards(String range_str,int[] initial_boards){
-        List<String> range_list = Arrays.asList(range_str.split(","));
+        String[] range_list = range_str.split(",");
         List<PrivateCards> private_cards = new ArrayList<PrivateCards>();
 
         for(String one_range:range_list){
-            PrivateCards this_card = null;
+            PrivateCards this_card;
             List<String> cardstr_arr = Arrays.asList(one_range.split(":"));
-            if (cardstr_arr.size() > 2 || cardstr_arr.size() < 1){
+            if (cardstr_arr.size() > 2 || cardstr_arr.isEmpty()){
                 throw new RuntimeException("':' number exceeded 2");
             }
             float weight = 1;
 
             one_range = cardstr_arr.get(0);
             if(cardstr_arr.size() == 2){
-                weight = Float.valueOf(cardstr_arr.get(1));
+                weight = Float.parseFloat(cardstr_arr.get(1));
             }
             if(weight == 0)continue;
 
@@ -49,7 +50,7 @@ public class PrivateRangeConverter {
                         int begin_index = rank1 == rank2 ? i:0;
                         for(int j = begin_index;j < suits.length;j++){
                             String another_suit = suits[j];
-                            if(one_suit == another_suit){
+                            if(Objects.equals(one_suit, another_suit)){
                                 continue;
                             }
                             int card1 = Card.strCard2int(rank1 + one_suit);
@@ -76,7 +77,7 @@ public class PrivateRangeConverter {
                     int begin_index = rank1 == rank2 ? i:0;
                     for(int j = begin_index;j < suits.length;j++){
                         String another_suit = suits[j];
-                        if(one_suit == another_suit && rank1 == rank2){
+                        if(Objects.equals(one_suit, another_suit) && rank1 == rank2){
                             continue;
                         }
                         int card1 = Card.strCard2int(rank1 + one_suit);

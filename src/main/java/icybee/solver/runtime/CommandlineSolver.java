@@ -27,10 +27,9 @@ import net.sourceforge.argparse4j.inf.Namespace;
 public class CommandlineSolver {
 
     static Config loadConfig(String conf_name){
-        ClassLoader classLoader = CommandlineSolver.class.getClassLoader();
         File file = new File(conf_name);
 
-        Config config = null;
+        Config config;
         try {
             config = new Config(file.getAbsolutePath());
         }catch(Exception e){
@@ -39,7 +38,7 @@ public class CommandlineSolver {
         return config;
     }
 
-    public static void main(String[] args) throws Exception {
+    static void main(String[] args) throws Exception {
         ArgumentParser parser = ArgumentParsers.newFor("CommandlineSolver").build()
                 .defaultHelp(true)
                 .description("use command line to solve poker cfr");
@@ -106,43 +105,29 @@ public class CommandlineSolver {
         String player2_range = ns.getString("player2_range");
         String initial_board_str = ns.getString("initial_board");
         String[] initial_board_arr = initial_board_str.split(",");
-        int[] initial_board = Arrays.stream(initial_board_arr).map(e -> Card.strCard2int(e)).mapToInt(i->i).toArray();
+        int[] initial_board = Arrays.stream(initial_board_arr).map(Card::strCard2int).mapToInt(i->i).toArray();
         int iteration_number = Integer.parseInt(ns.getString("iteration_number"));
         int print_interval = Integer.parseInt(ns.getString("print_interval"));
         float fork_at_action = Float.parseFloat(ns.getString("fork_at_action"));
         float fork_at_chance = Float.parseFloat(ns.getString("fork_at_chance"));
-        boolean debug = Boolean.valueOf(ns.getString("debug"));
-        boolean parallel = Boolean.valueOf(ns.getString("parallel"));
+        boolean debug = Boolean.parseBoolean(ns.getString("debug"));
+        boolean parallel = Boolean.parseBoolean(ns.getString("parallel"));
         String output_strategy_file = ns.getString("output_strategy_file");
         String logfile = ns.getString("logfile");
 
         String algorithm_str = ns.getString("algorithm");
-        Class<?> algorithm;
-        switch(algorithm_str){
-            case "cfr":
-                algorithm = CfrTrainable.class;
-                break;
-            case "cfr_plus":
-                algorithm = CfrPlusTrainable.class;
-                break;
-            case "discounted_cfr":
-                algorithm = DiscountedCfrTrainable.class;
-                break;
-            default:
-                throw new RuntimeException(String.format("algorithm not found :%s",algorithm_str));
-        }
+        Class<?> algorithm = switch (algorithm_str) {
+            case "cfr" -> CfrTrainable.class;
+            case "cfr_plus" -> CfrPlusTrainable.class;
+            case "discounted_cfr" -> DiscountedCfrTrainable.class;
+            default -> throw new RuntimeException(String.format("algorithm not found :%s", algorithm_str));
+        };
         String monte_coral_str = ns.getString("monte_carol");
-        MonteCarolAlg monte_coral;
-        switch(monte_coral_str){
-            case "none":
-                monte_coral = MonteCarolAlg.NONE;
-                break;
-            case "public":
-                monte_coral = MonteCarolAlg.PUBLIC;
-                break;
-            default:
-                throw new RuntimeException(String.format("monte coral type not found :%s",monte_coral_str));
-        }
+        MonteCarolAlg monte_coral = switch (monte_coral_str) {
+            case "none" -> MonteCarolAlg.NONE;
+            case "public" -> MonteCarolAlg.PUBLIC;
+            default -> throw new RuntimeException(String.format("monte coral type not found :%s", monte_coral_str));
+        };
         int threads = Integer.parseInt(ns.getString("threads"));
         int fork_every_n_depth = Integer.parseInt(ns.getString("fork_every_n_depth"));
         int no_fork_subtree_size = Integer.parseInt(ns.getString("no_fork_subtree_size"));

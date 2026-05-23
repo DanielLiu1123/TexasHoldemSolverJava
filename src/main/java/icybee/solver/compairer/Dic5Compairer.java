@@ -18,8 +18,7 @@ import org.paukov.combinatorics3.IGenerator;
  * This file contains code for a card compairer
  */
 public class Dic5Compairer extends Compairer {
-    //Map<Set<String>,Integer> cards2rank = (Map<Set<String>,Integer>)new HashMap<Set<String>,Integer>();
-    Map<Long,Integer> cardslong2rank = (Map<Long,Integer>)new HashMap<Long,Integer>();
+    Map<Long,Integer> cardslong2rank = new HashMap<>();
 
     public Dic5Compairer(String dic_dir,int lines) throws IOException {
         super(dic_dir,lines);
@@ -33,8 +32,7 @@ public class Dic5Compairer extends Compairer {
 
     public void load_compairer(String dic_dir,int lines,boolean verbose) throws IOException{
 
-        //cards2rank = (Map<Set<String>,Integer>)new Hashtable<Set<String>,Integer>(lines * 50);
-        cardslong2rank = (Map<Long,Integer>)new Hashtable<Long,Integer>(lines * 50);
+        cardslong2rank = new Hashtable<>(lines * 50);
 
         BufferedReader bufferedReader = new BufferedReader(new FileReader(dic_dir));
         String str;
@@ -46,12 +44,10 @@ public class Dic5Compairer extends Compairer {
                 String[] cards = cards_str.split("-");
                 assert(cards.length == 5);
 
-                Set<String> cards_set = new HashSet<>(Arrays.asList(cards));
-
                 int rank = Integer.parseInt(linesp[1]);
                 if(cardslong2rank.containsKey(Card.boardCards2long(cards))){
-                    String err_info = "";
-                    for(String one_card:cards) err_info += (" " + one_card);
+                    StringBuilder err_info = new StringBuilder();
+                    for(String one_card:cards) err_info.append(" ").append(one_card);
                     throw new RuntimeException(
                             String.format(
                                     "cards long already exist: %s ,existed long: %d",
@@ -91,7 +87,7 @@ public class Dic5Compairer extends Compairer {
                 throw new CardsNotFoundException(cards_str.toString());
             }
             return rank;
-        }).collect(Collectors.toList());
+        }).toList();
         return Collections.min(rank_list);
     }
 
@@ -115,7 +111,7 @@ public class Dic5Compairer extends Compairer {
                 throw new CardsNotFoundException("rank is null");
             }
             return rank;
-        }).collect(Collectors.toList());
+        }).toList();
         return Collections.min(rank_list);
     }
 

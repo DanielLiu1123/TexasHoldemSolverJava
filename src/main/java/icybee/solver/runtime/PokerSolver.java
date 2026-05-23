@@ -24,26 +24,10 @@ public class PokerSolver {
     GameTree tree;
     Compairer compairer;
 
-    Config loadConfig(String conf_name){
-        File file = new File(conf_name);
-
-        Config config;
-        try {
-            config = new Config(file.getAbsolutePath());
-        }catch(Exception e){
-            throw new RuntimeException();
-        }
-        return config;
-    }
-
     public PokerSolver(String compairer_type, String compairer_dic_dir, int compairer_lines, String[] ranks,String[] suits) throws IOException {
         this.deck = new Deck(Arrays.asList(ranks), Arrays.asList(suits));
         this.compairer = SolverEnvironment.compairerFromFile(compairer_type,compairer_dic_dir,compairer_lines);
         this.tree = null;
-    }
-
-    public void build_game_tree(String tree_json){
-        tree = SolverEnvironment.gameTreeFromJson(tree_json,this.deck);
     }
 
     public String train(
@@ -67,33 +51,19 @@ public class PokerSolver {
         if(this.tree == null)
             throw new RuntimeException("tree not initized");
         String[] initial_board_split = initial_board.split(",");
-        int[] initial_board_arr = Arrays.stream(initial_board_split).map(e -> Card.strCard2int(e)).mapToInt(i->i).toArray();
-        Class<?> algorithm_class;
-        switch(algorithm){
-            case "cfr":
-                algorithm_class = CfrTrainable.class;
-                break;
-            case "cfr_plus":
-                algorithm_class = CfrPlusTrainable.class;
-                break;
-            case "discounted_cfr":
-                algorithm_class = DiscountedCfrTrainable.class;
-                break;
-            default:
-                throw new RuntimeException(String.format("algorithm not found :%s",algorithm));
-        }
+        int[] initial_board_arr = Arrays.stream(initial_board_split).map(Card::strCard2int).mapToInt(i->i).toArray();
+        Class<?> algorithm_class = switch (algorithm) {
+            case "cfr" -> CfrTrainable.class;
+            case "cfr_plus" -> CfrPlusTrainable.class;
+            case "discounted_cfr" -> DiscountedCfrTrainable.class;
+            default -> throw new RuntimeException(String.format("algorithm not found :%s", algorithm));
+        };
 
-        MonteCarolAlg monte_coral_alg;
-        switch(monte_carol){
-            case "none":
-                monte_coral_alg = MonteCarolAlg.NONE;
-                break;
-            case "public":
-                monte_coral_alg = MonteCarolAlg.PUBLIC;
-                break;
-            default:
-                throw new RuntimeException(String.format("monte coral type not found :%s",monte_carol));
-        }
+        MonteCarolAlg monte_coral_alg = switch (monte_carol) {
+            case "none" -> MonteCarolAlg.NONE;
+            case "public" -> MonteCarolAlg.PUBLIC;
+            default -> throw new RuntimeException(String.format("monte coral type not found :%s", monte_carol));
+        };
 
         PrivateCards[] player1Range = PrivateRangeConverter.rangeStr2Cards(player1_range,initial_board_arr);
         PrivateCards[] player2Range = PrivateRangeConverter.rangeStr2Cards(player2_range,initial_board_arr);
