@@ -18,9 +18,9 @@ import org.jspecify.annotations.Nullable;
 public class SolverGui {
 
     private JPanel mainPanel;
-    private JPanel left;
-    private JTabbedPane tabbedPane1;
-    private JPanel board;
+    //    private JPanel left;
+    //    private JTabbedPane tabbedPane1;
+    //    private JPanel board;
     private JTextArea ooprange;
     private JButton selectOOPRangeButton;
     private JTextArea iprange;
