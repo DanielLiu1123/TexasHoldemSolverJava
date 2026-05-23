@@ -9,8 +9,8 @@ import icybee.solver.solver.ParallelCfrPlusSolver;
 import icybee.solver.solver.Solver;
 import icybee.solver.trainable.DiscountedCfrTrainable;
 import icybee.solver.utils.PrivateRangeConverter;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -19,7 +19,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  *
@@ -27,45 +27,25 @@ import static org.junit.Assert.assertTrue;
  */
 public class TexasHoldemSolverTest
 {
-    /**
-     * Rigorous Test :-)
-     */
-    static Compairer compairer = null;
-    static Deck deck = null;
+    static Compairer compairer;
+    static Deck deck;
 
-    Config loadConfig(String conf_name){
-        ClassLoader classLoader = getClass().getClassLoader();
+    static Config loadConfig(String conf_name) {
+        ClassLoader classLoader = TexasHoldemSolverTest.class.getClassLoader();
         File file = new File(classLoader.getResource(conf_name).getFile());
-
-        Config config = null;
         try {
-            config = new Config(file.getAbsolutePath());
-        }catch(Exception e){
-            throw new RuntimeException();
+            return new Config(file.getAbsolutePath());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
-        return config;
     }
 
-    @Before
-    public void loadEnvironmentsTest()
-    {
+    @BeforeAll
+    static void loadEnvironments() throws Exception {
         String config_name = "yamls/rule_holdem_simple.yaml";
-        //String config_name = "yamls/rule_shortdeck_turnriversolver.yaml";
-        //String config_name = "yamls/rule_shortdeck_turnsolver.yaml";
-        //String config_name = "yamls/rule_shortdeck_turnsolver_withallin.yaml";
-        //String config_name = "yamls/rule_shortdeck_flopsolver.yaml";
-        Config config = this.loadConfig(config_name);
-
-        if(TexasHoldemSolverTest.compairer == null) {
-            try {
-                TexasHoldemSolverTest.compairer = SolverEnvironment.compairerFromConfig(config);
-                TexasHoldemSolverTest.deck = SolverEnvironment.deckFromConfig(config);
-            } catch (Exception e) {
-                e.printStackTrace();
-                assertTrue(false);
-            }
-        }
-
+        Config config = loadConfig(config_name);
+        compairer = SolverEnvironment.compairerFromConfig(config);
+        deck = SolverEnvironment.deckFromConfig(config);
     }
 
     @Test
@@ -174,11 +154,7 @@ public class TexasHoldemSolverTest
     @Test
     public void printTreeTest(){
         String config_name = "yamls/rule_holdem_simple.yaml";
-        //String config_name = "yamls/rule_shortdeck_turnriversolver.yaml";
-        //String config_name = "yamls/rule_shortdeck_turnsolver.yaml";
-        //String config_name = "yamls/rule_shortdeck_turnsolver_withallin.yaml";
-        //String config_name = "yamls/rule_shortdeck_flopsolver.yaml";
-        Config config = this.loadConfig(config_name);
+        Config config = loadConfig(config_name);
         GameTree game_tree = SolverEnvironment.gameTreeFromConfig(config, TexasHoldemSolverTest.deck);
         System.out.println("The game tree :");
         try {
@@ -192,11 +168,7 @@ public class TexasHoldemSolverTest
     @Test
     public void printTreeLimitDepthTest(){
         String config_name = "yamls/rule_holdem_simple.yaml";
-        //String config_name = "yamls/rule_shortdeck_turnriversolver.yaml";
-        //String config_name = "yamls/rule_shortdeck_turnsolver.yaml";
-        //String config_name = "yamls/rule_shortdeck_turnsolver_withallin.yaml";
-        //String config_name = "yamls/rule_shortdeck_flopsolver.yaml";
-        Config config = this.loadConfig(config_name);
+        Config config = loadConfig(config_name);
         GameTree game_tree = SolverEnvironment.gameTreeFromConfig(config, TexasHoldemSolverTest.deck);
         System.out.println("The depth limit game tree :");
         try {
@@ -332,24 +304,11 @@ public class TexasHoldemSolverTest
         System.out.println("solverTest");
 
         String config_name = "yamls/rule_holdem_simple.yaml";
-        //String config_name = "yamls/rule_shortdeck_turnriversolver.yaml";
-        //String config_name = "yamls/rule_shortdeck_turnsolver.yaml";
-        //String config_name = "yamls/rule_shortdeck_turnsolver_withallin.yaml";
-        //String config_name = "yamls/rule_shortdeck_flopsolver.yaml";
-        Config config = this.loadConfig(config_name);
+        Config config = loadConfig(config_name);
         GameTree game_tree = SolverEnvironment.gameTreeFromConfig(config, TexasHoldemSolverTest.deck);
 
         String player1RangeStr = "AA,KK,QQ,JJ,TT,99,88,77,66,AK,AQ,AJ,AT,A9,A8,A7,A6,KQ,KJ,KT,K9,K8,K7,K6,QJ,QT,Q9,Q8,Q7,Q6,JT,J9,J8,J7,J6,T9,T8,T7,T6,98,97,96,43,64,84";
         String player2RangeStr = "AA,KK,QQ,JJ,TT,99,88,77,66,AK,AQ,AJ,AT,A9,A8,A7,A6,KQ,KJ,KT,K9,K8,K7,K6,QJ,QT,Q9,Q8,Q7,Q6,JT,J9,J8,J7,J6,T9,T8,T7,T6,98,97,96,43,64,84";
-
-        // String player1RangeStr = "87";
-        // String player2RangeStr = "87";
-        /*
-        case 'c': return 0; // 梅花
-        case 'd': return 1; // 方块
-        case 'h': return 2; // 红桃
-        case 's': return 3; // 黑桃
-         */
 
         int[] initialBoard = new int[]{
                 Card.strCard2int("Kd"),
@@ -361,19 +320,6 @@ public class TexasHoldemSolverTest
 
         PrivateCards[] player1Range = PrivateRangeConverter.rangeStr2Cards(player1RangeStr,initialBoard);
         PrivateCards[] player2Range = PrivateRangeConverter.rangeStr2Cards(player2RangeStr,initialBoard);
-        //PrivateCards[] player1Range = new PrivateCards[]{new PrivateCards(Card.strCard2int("As"),Card.strCard2int("Ad"),1)};
-
-        /*
-        PrivateCards[] player1Range = new PrivateCards[]{
-                new PrivateCards(Card.strCard2int("As"),Card.strCard2int("Ad"),1)
-                ,new PrivateCards(Card.strCard2int("8h"),Card.strCard2int("7d"),1)
-        };
-        PrivateCards[] player2Range = new PrivateCards[]{
-                //new PrivateCards(Card.strCard2int("6d"),Card.strCard2int("8s"),1)
-                new PrivateCards(Card.strCard2int("6d"),Card.strCard2int("7d"),1)
-                ,new PrivateCards(Card.strCard2int("6s"),Card.strCard2int("6d"),1)
-        };
-         */
 
         String logfile_name = "src/test/resources/outputs/outputs_log.txt";
         Solver solver = new CfrPlusRiverSolver(game_tree
@@ -391,45 +337,18 @@ public class TexasHoldemSolverTest
         );
         Map train_config = new HashMap();
         solver.train(train_config);
-
-        /*
-        String strategy_json = solver.getTree().dumps(false).toJSONString();
-
-        String strategy_fname = "src/test/resources/outputs/outputs_strategy.json";
-
-        File output_file = new File(strategy_fname);
-        FileWriter writer = new FileWriter(output_file);
-        writer.write(strategy_json);
-        writer.flush();
-        writer.close();
-
-        System.out.println("end solverTest");
-         */
     }
 
     @Test
     public void cfrTurnSolverTest() throws BoardNotFoundException,Exception{
         System.out.println("solverTest");
 
-        //String config_name = "yamls/rule_holdem_simple.yaml";
-    //String config_name = "yamls/rule_shortdeck_turnriversolver.yaml";
         String config_name = "yamls/rule_shortdeck_turnsolver.yaml";
-        //String config_name = "yamls/rule_shortdeck_turnsolver_withallin.yaml";
-        //String config_name = "yamls/rule_shortdeck_flopsolver.yaml";
-        Config config = this.loadConfig(config_name);
+        Config config = loadConfig(config_name);
         GameTree game_tree = SolverEnvironment.gameTreeFromConfig(config, TexasHoldemSolverTest.deck);
 
         String player1RangeStr = "AA,KK,QQ,JJ,TT,99,88,77,66,AK,AQ,AJ,AT,A9,A8,A7,A6,KQ,KJ,KT,K9,K8,K7,K6,QJ,QT,Q9,Q8,Q7,Q6,JT,J9,J8,J7,J6,T9,T8,T7,T6,98,97,96,43,64,84";
         String player2RangeStr = "AA,KK,QQ,JJ,TT,99,88,77,66,AK,AQ,AJ,AT,A9,A8,A7,A6,KQ,KJ,KT,K9,K8,K7,K6,QJ,QT,Q9,Q8,Q7,Q6,JT,J9,J8,J7,J6,T9,T8,T7,T6,98,97,96,43,64,84";
-
-        // String player1RangeStr = "87";
-        // String player2RangeStr = "87";
-        /*
-        case 'c': return 0; // 梅花
-        case 'd': return 1; // 方块
-        case 'h': return 2; // 红桃
-        case 's': return 3; // 黑桃
-         */
 
         int[] initialBoard = new int[]{
                 Card.strCard2int("Kd"),
@@ -475,26 +394,12 @@ public class TexasHoldemSolverTest
     public void cfrFlopSolverTest() throws BoardNotFoundException,Exception{
         System.out.println("solverTest");
 
-        //String config_name = "yamls/rule_holdem_simple.yaml";
-        //String config_name = "yamls/rule_shortdeck_turnriversolver.yaml";
-        //String config_name = "yamls/rule_shortdeck_turnsolver.yaml";
-        //String config_name = "yamls/rule_shortdeck_turnsolver_withallin.yaml";
         String config_name = "yamls/rule_shortdeck_flopsolver.yaml";
-        Config config = this.loadConfig(config_name);
+        Config config = loadConfig(config_name);
         GameTree game_tree = SolverEnvironment.gameTreeFromConfig(config, TexasHoldemSolverTest.deck);
 
         String player1RangeStr = "AA,KK,QQ,JJ,TT,99,88,77,66,AK,AQ,AJ,AT,A9,A8,A7,A6,KQ,KJ,KT,K9,K8,K7,K6,QJ,QT,Q9,Q8,Q7,Q6,JT,J9,J8,J7,J6,T9,T8,T7,T6,98,97,96,43,64,84";
-        //String player2RangeStr = "AA,KK,QQ,JJ,TT,99,88,77,66,AK,AQ,AJ,AT,A9,A8,A7,A6,KQ,KJ,KT,K9,K8,K7,K6,QJ,QT,Q9,Q8,Q7,Q6,JT,J9,J8,J7,J6,T9,T8,T7,T6,98,97,96,43,64,84";
         String player2RangeStr = "KT,K9,K8,K7,K6,QJ,QT,Q9,Q8,Q7,Q6,JT,J9,J8,J7,J6,T9,T8,T7,T6,98,97,96,43,64,84";
-
-        // String player1RangeStr = "87";
-        // String player2RangeStr = "87";
-        /*
-        case 'c': return 0; // 梅花
-        case 'd': return 1; // 方块
-        case 'h': return 2; // 红桃
-        case 's': return 3; // 黑桃
-         */
 
         int[] initialBoard = new int[]{
                 Card.strCard2int("Kd"),
@@ -539,26 +444,12 @@ public class TexasHoldemSolverTest
     public void cfrFlopSolverPcsTest() throws BoardNotFoundException,Exception{
         System.out.println("solverTest");
 
-        //String config_name = "yamls/rule_holdem_simple.yaml";
-        //String config_name = "yamls/rule_shortdeck_turnriversolver.yaml";
-        //String config_name = "yamls/rule_shortdeck_turnsolver.yaml";
-        //String config_name = "yamls/rule_shortdeck_turnsolver_withallin.yaml";
         String config_name = "yamls/rule_shortdeck_flopsolver.yaml";
-        Config config = this.loadConfig(config_name);
+        Config config = loadConfig(config_name);
         GameTree game_tree = SolverEnvironment.gameTreeFromConfig(config, TexasHoldemSolverTest.deck);
 
         String player1RangeStr = "AA,KK,QQ,JJ,TT,99,88,77,66,AK,AQ,AJ,AT,A9,A8,A7,A6,KQ,KJ,KT,K9,K8,K7,K6,QJ,QT,Q9,Q8,Q7,Q6,JT,J9,J8,J7,J6,T9,T8,T7,T6,98,97,96,43,64,84";
         String player2RangeStr = "AA,KK,QQ,JJ,TT,99,88,77,66,AK,AQ,AJ,AT,A9,A8,A7,A6,KQ,KJ,KT,K9,K8,K7,K6,QJ,QT,Q9,Q8,Q7,Q6,JT,J9,J8,J7,J6,T9,T8,T7,T6,98,97,96,43,64,84";
-        //String player2RangeStr = "KT,K9,K8,K7,K6,QJ,QT,Q9,Q8,Q7,Q6,JT,J9,J8,J7,J6,T9,T8,T7,T6,98,97,96,43,64,84";
-
-        // String player1RangeStr = "87";
-        // String player2RangeStr = "87";
-        /*
-        case 'c': return 0; // 梅花
-        case 'd': return 1; // 方块
-        case 'h': return 2; // 红桃
-        case 's': return 3; // 黑桃
-         */
 
         int[] initialBoard = new int[]{
                 Card.strCard2int("Kd"),
@@ -603,26 +494,12 @@ public class TexasHoldemSolverTest
     public void parrallelCfrTurnSolverTest() throws BoardNotFoundException,Exception{
         System.out.println("solverTest");
 
-        //String config_name = "yamls/rule_holdem_simple.yaml";
-        //String config_name = "yamls/rule_shortdeck_turnriversolver.yaml";
         String config_name = "yamls/rule_shortdeck_turnsolver.yaml";
-        //String config_name = "yamls/rule_shortdeck_turnsolver_withallin.yaml";
-        //String config_name = "yamls/rule_shortdeck_flopsolver.yaml";
-        Config config = this.loadConfig(config_name);
+        Config config = loadConfig(config_name);
         GameTree game_tree = SolverEnvironment.gameTreeFromConfig(config, TexasHoldemSolverTest.deck);
 
         String player1RangeStr = "AA,KK,QQ,JJ,TT,99,88,77,66,AK,AQ,AJ,AT,A9,A8,A7,A6,KQ,KJ,KT,K9,K8,K7,K6,QJ,QT,Q9,Q8,Q7,Q6,JT,J9,J8,J7,J6,T9,T8,T7,T6,98,97,96,43,64,84";
-        //String player2RangeStr = "AA,KK,QQ,JJ,TT,99,88,77,66,AK,AQ,AJ,AT,A9,A8,A7,A6,KQ,KJ,KT,K9,K8,K7,K6,QJ,QT,Q9,Q8,Q7,Q6,JT,J9,J8,J7,J6,T9,T8,T7,T6,98,97,96,43,64,84";
         String player2RangeStr = "KT,K9,K8,K7,K6,QJ,QT,Q9,Q8,Q7,Q6,JT,J9,J8,J7,J6,T9,T8,T7,T6,98,97,96,43,64:1.0,84:4.5";
-
-        // String player1RangeStr = "87";
-        // String player2RangeStr = "87";
-        /*
-        case 'c': return 0; // 梅花
-        case 'd': return 1; // 方块
-        case 'h': return 2; // 红桃
-        case 's': return 3; // 黑桃
-         */
 
         int[] initialBoard = new int[]{
                 Card.strCard2int("Kd"),

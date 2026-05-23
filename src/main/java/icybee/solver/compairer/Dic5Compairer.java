@@ -38,36 +38,32 @@ public class Dic5Compairer extends Compairer {
 
         BufferedReader bufferedReader = new BufferedReader(new FileReader(dic_dir));
         String str;
-        ProgressBar pb = new ProgressBar("Dic5Comapirer Load",lines);
-        if (verbose) pb.start();
         int ind = 0;
-        while ((str = bufferedReader.readLine()) != null) {
-            String[] linesp = str.trim().split(",");
-            String cards_str = linesp[0];
-            String[] cards = cards_str.split("-");
-            assert(cards.length == 5);
+        try (ProgressBar pb = verbose ? new ProgressBar("Dic5Comapirer Load", lines) : null) {
+            while ((str = bufferedReader.readLine()) != null) {
+                String[] linesp = str.trim().split(",");
+                String cards_str = linesp[0];
+                String[] cards = cards_str.split("-");
+                assert(cards.length == 5);
 
-            Set<String> cards_set = new HashSet<>(Arrays.asList(cards));
+                Set<String> cards_set = new HashSet<>(Arrays.asList(cards));
 
-            int rank = Integer.valueOf(linesp[1]);
-            //cards2rank.put(cards_set,rank);
-            if(cardslong2rank.containsKey(Card.boardCards2long(cards))){
-                String err_info = "";
-                for(String one_card:cards) err_info += (" " + one_card);
-                throw new RuntimeException(
-                        String.format(
-                                "cards long already exist: %s ,existed long: %d",
-                                err_info,cardslong2rank.get(Card.boardCards2long(cards))
-                        )
-                );
-            }
-            cardslong2rank.put(Card.boardCards2long(cards),rank);
-            ind += 1;
-            if(ind % 100 == 0) {
-                if (verbose) pb.stepBy(100);
+                int rank = Integer.parseInt(linesp[1]);
+                if(cardslong2rank.containsKey(Card.boardCards2long(cards))){
+                    String err_info = "";
+                    for(String one_card:cards) err_info += (" " + one_card);
+                    throw new RuntimeException(
+                            String.format(
+                                    "cards long already exist: %s ,existed long: %d",
+                                    err_info,cardslong2rank.get(Card.boardCards2long(cards))
+                            )
+                    );
+                }
+                cardslong2rank.put(Card.boardCards2long(cards),rank);
+                ind += 1;
+                if(ind % 100 == 0 && pb != null) pb.stepBy(100);
             }
         }
-        pb.stop();
     }
 
     @SuppressWarnings("all")

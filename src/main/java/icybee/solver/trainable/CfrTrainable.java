@@ -1,6 +1,6 @@
 package icybee.solver.trainable;
 
-import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson2.JSONObject;
 import icybee.solver.nodes.ActionNode;
 import icybee.solver.nodes.GameActions;
 import icybee.solver.ranges.PrivateCards;

@@ -1,6 +1,6 @@
 package icybee.solver.solver;
 
-import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson2.JSONObject;
 import icybee.solver.Card;
 import icybee.solver.Deck;
 import icybee.solver.GameTree;

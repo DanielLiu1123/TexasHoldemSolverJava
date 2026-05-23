@@ -1,6 +1,6 @@
 package icybee.solver.trainable;
 
-import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson2.JSONObject;
 
 /**
  * Created by huangxuefeng on 2019/10/12.

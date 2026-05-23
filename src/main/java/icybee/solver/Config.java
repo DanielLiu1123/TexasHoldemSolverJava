@@ -1,6 +1,8 @@
 package icybee.solver;
 
+import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.SafeConstructor;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -27,11 +29,12 @@ public class Config {
     String tree_builder_json = null;
     String solver_type;
 
+    @SuppressWarnings("unchecked")
     public Config(String input_file) throws FileNotFoundException,ClassNotFoundException{
-        Yaml yaml_reader = new Yaml();
+        Yaml yaml_reader = new Yaml(new SafeConstructor(new LoaderOptions()));
         File config_file = new File(input_file);
         FileInputStream fileInputStream = new FileInputStream(config_file);
-        Map map = yaml_reader.loadAs(fileInputStream, Map.class);
+        Map map = yaml_reader.load(fileInputStream);
         for (Object name:map.keySet()){
             String key = name.toString();
             Object value = map.get(key);

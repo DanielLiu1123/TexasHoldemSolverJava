@@ -1,7 +1,7 @@
 package icybee.solver;
 
-import com.alibaba.fastjson.JSONObject;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.alibaba.fastjson2.JSONObject;
+import tools.jackson.databind.ObjectMapper;
 import icybee.solver.exceptions.ActionNotFoundException;
 import icybee.solver.exceptions.NodeLengthMismatchException;
 import icybee.solver.exceptions.NodeNotFoundException;
