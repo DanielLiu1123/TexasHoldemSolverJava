@@ -1,6 +1,6 @@
 package icybee.solver.trainable;
 
-import com.alibaba.fastjson2.JSONObject;
+import tools.jackson.databind.node.ObjectNode;
 import icybee.solver.nodes.ActionNode;
 import icybee.solver.nodes.GameActions;
 import icybee.solver.ranges.PrivateCards;
@@ -186,10 +186,10 @@ public class CfrPlusTrainable extends Trainable{
     }
 
     @Override
-    public JSONObject dumps(boolean with_state) {
+    public ObjectNode dumps(boolean with_state) {
         if(with_state) throw new RuntimeException("state storage not implemented");
 
-        JSONObject strategy = new JSONObject();
+        ObjectNode strategy = MAPPER.createObjectNode();
         float[] average_strategy = this.getcurrentStrategy();
         List<GameActions> game_actions = action_node.getActions();
         List<String> actions_str = new ArrayList<>();
@@ -219,14 +219,14 @@ public class CfrPlusTrainable extends Trainable{
                 int strategy_index = j * this.privateCards.length + i;
                 one_strategy[j] = average_strategy[strategy_index];
             }
-            strategy.put(String.format("%s",one_private_card.toString()),
-                    one_strategy
+            strategy.set(String.format("%s",one_private_card.toString()),
+                    MAPPER.valueToTree(one_strategy)
                     );
         }
 
-        JSONObject retjson = new JSONObject();
-        retjson.put("actions",actions_str);
-        retjson.put("strategy",strategy);
+        ObjectNode retjson = MAPPER.createObjectNode();
+        retjson.set("actions", MAPPER.valueToTree(actions_str));
+        retjson.set("strategy", strategy);
         return retjson;
     }
 }

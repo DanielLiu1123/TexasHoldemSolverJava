@@ -136,7 +136,7 @@ public class PokerSolver {
         Map train_config = new HashMap();
         solver.train(train_config);
 
-        String strategy_json = solver.getTree().dumps(false).toJSONString();
+        String strategy_json = solver.getTree().dumps(false).toString();
         if(output_strategy_file == null || output_strategy_file.isEmpty()){
             return strategy_json;
         }else {

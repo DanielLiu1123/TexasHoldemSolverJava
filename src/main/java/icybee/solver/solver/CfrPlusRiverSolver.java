@@ -1,6 +1,7 @@
 package icybee.solver.solver;
 
-import com.alibaba.fastjson2.JSONObject;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 import icybee.solver.Card;
 import icybee.solver.Deck;
 import icybee.solver.GameTree;
@@ -24,6 +25,8 @@ import java.util.concurrent.ThreadLocalRandom;
  * contains code for cfr solver
  */
 public class CfrPlusRiverSolver extends Solver{
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     PrivateCards[][] ranges;
     PrivateCards[] range1;
     PrivateCards[] range2;
@@ -211,11 +214,11 @@ public class CfrPlusRiverSolver extends Solver{
                 float expliotibility = br.printExploitability(tree.getRoot(), i + 1, tree.getRoot().getPot().floatValue(), initial_board_long);
                 if(this.logfile != null){
                     long time_ms = endtime - begintime;
-                    JSONObject jo = new JSONObject();
+                    ObjectNode jo = MAPPER.createObjectNode();
                     jo.put("iteration",i);
                     jo.put("exploitibility",expliotibility);
                     jo.put("time_ms",time_ms);
-                    fileWriter.write(String.format("%s\n",jo.toJSONString()));
+                    fileWriter.write(String.format("%s\n",jo.toString()));
                 }
                 begintime = System.currentTimeMillis();
             }

@@ -195,7 +195,7 @@ public class CommandlineSolver {
         Map train_config = new HashMap();
         solver.train(train_config);
 
-        String strategy_json = solver.getTree().dumps(false).toJSONString();
+        String strategy_json = solver.getTree().dumps(false).toString();
         File output_file = new File(output_strategy_file);
         FileWriter writer = new FileWriter(output_file);
         writer.write(strategy_json);

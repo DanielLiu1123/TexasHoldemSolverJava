@@ -377,7 +377,7 @@ public class TexasHoldemSolverTest
         Map train_config = new HashMap();
         solver.train(train_config);
 
-        String strategy_json = solver.getTree().dumps(false).toJSONString();
+        String strategy_json = solver.getTree().dumps(false).toString();
 
         String strategy_fname = "src/test/resources/outputs/outputs_strategy.json";
 
@@ -427,7 +427,7 @@ public class TexasHoldemSolverTest
         Map train_config = new HashMap();
         solver.train(train_config);
 
-        String strategy_json = solver.getTree().dumps(false).toJSONString();
+        String strategy_json = solver.getTree().dumps(false).toString();
 
         String strategy_fname = "src/test/resources/outputs/outputs_strategy.json";
 
@@ -477,7 +477,7 @@ public class TexasHoldemSolverTest
         Map train_config = new HashMap();
         solver.train(train_config);
 
-        String strategy_json = solver.getTree().dumps(false).toJSONString();
+        String strategy_json = solver.getTree().dumps(false).toString();
 
         String strategy_fname = "src/test/resources/outputs/outputs_strategy.json";
 
@@ -532,7 +532,7 @@ public class TexasHoldemSolverTest
         Map train_config = new HashMap();
         solver.train(train_config);
 
-        String strategy_json = solver.getTree().dumps(false).toJSONString();
+        String strategy_json = solver.getTree().dumps(false).toString();
 
         String strategy_fname = "src/test/resources/outputs/outputs_strategy.json";
 

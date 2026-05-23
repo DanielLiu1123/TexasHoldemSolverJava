@@ -26,7 +26,6 @@
     <jackson.version>3.1.0</jackson.version>
     <!-- https://central.sonatype.com/artifact/org.apache.commons/commons-lang3 -->
     <commons-lang3.version>3.20.0</commons-lang3.version>
-    <fastjson2.version>2.0.61</fastjson2.version>
     <!-- https://github.com/argparse4j/argparse4j -->
     <argparse4j.version>0.9.0</argparse4j.version>
     <!-- https://github.com/junit-team/junit-framework -->
@@ -75,11 +74,6 @@
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
       <version>${commons-lang3.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.alibaba.fastjson2</groupId>
-      <artifactId>fastjson2</artifactId>
-      <version>${fastjson2.version}</version>
     </dependency>
     <dependency>
       <groupId>net.sourceforge.argparse4j</groupId>

@@ -1,7 +1,7 @@
 package icybee.solver;
 
-import com.alibaba.fastjson2.JSONObject;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 import icybee.solver.exceptions.ActionNotFoundException;
 import icybee.solver.exceptions.NodeLengthMismatchException;
 import icybee.solver.exceptions.NodeNotFoundException;
@@ -23,6 +23,8 @@ import java.util.stream.Collectors;
  * This file contains code for GameTree construction
  */
 public class GameTree {
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     String tree_json_dir;
     GameTreeNode root = null;
     Deck deck;
@@ -367,10 +369,8 @@ public class GameTree {
 
     public GameTree(String tree_json_dir,Deck deck) throws IOException{
         this.tree_json_dir = tree_json_dir;
-        ObjectMapper mapper = new ObjectMapper();
-
         String file_content = readAllBytes(tree_json_dir);
-        Map<String, Map> json_map = (Map<String, Map>)mapper.readValue(file_content, Map.class);
+        Map<String, Map> json_map = (Map<String, Map>)MAPPER.readValue(file_content, Map.class);
         Map<String, Map> json_root = (Map<String, Map>)json_map.get("root");
         this.deck = deck;
         this.root = recurrentGenerateTreeNode(json_root,null);
@@ -836,33 +836,33 @@ public class GameTree {
         recurrentPrintTree(this.root,0,depth);
     }
 
-    private JSONObject reConvertJson(GameTreeNode node){
+    private ObjectNode reConvertJson(GameTreeNode node){
         if(node instanceof ActionNode) {
             ActionNode one_node = (ActionNode) node;
-            JSONObject retjson = new JSONObject();
+            ObjectNode retjson = MAPPER.createObjectNode();
 
             List<String> actions_str = new ArrayList<>();
             for(GameActions one_action:one_node.getActions()) actions_str.add(one_action.toString());
 
-            retjson.put("actions",actions_str);
+            retjson.set("actions", MAPPER.valueToTree(actions_str));
             retjson.put("player",one_node.getPlayer());
 
-            JSONObject childrens = null;
+            ObjectNode childrens = null;
 
             for(int i = 0;i < one_node.getActions().size();i ++){
                 GameActions one_action = one_node.getActions().get(i);
                 GameTreeNode one_child = one_node.getChildrens().get(i);
 
-                JSONObject one_json = this.reConvertJson(one_child);
+                ObjectNode one_json = this.reConvertJson(one_child);
                 if(one_json != null){
-                    if(childrens == null) childrens = new JSONObject();
-                    childrens.put(one_action.toString(),one_json);
+                    if(childrens == null) childrens = MAPPER.createObjectNode();
+                    childrens.set(one_action.toString(), one_json);
                 }
             }
             if(childrens != null) {
-                retjson.put("childrens", childrens);
+                retjson.set("childrens", childrens);
             }
-            retjson.put("strategy",one_node.getTrainable().dumps(false));
+            retjson.set("strategy", one_node.getTrainable().dumps(false));
             retjson.put("node_type","action_node");
             return retjson;
 
@@ -876,20 +876,20 @@ public class GameTree {
             List<GameTreeNode> childerns = chanceNode.getChildrens();
             if(cards.size() != childerns.size())
                 throw new RuntimeException("length not match");
-            JSONObject retjson = new JSONObject();
+            ObjectNode retjson = MAPPER.createObjectNode();
             List<String> card_strs = new ArrayList<>();
             for(Card card:cards)
                 card_strs.add(card.toString());
 
-            JSONObject dealcards = new JSONObject();
+            ObjectNode dealcards = MAPPER.createObjectNode();
             for(int i = 0;i < cards.size();i ++){
                 Card one_card = cards.get(i);
                 GameTreeNode gameTreeNode = childerns.get(i);
-                dealcards.put(one_card.toString(),this.reConvertJson(gameTreeNode));
+                dealcards.set(one_card.toString(), this.reConvertJson(gameTreeNode));
             }
 
-            retjson.put("deal_cards",dealcards);
-            retjson.put("deal_number",dealcards.size());
+            retjson.set("deal_cards", dealcards);
+            retjson.put("deal_number", dealcards.size());
             retjson.put("node_type","chance_node");
             return retjson;
         }else{
@@ -897,7 +897,7 @@ public class GameTree {
         }
     }
 
-    public JSONObject dumps(boolean with_status){
+    public ObjectNode dumps(boolean with_status){
         if(with_status == true) throw new RuntimeException();
         return this.reConvertJson(this.root);
     }
