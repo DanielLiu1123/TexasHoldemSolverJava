@@ -10,19 +10,19 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="05519cf8-6074-4a2e-b2a8-c97eb2b26732" name="Default" comment=":new: 串联Poker树生成和求解">
-      <change beforePath="$PROJECT_DIR$/RiverSolver.iml" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/icybee/solver/Config.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/icybee/solver/Config.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/icybee/solver/GameTree.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/icybee/solver/GameTree.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/icybee/solver/compairer/Dic5Compairer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/icybee/solver/compairer/Dic5Compairer.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/icybee/solver/solver/CfrPlusRiverSolver.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/icybee/solver/solver/CfrPlusRiverSolver.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/icybee/solver/solver/ParallelCfrPlusSolver.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/icybee/solver/solver/ParallelCfrPlusSolver.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/icybee/solver/gui/CustomOutputStream.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/icybee/solver/gui/CustomOutputStream.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/icybee/solver/nodes/GameActions.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/icybee/solver/nodes/GameActions.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/icybee/solver/runtime/CommandlineSolver.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/icybee/solver/runtime/CommandlineSolver.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/icybee/solver/runtime/PokerSolver.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/icybee/solver/runtime/PokerSolver.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/icybee/solver/solver/BestResponse.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/icybee/solver/solver/BestResponse.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/icybee/solver/trainable/CfrPlusTrainable.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/icybee/solver/trainable/CfrPlusTrainable.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/icybee/solver/trainable/CfrTrainable.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/icybee/solver/trainable/CfrTrainable.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/icybee/solver/trainable/DiscountedCfrTrainable.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/icybee/solver/trainable/DiscountedCfrTrainable.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/icybee/solver/trainable/Trainable.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/icybee/solver/trainable/Trainable.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/icybee/solver/ShortDeckSolverTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/icybee/solver/ShortDeckSolverTest.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/test/java/icybee/solver/TexasHoldemSolverTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/icybee/solver/TexasHoldemSolverTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/icybee/solver/utils/PrivateRangeConverter.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/icybee/solver/utils/PrivateRangeConverter.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/icybee/solver/utils/Range.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/icybee/solver/utils/Range.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/test/resources/outputs/outputs_log.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/resources/outputs/outputs_log.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/test/resources/outputs/outputs_strategy.json" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/resources/outputs/outputs_strategy.json" afterDir="false" />
     </list>
@@ -75,7 +75,7 @@
     <select />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="681" />
+    <option name="cachedIndexableFilesCount" value="682" />
     <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
   </component>
   <component name="FileTemplateManagerImpl">
@@ -95,12 +95,12 @@
     &quot;assignee&quot;: &quot;DanielLiu1123&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings">{
-  &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/bupticybee/TexasHoldemSolverJava.git&quot;,
-    &quot;accountId&quot;: &quot;f83ddcfc-5a5e-4025-97a0-2db42eb68cc0&quot;
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/DanielLiu1123/TexasHoldemSolverJava.git",
+    "accountId": "f83ddcfc-5a5e-4025-97a0-2db42eb68cc0"
   }
-}</component>
+}]]></component>
   <component name="MacroExpansionManager">
     <option name="directoryName" value="EudLsad3" />
   </component>
@@ -111,60 +111,60 @@
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
       <entry key="MS100" value="1.0" />
-      <entry key="MS500" value="1.000000000000195" />
-      <entry key="S2" value="1.000664473831087" />
-      <entry key="S5" value="1.0535979092606969" />
-      <entry key="S10" value="1.236187345621662" />
-      <entry key="S30" value="1.8921844250533637" />
-      <entry key="S60" value="2.7656689010750806" />
-      <entry key="M2" value="3.9672835555477057" />
-      <entry key="M5" value="6.478352124053645" />
-      <entry key="M10" value="13.02701399199727" />
-      <entry key="M15" value="19.418269683292436" />
-      <entry key="M30" value="31.37472215300397" />
-      <entry key="H1" value="40.88755002503858" />
-      <entry key="H2" value="46.91746068739385" />
-      <entry key="H4" value="50.316177734691955" />
-      <entry key="D1" value="53.3652238814375" />
-      <entry key="W1" value="53.908794500447264" />
+      <entry key="MS500" value="1.0" />
+      <entry key="S2" value="1.0000012033602188" />
+      <entry key="S5" value="1.0042870471509167" />
+      <entry key="S10" value="1.0654756716542328" />
+      <entry key="S30" value="1.4105494971280466" />
+      <entry key="S60" value="1.7563376994937243" />
+      <entry key="M2" value="2.288909830440292" />
+      <entry key="M5" value="3.4115530045017564" />
+      <entry key="M10" value="8.03071628516471" />
+      <entry key="M15" value="15.110154204014544" />
+      <entry key="M30" value="35.29203408121178" />
+      <entry key="H1" value="58.46319005248204" />
+      <entry key="H2" value="76.73504755625929" />
+      <entry key="H4" value="88.33253384843667" />
+      <entry key="D1" value="99.56209233662196" />
+      <entry key="W1" value="101.64757705905335" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
-      <entry key="MS500" value="0.0" />
-      <entry key="S2" value="0.0" />
-      <entry key="S5" value="0.0" />
-      <entry key="S10" value="0.0" />
-      <entry key="S30" value="0.0" />
-      <entry key="S60" value="0.0" />
-      <entry key="M2" value="0.0" />
-      <entry key="M5" value="0.0" />
-      <entry key="M10" value="0.0" />
-      <entry key="M15" value="0.0" />
-      <entry key="M30" value="0.0" />
-      <entry key="H1" value="0.0" />
-      <entry key="H2" value="0.0" />
-      <entry key="H4" value="0.0" />
-      <entry key="D1" value="0.0" />
-      <entry key="W1" value="0.0" />
+      <entry key="MS500" value="4.870281593892622E-139" />
+      <entry key="S2" value="2.658897547290841E-35" />
+      <entry key="S5" value="1.8856090765393973E-14" />
+      <entry key="S10" value="2.4917325452002513E-7" />
+      <entry key="S30" value="0.020121547210712482" />
+      <entry key="S60" value="0.4283335640368063" />
+      <entry key="M2" value="2.494029029780849" />
+      <entry key="M5" value="8.631614728403434" />
+      <entry key="M10" value="13.622969478632179" />
+      <entry key="M15" value="15.941960715231106" />
+      <entry key="M30" value="18.703621091195807" />
+      <entry key="H1" value="20.27847486112064" />
+      <entry key="H2" value="21.120018920398007" />
+      <entry key="H4" value="21.555089363127152" />
+      <entry key="D1" value="21.925154842850073" />
+      <entry key="W1" value="21.989290721337216" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="0.04358573957345017" />
-      <entry key="MS500" value="0.5344029956056899" />
-      <entry key="S2" value="0.8556588678444553" />
-      <entry key="S5" value="0.9926050438261" />
-      <entry key="S10" value="1.204406411434083" />
-      <entry key="S30" value="1.8750904069208036" />
-      <entry key="S60" value="2.7505191573300865" />
-      <entry key="M2" value="3.9551637663508767" />
-      <entry key="M5" value="6.4710870862763255" />
-      <entry key="M10" value="13.022360023729453" />
-      <entry key="M15" value="19.41473956468614" />
-      <entry key="M30" value="31.37263038745191" />
-      <entry key="H1" value="40.88638913293972" />
-      <entry key="H2" value="46.91684574802095" />
-      <entry key="H4" value="50.3158607951557" />
-      <entry key="D1" value="53.365169664147956" />
-      <entry key="W1" value="53.90878671990318" />
+      <entry key="MS100" value="1.0010878406744637E-6" />
+      <entry key="MS500" value="0.06310945609979283" />
+      <entry key="S2" value="0.5012154501519387" />
+      <entry key="S5" value="0.7625269453362807" />
+      <entry key="S10" value="0.9336860419958446" />
+      <entry key="S30" value="1.3792777213313894" />
+      <entry key="S60" value="2.1511537203445146" />
+      <entry key="M2" value="4.751013171800178" />
+      <entry key="M5" value="12.012190596842322" />
+      <entry key="M10" value="21.630029757258743" />
+      <entry key="M15" value="31.033289408161185" />
+      <entry key="M30" value="53.983870837908796" />
+      <entry key="H1" value="78.73485400581151" />
+      <entry key="H2" value="97.85136015041402" />
+      <entry key="H4" value="109.88568272904428" />
+      <entry key="D1" value="121.48691041142936" />
+      <entry key="W1" value="123.63681932606808" />
     </decayedShown>
   </component>
   <component name="ProjectCodeStyleSettingsMigration">
@@ -182,7 +182,7 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "Application.CommandlineSolver.executor": "Debug",
-    "Application.SolverGui.executor": "Debug",
+    "Application.SolverGui.executor": "Run",
     "RunOnceActivity.MCP Project settings loaded": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
@@ -199,6 +199,7 @@
     "git-widget-placeholder": "master",
     "junie.onboarding.icon.badge.shown": "true",
     "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "/Users/macbook/development/projects/idea/TexasHoldemSolverJava",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -212,6 +213,13 @@
   }
 }]]></component>
   <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
+      <recent name="$PROJECT_DIR$/img" />
+      <recent name="C:\Users\icybee\IdeaProjects\ShortdeckSolverJava\src\test\resources\yamls" />
+      <recent name="C:\Users\icybee\IdeaProjects\ShortdeckSolverJava\src\test\resources\compairer" />
+      <recent name="$PROJECT_DIR$/src/test/resources/yamls" />
+    </key>
     <key name="MoveClassesOrPackagesDialog.RECENTS_KEY">
       <recent name="icybee.riversolver.compairer" />
       <recent name="icybee.riversolver" />
@@ -224,13 +232,6 @@
       <recent name="icybee.riversolver.solver" />
       <recent name="icybee.riversolver.nodes" />
       <recent name="icybee.riversolver.trainable" />
-    </key>
-    <key name="CopyFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/img" />
-      <recent name="C:\Users\icybee\IdeaProjects\ShortdeckSolverJava\src\test\resources\yamls" />
-      <recent name="C:\Users\icybee\IdeaProjects\ShortdeckSolverJava\src\test\resources\compairer" />
-      <recent name="$PROJECT_DIR$/src/test/resources/yamls" />
-      <recent name="$PROJECT_DIR$/src/test/resources/python" />
     </key>
   </component>
   <component name="RunManager" selected="Application.SolverGui">
@@ -730,7 +731,7 @@
       <workItem from="1779503558382" duration="360000" />
       <workItem from="1779538023249" duration="4000" />
       <workItem from="1779538046821" duration="418000" />
-      <workItem from="1779538480616" duration="2193000" />
+      <workItem from="1779538480616" duration="5283000" />
     </task>
     <task id="LOCAL-00001" summary=":construction: writting cfr solver">
       <created>1572969628615</created>
@@ -1032,18 +1033,6 @@
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/src/main/java/icybee/solver/GameTree.java</url>
-          <line>633</line>
-          <option name="timeStamp" value="3" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="java-line">
-          <url>file://$PROJECT_DIR$/src/main/java/icybee/solver/GameTree.java</url>
-          <line>481</line>
-          <option name="timeStamp" value="5" />
-        </line-breakpoint>
-      </breakpoints>
       <default-breakpoints>
         <breakpoint enabled="true" suspend="NONE" type="java-exception">
           <properties>
