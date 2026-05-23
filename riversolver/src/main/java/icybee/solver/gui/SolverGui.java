@@ -1,9 +1,16 @@
 package icybee.solver.gui;
 
-import icybee.solver.*;
+import icybee.solver.Card;
+import icybee.solver.Config;
+import icybee.solver.Deck;
+import icybee.solver.GameTree;
+import icybee.solver.SolverEnvironment;
 import icybee.solver.compairer.Compairer;
 import icybee.solver.ranges.PrivateCards;
-import icybee.solver.solver.*;
+import icybee.solver.solver.GameTreeBuildingSettings;
+import icybee.solver.solver.MonteCarolAlg;
+import icybee.solver.solver.ParallelCfrPlusSolver;
+import icybee.solver.solver.Solver;
 import icybee.solver.trainable.CfrPlusTrainable;
 import icybee.solver.trainable.DiscountedCfrTrainable;
 import icybee.solver.utils.PrivateRangeConverter;
@@ -18,9 +25,9 @@ import org.jspecify.annotations.Nullable;
 public class SolverGui {
 
     private JPanel mainPanel;
-    //    private JPanel left;
-    //    private JTabbedPane tabbedPane1;
-    //    private JPanel board;
+    private JPanel left;
+    private JTabbedPane tabbedPane1;
+    private JPanel board;
     private JTextArea ooprange;
     private JButton selectOOPRangeButton;
     private JTextArea iprange;
