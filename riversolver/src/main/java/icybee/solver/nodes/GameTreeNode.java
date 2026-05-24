@@ -28,7 +28,31 @@ public abstract class GameTreeNode {
         PREFLOP,
         FLOP,
         TURN,
-        RIVER
+        RIVER;
+
+        public static GameRound fromInt(int round) {
+            return switch (round) {
+                case 1 -> PREFLOP;
+                case 2 -> FLOP;
+                case 3 -> TURN;
+                case 4 -> RIVER;
+                default ->
+                    throw new icybee.solver.exceptions.RoundNotFoundException(
+                            String.format("round %s not found", round));
+            };
+        }
+
+        public static GameRound fromString(String round) {
+            return switch (round) {
+                case "preflop" -> PREFLOP;
+                case "flop" -> FLOP;
+                case "turn" -> TURN;
+                case "river" -> RIVER;
+                default ->
+                    throw new icybee.solver.exceptions.RoundNotFoundException(
+                            String.format("round %s not found", round));
+            };
+        }
     }
 
     GameRound round;
