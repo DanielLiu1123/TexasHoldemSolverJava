@@ -8,7 +8,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import me.tongfei.progressbar.ProgressBar;
-import org.apache.commons.lang3.ArrayUtils;
 import org.paukov.combinatorics3.Generator;
 import org.paukov.combinatorics3.IGenerator;
 
@@ -146,8 +145,10 @@ public class Dic5Compairer extends Compairer {
         assert (private_former.length == 2);
         assert (private_latter.length == 2);
         assert (public_board.length == 5);
-        int[] former_cards = ArrayUtils.addAll(private_former, public_board);
-        int[] latter_cards = ArrayUtils.addAll(private_latter, public_board);
+        int[] former_cards = IntStream.concat(Arrays.stream(private_former), Arrays.stream(public_board))
+                .toArray();
+        int[] latter_cards = IntStream.concat(Arrays.stream(private_latter), Arrays.stream(public_board))
+                .toArray();
 
         int rank_former = this.getRank(former_cards);
         int rank_latter = this.getRank(latter_cards);
@@ -163,7 +164,8 @@ public class Dic5Compairer extends Compairer {
 
     @Override
     public int get_rank(int[] private_hand, int[] public_board) {
-        return getRank(ArrayUtils.addAll(private_hand, public_board));
+        return getRank(IntStream.concat(Arrays.stream(private_hand), Arrays.stream(public_board))
+                .toArray());
     }
 
     @Override

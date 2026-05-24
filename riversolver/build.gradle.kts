@@ -17,7 +17,6 @@ dependencies {
     implementation("me.tongfei:progressbar:${providers.gradleProperty("progressbarVersion").get()}")
     implementation("com.github.dpaukov:combinatoricslib3:${providers.gradleProperty("combinatoricslib3Version").get()}")
     implementation("tools.jackson.core:jackson-databind:${providers.gradleProperty("jacksonVersion").get()}")
-    implementation("org.apache.commons:commons-lang3:${providers.gradleProperty("commonsLang3Version").get()}")
     implementation("net.sourceforge.argparse4j:argparse4j:${providers.gradleProperty("argparse4jVersion").get()}")
     implementation("com.jetbrains.intellij.java:java-gui-forms-rt:${providers.gradleProperty("formsRtVersion").get()}")
 
