@@ -25,10 +25,16 @@ import org.jspecify.annotations.Nullable;
 public class SolverResult {
     public JPanel resultPanel;
     private JTable strategy_table;
+
+    @SuppressWarnings("UnusedVariable")
     private JScrollPane tree_pane;
+
     private JTree game_tree_field;
     private JTable detail_table;
+
+    @SuppressWarnings("UnusedVariable")
     private JPanel tree_and_strategy;
+
     private JScrollPane strategy_viewer_panel;
     private JTable global_info;
     private JTable table_url;
@@ -208,7 +214,7 @@ public class SolverResult {
 
     void update_url(DefaultMutableTreeNode node) {
         List<String> strs = new ArrayList<String>();
-        ArrayList<Color> colors = new ArrayList<Color>();
+        List<Color> colors = new ArrayList<Color>();
         while (node != null) {
             Object nodeInfoObject = node.getUserObject();
             NodeDesc nodeinfo = (NodeDesc) nodeInfoObject;
@@ -404,8 +410,7 @@ public class SolverResult {
         int row, colunm;
         NodeDesc desc;
 
-        @Nullable
-        float[] node_strategy;
+        float @Nullable [] node_strategy;
 
         String name;
 
@@ -480,6 +485,7 @@ public class SolverResult {
             g2.drawRect(0, 0, getWidth(), getHeight());
         }
 
+        @Override
         public void paintComponent(Graphics g) {
             if (showType == ShowType.STRATEGY) {
                 paintStrategy(g);
@@ -492,7 +498,6 @@ public class SolverResult {
 
         public void paintReachProb(Graphics g, int player) {
             int disable_height = (int) ((1 - this.join_prob[player]) * getHeight());
-            int remain_height = getHeight() - disable_height;
             Graphics2D g2 = (Graphics2D) g;
             g2.setColor(Color.YELLOW);
             g2.fillRect(0, 0, getWidth(), getHeight());
@@ -584,7 +589,7 @@ public class SolverResult {
     @SuppressWarnings("NullAway")
     void setDetailStrategyInfo(int row, int colunm, NodeDesc desc) {
         GameTreeNode node = desc.node;
-        if (!(node instanceof ActionNode)) {
+        if (!(node instanceof ActionNode actionNode)) {
             return;
         }
 
@@ -593,9 +598,6 @@ public class SolverResult {
 
         if (name.length() == 3 && name.charAt(2) == 'o') columnName = new String[] {"", "", "", ""};
         else columnName = new String[] {"", ""};
-        int col_len = columnName.length;
-
-        ActionNode actionNode = (ActionNode) node;
         int player = actionNode.getPlayer();
         DiscountedCfrTrainable trainable = (DiscountedCfrTrainable) Objects.requireNonNull(actionNode.getTrainable());
         float[] strategy = trainable.getAverageStrategy();
@@ -808,6 +810,7 @@ public class SolverResult {
             this.reach_prob3d = reach_prob3d;
         }
 
+        @Override
         public Component getTableCellRendererComponent(
                 JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
             StragetyDetailCellRenderer cell_renderer =
@@ -816,7 +819,7 @@ public class SolverResult {
         }
     }
 
-    class GlobalStrategyCellRenderer extends DefaultTableCellRenderer {
+    static class GlobalStrategyCellRenderer extends DefaultTableCellRenderer {
 
         int row, colunm;
         float node_strategy;
@@ -853,6 +856,7 @@ public class SolverResult {
             }
         }
 
+        @Override
         public void paintComponent(Graphics g) {
             if (this.action == null) {
                 super.paintComponent(g);
@@ -863,7 +867,7 @@ public class SolverResult {
         }
     }
 
-    class GlobalStrategyColorTableCellRenderer extends DefaultTableCellRenderer {
+    static class GlobalStrategyColorTableCellRenderer extends DefaultTableCellRenderer {
         List<GameActions> actions;
         float[] global_strategy;
         float[] combos;
@@ -875,6 +879,7 @@ public class SolverResult {
             this.combos = combos;
         }
 
+        @Override
         public Component getTableCellRendererComponent(
                 JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
             GlobalStrategyCellRenderer cell_renderer = new GlobalStrategyCellRenderer(
@@ -888,13 +893,14 @@ public class SolverResult {
         }
     }
 
-    class UrlColorTableCellRenderer extends DefaultTableCellRenderer {
-        ArrayList<Color> colors;
+    static class UrlColorTableCellRenderer extends DefaultTableCellRenderer {
+        List<Color> colors;
 
-        public UrlColorTableCellRenderer(ArrayList<Color> colors) {
+        public UrlColorTableCellRenderer(List<Color> colors) {
             this.colors = colors;
         }
 
+        @Override
         public Component getTableCellRendererComponent(
                 JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
             setBackground(this.colors.get(column));

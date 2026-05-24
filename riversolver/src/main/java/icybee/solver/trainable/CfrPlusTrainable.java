@@ -69,7 +69,7 @@ public class CfrPlusTrainable extends Trainable {
     public float[] getAverageStrategy() {
         float[] retval = new float[this.action_number * this.card_number];
         if (this.cum_r_plus_sum == null || this.isAllZeros(this.cum_r_plus_sum)) {
-            Arrays.fill(retval, 1F / (this.action_number));
+            Arrays.fill(retval, 1F / this.action_number);
         } else {
             for (int action_id = 0; action_id < action_number; action_id++) {
                 for (int private_id = 0; private_id < this.card_number; private_id++) {
@@ -77,7 +77,7 @@ public class CfrPlusTrainable extends Trainable {
                     if (this.cum_r_plus_sum[private_id] != 0) {
                         retval[index] = this.cum_r_plus[index] / this.cum_r_plus_sum[private_id];
                     } else {
-                        retval[index] = 1F / (this.action_number);
+                        retval[index] = 1F / this.action_number;
                     }
                 }
             }
@@ -90,7 +90,7 @@ public class CfrPlusTrainable extends Trainable {
     public float[] getcurrentStrategy() {
         float[] retval = new float[this.action_number * this.card_number];
         if (this.r_plus_sum == null) {
-            Arrays.fill(retval, 1F / (this.action_number));
+            Arrays.fill(retval, 1F / this.action_number);
         } else {
             for (int action_id = 0; action_id < action_number; action_id++) {
                 for (int private_id = 0; private_id < this.card_number; private_id++) {
@@ -98,7 +98,7 @@ public class CfrPlusTrainable extends Trainable {
                     if (this.r_plus_sum[private_id] != 0) {
                         retval[index] = this.r_plus[index] / this.r_plus_sum[private_id];
                     } else {
-                        retval[index] = 1F / (this.action_number);
+                        retval[index] = 1F / this.action_number;
                     }
                     if (Float.isNaN(this.r_plus[index])) throw new RuntimeException();
                     /*
@@ -126,7 +126,7 @@ public class CfrPlusTrainable extends Trainable {
     public float[] getcurrentStrategy(int private_id) {
         float[] retval = new float[this.action_number];
         if (this.r_plus_sum == null || this.r_plus_sum[private_id] == 0) {
-            Arrays.fill(retval, Float.valueOf(1) / (this.action_number));
+            Arrays.fill(retval, Float.valueOf(1) / this.action_number);
         } else {
             for (int action_id = 0; action_id < action_number; action_id++) {
                 int index = action_id * this.card_number + private_id;

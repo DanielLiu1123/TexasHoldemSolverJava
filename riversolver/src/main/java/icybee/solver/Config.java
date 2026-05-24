@@ -49,31 +49,27 @@ public class Config {
             String key = name.toString();
             Object value = map.get(key);
             switch (key) {
-                case "deck": {
+                case "deck" -> {
                     Map deckdic = (Map) value;
                     ranks = (List<String>) ((Map) deckdic.get("kwargs")).get("rank");
                     suits = (List<String>) ((Map) deckdic.get("kwargs")).get("suit");
-                    break;
                 }
-                case "compairer": {
+                case "compairer" -> {
                     Map kwargs = (Map) ((Map) value).get("kwargs");
                     String dic_dir = (String) kwargs.get("dicfile");
                     String type = (String) ((Map) value).get("type");
-                    int lines = (Integer) ((kwargs).get("lines"));
+                    int lines = (Integer) kwargs.get("lines");
                     this.compairer_dic_dir = dic_dir;
                     this.compairer_type = type;
                     this.compairer_lines = lines;
-
-                    break;
                 }
-                case "tree_builder": {
+                case "tree_builder" -> {
                     this.tree_builder = true;
                     Map kwargs = (Map) ((Map) value).get("kwargs");
                     String json_file = (String) kwargs.get("json_file");
                     this.tree_builder_json = json_file;
-                    break;
                 }
-                case "solver": {
+                case "solver" -> {
                     String type = (String) ((Map) value).get("type");
                     solver_type = type;
                 }

@@ -1,7 +1,9 @@
 package icybee.solver.gui;
 
+import com.google.common.base.Splitter;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.List;
 import javax.swing.*;
 import javax.swing.border.EtchedBorder;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -9,7 +11,10 @@ import javax.swing.table.DefaultTableModel;
 
 public class BoardSelector {
     private JTextArea board_text;
+
+    @SuppressWarnings("UnusedVariable")
     private JPanel board_table_holder;
+
     private JScrollPane board_panel;
     private JTable board_table;
     private JButton confirmButton;
@@ -43,7 +48,7 @@ public class BoardSelector {
         grid_text = new String[4][columnName.length];
         selecte2d = new boolean[4][columnName.length];
 
-        String[] boardstr = init_board_str.split(",");
+        List<String> boardstr = Splitter.on(',').splitToList(init_board_str);
         String colors = "cdhs";
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < columnName.length; j++) {
@@ -145,6 +150,7 @@ public class BoardSelector {
             this.selected = selecte2d[row][colunm];
         }
 
+        @Override
         public void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g;
             g2.setColor(Color.GRAY);
@@ -155,6 +161,7 @@ public class BoardSelector {
     }
 
     class BoardGridColorTableCellRenderer extends DefaultTableCellRenderer {
+        @Override
         public Component getTableCellRendererComponent(
                 JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
             BoardGridCellRenderer cell_renderer = new BoardGridCellRenderer(row, column, isSelected);

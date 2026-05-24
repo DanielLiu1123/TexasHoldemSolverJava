@@ -152,99 +152,61 @@ public class Card {
     }
 
     static String suitToString(int suit) {
-        switch (suit) {
-            case 0:
-                return "c";
-            case 1:
-                return "d";
-            case 2:
-                return "h";
-            case 3:
-                return "s";
-            default:
-                return "c";
-        }
+        return switch (suit) {
+            case 0 -> "c";
+            case 1 -> "d";
+            case 2 -> "h";
+            case 3 -> "s";
+            default -> "c";
+        };
     }
 
     static String suitToFormatString(int suit) {
-        switch (suit) {
-            case 0:
-                return "<font color=\"black\">♣</font>";
-            case 1:
-                return "<font color=\"red\">♦</font>";
-            case 2:
-                return "<font color=\"red\">♥</font>";
-            case 3:
-                return "<font color=\"black\">♠</font>";
-            default:
-                return "♣</font>";
-        }
+        return switch (suit) {
+            case 0 -> "<font color=\"black\">♣</font>";
+            case 1 -> "<font color=\"red\">♦</font>";
+            case 2 -> "<font color=\"red\">♥</font>";
+            case 3 -> "<font color=\"black\">♠</font>";
+            default -> "♣</font>";
+        };
     }
 
     static String rankToString(int rank) {
-        switch (rank) {
-            case 2:
-                return "2";
-            case 3:
-                return "3";
-            case 4:
-                return "4";
-            case 5:
-                return "5";
-            case 6:
-                return "6";
-            case 7:
-                return "7";
-            case 8:
-                return "8";
-            case 9:
-                return "9";
-            case 10:
-                return "T";
-            case 11:
-                return "J";
-            case 12:
-                return "Q";
-            case 13:
-                return "K";
-            case 14:
-                return "A";
-            default:
-                return "2";
-        }
+        return switch (rank) {
+            case 2 -> "2";
+            case 3 -> "3";
+            case 4 -> "4";
+            case 5 -> "5";
+            case 6 -> "6";
+            case 7 -> "7";
+            case 8 -> "8";
+            case 9 -> "9";
+            case 10 -> "T";
+            case 11 -> "J";
+            case 12 -> "Q";
+            case 13 -> "K";
+            case 14 -> "A";
+            default -> "2";
+        };
     }
 
     static int rankToInt(char rank) {
-        switch (rank) {
-            case '2':
-                return 2;
-            case '3':
-                return 3;
-            case '4':
-                return 4;
-            case '5':
-                return 5;
-            case '6':
-                return 6;
-            case '7':
-                return 7;
-            case '8':
-                return 8;
-            case '9':
-                return 9;
-            case 'T':
-                return 10;
-            case 'J':
-                return 11;
-            case 'Q':
-                return 12;
-            case 'K':
-                return 13;
-            case 'A':
-                return 14;
-            default:
-                return 2;
-        }
+        return switch (rank) {
+            case '2' -> 2;
+            case '3' -> 3;
+            case '4' -> 4;
+            case '5' -> 5;
+            case '6' -> 6;
+            case '7' -> 7;
+            case '8' -> 8;
+            case '9' -> 9;
+            case 'T' -> 10;
+            case 'J' -> 11;
+            case 'Q' -> 12;
+            case 'K' -> 13;
+            case 'A' -> 14;
+            default -> 2;
+        };
     }
 
     static String[] getRanks() {
@@ -252,18 +214,13 @@ public class Card {
     }
 
     static int suitToInt(char suit) {
-        switch (suit) {
-            case 'c':
-                return 0; // 梅花
-            case 'd':
-                return 1; // 方块
-            case 'h':
-                return 2; // 红桃
-            case 's':
-                return 3; // 黑桃
-            default:
-                return 0;
-        }
+        return switch (suit) {
+            case 'c' -> 0; // 梅花
+            case 'd' -> 1; // 方块
+            case 'h' -> 2; // 红桃
+            case 's' -> 3; // 黑桃
+            default -> 0;
+        };
     }
 
     public static String[] getSuits() {

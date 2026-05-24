@@ -2,6 +2,7 @@ package icybee.solver;
 
 import static icybee.solver.utils.JsonUtil.MAPPER;
 
+import com.google.common.base.Splitter;
 import icybee.solver.exceptions.ActionNotFoundException;
 import icybee.solver.exceptions.NodeLengthMismatchException;
 import icybee.solver.exceptions.NodeNotFoundException;
@@ -14,6 +15,7 @@ import icybee.solver.nodes.ShowdownNode;
 import icybee.solver.nodes.TerminalNode;
 import icybee.solver.solver.GameTreeBuildingSettings;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -45,7 +47,7 @@ public class GameTree {
 
     private static String readAllBytes(String filePath) throws IOException {
         String content;
-        content = new String(Files.readAllBytes(Paths.get(filePath)));
+        content = new String(Files.readAllBytes(Paths.get(filePath)), StandardCharsets.UTF_8);
         return content;
     }
 
@@ -118,24 +120,24 @@ public class GameTree {
                 }
                 default -> {
                     if (one_action.contains("bet")) {
-                        String[] action_sp = one_action.split("_");
-                        if (action_sp.length != 2)
-                            throw new RuntimeException(String.format("action sp length %d", action_sp.length));
-                        String action_str = action_sp[0];
+                        List<String> action_sp = Splitter.on('_').splitToList(one_action);
+                        if (action_sp.size() != 2)
+                            throw new RuntimeException(String.format("action sp length %d", action_sp.size()));
+                        String action_str = action_sp.get(0);
                         action = GameTreeNode.PokerActions.BET;
                         if (!action_str.equals("bet"))
                             throw new ActionNotFoundException(String.format("Action %s not found", action_str));
-                        amount = Double.valueOf(action_sp[1]);
+                        amount = Double.valueOf(action_sp.get(1));
 
                     } else if (one_action.contains("raise")) {
-                        String[] action_sp = one_action.split("_");
-                        if (action_sp.length != 2)
-                            throw new RuntimeException(String.format("action sp length %d", action_sp.length));
-                        String action_str = action_sp[0];
+                        List<String> action_sp = Splitter.on('_').splitToList(one_action);
+                        if (action_sp.size() != 2)
+                            throw new RuntimeException(String.format("action sp length %d", action_sp.size()));
+                        String action_str = action_sp.get(0);
                         action = GameTreeNode.PokerActions.RAISE;
                         if (!action_str.equals("raise"))
                             throw new ActionNotFoundException(String.format("Action %s not found", action_str));
-                        amount = Double.valueOf(action_sp[1]);
+                        amount = Double.valueOf(action_sp.get(1));
                     } else {
                         throw new ActionNotFoundException(String.format("%s action not found", one_action));
                     }
@@ -165,10 +167,10 @@ public class GameTree {
     void convertObject2Double(List<Object> from, Double[] to) {
         for (int winner_player = 0; winner_player < from.size(); winner_player++) {
             Object tmp_payoff = from.get(winner_player);
-            if (tmp_payoff instanceof Integer) {
-                to[winner_player] = ((Integer) tmp_payoff).doubleValue();
-            } else if (tmp_payoff instanceof Double) {
-                to[winner_player] = ((Double) tmp_payoff);
+            if (tmp_payoff instanceof Integer i) {
+                to[winner_player] = i.doubleValue();
+            } else if (tmp_payoff instanceof Double d) {
+                to[winner_player] = d;
             } else {
                 throw new RuntimeException(String.format("payoff data type %s not underestood", tmp_payoff.toString()));
             }
@@ -214,10 +216,10 @@ public class GameTree {
         for (int one_player = 0; one_player < player_payoff_list.size(); one_player++) {
 
             Object tmp_payoff = player_payoff_list.get(one_player);
-            if (tmp_payoff instanceof Integer) {
-                player_payoff[one_player] = ((Integer) tmp_payoff).doubleValue();
-            } else if (tmp_payoff instanceof Double) {
-                player_payoff[one_player] = (Double) tmp_payoff;
+            if (tmp_payoff instanceof Integer i) {
+                player_payoff[one_player] = i.doubleValue();
+            } else if (tmp_payoff instanceof Double d) {
+                player_payoff[one_player] = d;
             } else {
                 throw new RuntimeException(String.format("payoff data type %s not underestood", tmp_payoff.toString()));
             }
@@ -297,8 +299,8 @@ public class GameTree {
             throw new NodeNotFoundException(String.format("node type %s not found", node_type));
         }
 
-        switch (node_type) {
-            case "Action": {
+        return switch (node_type) {
+            case "Action" -> {
                 // 孩子节点的动作，存在list里
                 List<String> childrens_actions = (List<String>) node_json.get("children_actions");
                 if (childrens_actions == null) {
@@ -313,23 +315,17 @@ public class GameTree {
                 if (childrens.size() != childrens_actions.size()) {
                     throw new NodeLengthMismatchException("action node child length mismatch");
                 }
-                return this.generateActionNode(meta, childrens_actions, childrens, round, parent);
+                yield this.generateActionNode(meta, childrens_actions, childrens, round, parent);
             }
-            case "Showdown": {
-                return this.generateShowdownNode(meta, round, parent);
-            }
-            case "Terminal": {
-                return this.generateTerminalNode(meta, round, parent);
-            }
-            case "Chance": {
+            case "Showdown" -> this.generateShowdownNode(meta, round, parent);
+            case "Terminal" -> this.generateTerminalNode(meta, round, parent);
+            case "Chance" -> {
                 List<Map> childrens = Objects.requireNonNull((List<Map>) node_json.get("children"), "children");
                 if (childrens.size() != 1) throw new RuntimeException("Chance node should have only one child");
-                return this.generateChanceNode(meta, childrens.getFirst(), round, parent);
+                yield this.generateChanceNode(meta, childrens.getFirst(), round, parent);
             }
-            default: {
-                throw new NodeNotFoundException(String.format("node type %s not found", node_type));
-            }
-        }
+            default -> throw new NodeNotFoundException(String.format("node type %s not found", node_type));
+        };
     }
 
     public GameTree(String tree_json_dir, Deck deck) throws IOException {
@@ -353,7 +349,7 @@ public class GameTree {
         float stack;
         GameTreeBuildingSettings build_settings;
 
-        public Rule(
+        Rule(
                 Deck deck,
                 float oop_commit,
                 float ip_commit,
@@ -374,7 +370,7 @@ public class GameTree {
             this.build_settings = build_settings;
         }
 
-        public Rule(Rule rule) {
+        Rule(Rule rule) {
             this.deck = rule.deck;
             this.oop_commit = rule.oop_commit;
             this.ip_commit = rule.ip_commit;
@@ -386,7 +382,7 @@ public class GameTree {
             this.build_settings = rule.build_settings;
         }
 
-        public float get_pot() {
+        float get_pot() {
             return this.oop_commit + this.ip_commit;
         }
 

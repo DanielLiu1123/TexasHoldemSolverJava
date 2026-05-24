@@ -11,9 +11,11 @@ import icybee.solver.trainable.CfrPlusTrainable;
 import icybee.solver.trainable.CfrTrainable;
 import icybee.solver.trainable.DiscountedCfrTrainable;
 import icybee.solver.utils.PrivateRangeConverter;
+import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -120,10 +122,9 @@ public class PokerSolver {
             return strategy_json;
         } else {
             File output_file = new File(output_strategy_file);
-            FileWriter writer = new FileWriter(output_file);
-            writer.write(strategy_json);
-            writer.flush();
-            writer.close();
+            try (BufferedWriter writer = Files.newBufferedWriter(output_file.toPath(), StandardCharsets.UTF_8)) {
+                writer.write(strategy_json);
+            }
             return output_strategy_file;
         }
     }

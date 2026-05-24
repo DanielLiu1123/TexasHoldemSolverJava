@@ -1,5 +1,6 @@
 package icybee.solver.gui;
 
+import com.google.common.base.Splitter;
 import icybee.solver.Card;
 import icybee.solver.Config;
 import icybee.solver.Deck;
@@ -18,6 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javax.swing.*;
 import org.jspecify.annotations.Nullable;
@@ -25,9 +27,16 @@ import org.jspecify.annotations.Nullable;
 public class SolverGui {
 
     private JPanel mainPanel;
+
+    @SuppressWarnings("UnusedVariable")
     private JPanel left;
+
+    @SuppressWarnings("UnusedVariable")
     private JTabbedPane tabbedPane1;
+
+    @SuppressWarnings("UnusedVariable")
     private JPanel board;
+
     private JTextArea ooprange;
     private JButton selectOOPRangeButton;
     private JTextArea iprange;
@@ -120,10 +129,10 @@ public class SolverGui {
     }
 
     float[] parseBetSizes(String betstr) {
-        String[] bets_str = betstr.split(" ");
-        float[] bet_sizes = new float[bets_str.length];
-        for (int i = 0; i < bets_str.length; i++) {
-            String one_bet_str = bets_str[i];
+        List<String> bets_str = Splitter.on(' ').splitToList(betstr);
+        float[] bet_sizes = new float[bets_str.size()];
+        for (int i = 0; i < bets_str.size(); i++) {
+            String one_bet_str = bets_str.get(i);
             if (one_bet_str.length() == 0) continue;
             boolean multiplier = false;
             if (one_bet_str.charAt(one_bet_str.length() - 1) == 'x') {
@@ -222,7 +231,7 @@ public class SolverGui {
         try {
             load_compairer();
         } catch (java.io.IOException err) {
-            err.printStackTrace();
+            throw new RuntimeException(err);
         }
         System.out.println("initization complete");
     }
@@ -238,11 +247,11 @@ public class SolverGui {
         // TODO check these ranges
 
         String board = boardstr.getText();
-        String[] board_cards = board.split(",");
+        List<String> board_cards = Splitter.on(',').splitToList(board);
 
-        int[] initialBoard = new int[board_cards.length];
-        for (int i = 0; i < board_cards.length; i++) {
-            initialBoard[i] = Card.strCard2int(board_cards[i]);
+        int[] initialBoard = new int[board_cards.size()];
+        for (int i = 0; i < board_cards.size(); i++) {
+            initialBoard[i] = Card.strCard2int(board_cards.get(i));
         }
 
         PrivateCards[] player1Range = PrivateRangeConverter.rangeStr2Cards(player1RangeStr, initialBoard);
@@ -309,7 +318,7 @@ public class SolverGui {
                         try {
                             solve();
                         } catch (Exception err) {
-                            err.printStackTrace();
+                            throw new RuntimeException(err);
                         }
                     })
                     .start();

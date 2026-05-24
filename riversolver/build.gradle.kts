@@ -19,6 +19,7 @@ dependencies {
     implementation("tools.jackson.core:jackson-databind:${providers.gradleProperty("jacksonVersion").get()}")
     implementation("org.apache.commons:commons-lang3:${providers.gradleProperty("commonsLang3Version").get()}")
     implementation("net.sourceforge.argparse4j:argparse4j:${providers.gradleProperty("argparse4jVersion").get()}")
+    implementation("com.google.guava:guava:${providers.gradleProperty("guavaVersion").get()}")
     implementation("com.jetbrains.intellij.java:java-gui-forms-rt:${providers.gradleProperty("formsRtVersion").get()}")
 
     antTask("com.jetbrains.intellij.java:java-compiler-ant-tasks:+")
@@ -32,7 +33,7 @@ application {
 
 // see https://github.com/edward3h/systray-mpd/blob/master/build.gradle
 tasks.named<JavaCompile>("compileJava") {
-//    notCompatibleWithConfigurationCache("Uses Ant tasks for IntelliJ form instrumentation")
+    notCompatibleWithConfigurationCache("Uses Ant tasks for IntelliJ form instrumentation")
 
 //    dependsOn(configurations["implementation"].getTaskDependencyFromProjectDependency(true, "jar"))
 

@@ -1,5 +1,6 @@
 package icybee.solver.gui;
 
+import com.google.common.base.Splitter;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
@@ -7,6 +8,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import javax.swing.*;
 import javax.swing.border.EtchedBorder;
 import javax.swing.event.ChangeEvent;
@@ -24,7 +26,10 @@ public class RangeSelector {
     private JTextArea range_text;
     private JTable range_table;
     private JTree file_tree;
+
+    @SuppressWarnings("UnusedVariable")
     private JPanel range_table_holder;
+
     private JSlider num_slider;
     private JScrollPane range_panel;
     private JLabel number;
@@ -177,6 +182,7 @@ public class RangeSelector {
         new Thread(ccn).start();
 
         file_tree.addTreeSelectionListener(new TreeSelectionListener() {
+            @Override
             public void valueChanged(TreeSelectionEvent e) {
                 DefaultMutableTreeNode node = (DefaultMutableTreeNode) file_tree.getLastSelectedPathComponent();
 
@@ -192,7 +198,7 @@ public class RangeSelector {
                         range_text.updateUI();
                         range_table.updateUI();
                     } catch (IOException ex) {
-                        ex.printStackTrace();
+                        throw new RuntimeException(ex);
                     }
                 }
             }
@@ -228,14 +234,14 @@ public class RangeSelector {
     }
 
     private void processInputString(String input_range) {
-        String[] range_split = input_range.split(",");
+        List<String> range_split = Splitter.on(',').splitToList(input_range);
         for (String one_range_str : range_split) {
             if (one_range_str.length() == 0) continue;
-            String[] range_weight = one_range_str.split(":");
+            List<String> range_weight = Splitter.on(':').splitToList(one_range_str);
             String pure_range_str;
             float weight = 1;
-            pure_range_str = range_weight[0];
-            if (range_weight.length == 2) weight = Float.valueOf(range_weight[1]);
+            pure_range_str = range_weight.get(0);
+            if (range_weight.size() == 2) weight = Float.valueOf(range_weight.get(1));
 
             if (pure_range_str.length() == 2 && pure_range_str.charAt(0) != pure_range_str.charAt(1)) {
                 process(pure_range_str + "o", weight);
@@ -268,6 +274,7 @@ public class RangeSelector {
             g2.drawRect(0, 0, getWidth(), getHeight());
         }
 
+        @Override
         public void paintComponent(Graphics g) {
             int disable_height = (int) ((1 - this.node_range) * getHeight());
             Graphics2D g2 = (Graphics2D) g;
@@ -284,6 +291,7 @@ public class RangeSelector {
     }
 
     class RangeGridColorTableCellRenderer extends DefaultTableCellRenderer {
+        @Override
         public Component getTableCellRendererComponent(
                 JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
             RangeGridCellRenderer cell_renderer = new RangeGridCellRenderer(row, column, isSelected);
@@ -291,7 +299,7 @@ public class RangeSelector {
         }
     }
 
-    public class CreateChildNodes implements Runnable {
+    public static class CreateChildNodes implements Runnable {
 
         private DefaultMutableTreeNode root;
 
@@ -321,7 +329,7 @@ public class RangeSelector {
         }
     }
 
-    public class FileNode {
+    public static class FileNode {
 
         private File file;
 
