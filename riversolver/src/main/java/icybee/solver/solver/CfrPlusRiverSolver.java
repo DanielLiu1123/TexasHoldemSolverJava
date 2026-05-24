@@ -3,53 +3,24 @@ package icybee.solver.solver;
 import static icybee.solver.utils.JsonUtil.MAPPER;
 
 import icybee.solver.Card;
-import icybee.solver.Deck;
-import icybee.solver.GameTree;
-import icybee.solver.compairer.Compairer;
 import icybee.solver.exceptions.BoardNotFoundException;
 import icybee.solver.nodes.*;
 import icybee.solver.ranges.PrivateCards;
 import icybee.solver.ranges.RiverCombs;
 import icybee.solver.trainable.Trainable;
-import icybee.solver.trainable.TrainableFactory;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
-import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.node.ObjectNode;
 
 /** Single-threaded CFR+ solver. */
 public class CfrPlusRiverSolver extends AbstractCfrSolver {
 
-    public CfrPlusRiverSolver(
-            GameTree tree,
-            PrivateCards[] range1,
-            PrivateCards[] range2,
-            int[] initialBoard,
-            Compairer compairer,
-            Deck deck,
-            int iterationNumber,
-            boolean debug,
-            int printInterval,
-            @Nullable String logfile,
-            TrainableFactory trainerFactory,
-            MonteCarolAlg monteCarolAlg) {
-        super(
-                tree,
-                range1,
-                range2,
-                initialBoard,
-                compairer,
-                deck,
-                iterationNumber,
-                debug,
-                printInterval,
-                logfile,
-                trainerFactory,
-                monteCarolAlg);
+    public CfrPlusRiverSolver(SolverConfig config) {
+        super(config);
     }
 
     @Override

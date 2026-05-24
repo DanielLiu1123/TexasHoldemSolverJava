@@ -3,22 +3,17 @@ package icybee.solver.solver;
 import static icybee.solver.utils.JsonUtil.MAPPER;
 
 import icybee.solver.Card;
-import icybee.solver.Deck;
-import icybee.solver.GameTree;
-import icybee.solver.compairer.Compairer;
 import icybee.solver.nodes.*;
 import icybee.solver.ranges.PrivateCards;
 import icybee.solver.ranges.RiverCombs;
 import icybee.solver.trainable.DiscountedCfrTrainable;
 import icybee.solver.trainable.Trainable;
-import icybee.solver.trainable.TrainableFactory;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.*;
-import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.node.ObjectNode;
 
 /** Parallel CFR+ solver using ForkJoin work-stealing. */
@@ -32,36 +27,13 @@ public class ParallelCfrPlusSolver extends AbstractCfrSolver {
     int no_fork_subtree_size;
 
     public ParallelCfrPlusSolver(
-            GameTree tree,
-            PrivateCards[] range1,
-            PrivateCards[] range2,
-            int[] initialBoard,
-            Compairer compairer,
-            Deck deck,
-            int iterationNumber,
-            boolean debug,
-            int printInterval,
-            @Nullable String logfile,
-            TrainableFactory trainerFactory,
-            MonteCarolAlg monteCarolAlg,
+            SolverConfig config,
             int nthreads,
             double forkprobAction,
             double forkprobChance,
             int forkBetween,
             int noForkSubtreeSize) {
-        super(
-                tree,
-                range1,
-                range2,
-                initialBoard,
-                compairer,
-                deck,
-                iterationNumber,
-                debug,
-                printInterval,
-                logfile,
-                trainerFactory,
-                monteCarolAlg);
+        super(config);
         if (nthreads >= 1) {
             this.nthreads = nthreads;
         } else if (nthreads == -1) {

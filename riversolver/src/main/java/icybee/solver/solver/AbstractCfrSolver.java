@@ -2,7 +2,6 @@ package icybee.solver.solver;
 
 import icybee.solver.Card;
 import icybee.solver.Deck;
-import icybee.solver.GameTree;
 import icybee.solver.RiverRangeManager;
 import icybee.solver.compairer.Compairer;
 import icybee.solver.nodes.ActionNode;
@@ -39,45 +38,33 @@ abstract class AbstractCfrSolver extends Solver {
     int[] round_deal;
     MonteCarolAlg monteCarolAlg;
 
-    protected AbstractCfrSolver(
-            GameTree tree,
-            PrivateCards[] range1,
-            PrivateCards[] range2,
-            int[] initialBoard,
-            Compairer compairer,
-            Deck deck,
-            int iterationNumber,
-            boolean debug,
-            int printInterval,
-            @Nullable String logfile,
-            TrainableFactory trainerFactory,
-            MonteCarolAlg monteCarolAlg) {
-        super(tree);
-        this.initial_board = initialBoard;
-        this.initial_board_long = Card.boardInts2long(initialBoard);
-        this.logfile = logfile;
-        this.trainerFactory = trainerFactory;
+    protected AbstractCfrSolver(SolverConfig config) {
+        super(config.tree());
+        this.initial_board = config.initialBoard();
+        this.initial_board_long = Card.boardInts2long(config.initialBoard());
+        this.logfile = config.logfile();
+        this.trainerFactory = config.trainerFactory();
 
-        range1 = this.noDuplicateRange(range1, initial_board_long);
-        range2 = this.noDuplicateRange(range2, initial_board_long);
+        PrivateCards[] range1 = this.noDuplicateRange(config.range1(), initial_board_long);
+        PrivateCards[] range2 = this.noDuplicateRange(config.range2(), initial_board_long);
 
         this.range1 = range1;
         this.range2 = range2;
         this.ranges = new PrivateCards[this.player_number][];
         this.ranges[0] = range1;
         this.ranges[1] = range2;
-        this.compairer = compairer;
-        this.deck = deck;
-        this.rrm = new RiverRangeManager(compairer);
-        this.iteration_number = iterationNumber;
+        this.compairer = config.compairer();
+        this.deck = config.deck();
+        this.rrm = new RiverRangeManager(config.compairer());
+        this.iteration_number = config.iterationNumber();
 
         PrivateCards[][] privateCombos = new PrivateCards[this.player_number][];
         privateCombos[0] = range1;
         privateCombos[1] = range2;
         this.pcm = new PrivateCardsManager(privateCombos, this.player_number, Card.boardInts2long(this.initial_board));
-        this.debug = debug;
-        this.print_interval = printInterval;
-        this.monteCarolAlg = monteCarolAlg;
+        this.debug = config.debug();
+        this.print_interval = config.printInterval();
+        this.monteCarolAlg = config.monteCarolAlg();
         this.round_deal = new int[0];
     }
 

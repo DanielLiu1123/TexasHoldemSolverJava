@@ -7,6 +7,7 @@ import icybee.solver.solver.CfrPlusRiverSolver;
 import icybee.solver.solver.MonteCarolAlg;
 import icybee.solver.solver.ParallelCfrPlusSolver;
 import icybee.solver.solver.Solver;
+import icybee.solver.solver.SolverConfig;
 import icybee.solver.trainable.CfrPlusTrainable;
 import icybee.solver.trainable.CfrTrainable;
 import icybee.solver.trainable.DiscountedCfrTrainable;
@@ -80,40 +81,25 @@ public class PokerSolver {
         PrivateCards[] player1Range = PrivateRangeConverter.rangeStr2Cards(player1_range, initial_board_arr);
         PrivateCards[] player2Range = PrivateRangeConverter.rangeStr2Cards(player2_range, initial_board_arr);
 
+        SolverConfig solverConfig = new SolverConfig(
+                this.tree,
+                player1Range,
+                player2Range,
+                initial_board_arr,
+                compairer,
+                deck,
+                iteration_number,
+                debug,
+                print_interval,
+                logfile,
+                algorithm_class,
+                monte_coral_alg);
         Solver solver;
         if (parallel) {
             solver = new ParallelCfrPlusSolver(
-                    this.tree,
-                    player1Range,
-                    player2Range,
-                    initial_board_arr,
-                    compairer,
-                    deck,
-                    iteration_number,
-                    debug,
-                    print_interval,
-                    logfile,
-                    algorithm_class,
-                    monte_coral_alg,
-                    threads,
-                    fork_at_action,
-                    fork_at_chance,
-                    fork_every_n_depth,
-                    no_fork_subtree_size);
+                    solverConfig, threads, fork_at_action, fork_at_chance, fork_every_n_depth, no_fork_subtree_size);
         } else {
-            solver = new CfrPlusRiverSolver(
-                    this.tree,
-                    player1Range,
-                    player2Range,
-                    initial_board_arr,
-                    compairer,
-                    deck,
-                    iteration_number,
-                    debug,
-                    print_interval,
-                    logfile,
-                    algorithm_class,
-                    monte_coral_alg);
+            solver = new CfrPlusRiverSolver(solverConfig);
         }
         Map train_config = new HashMap();
         solver.train(train_config);

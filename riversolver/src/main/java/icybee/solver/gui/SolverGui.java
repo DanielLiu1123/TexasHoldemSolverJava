@@ -11,6 +11,7 @@ import icybee.solver.solver.GameTreeBuildingSettings;
 import icybee.solver.solver.MonteCarolAlg;
 import icybee.solver.solver.ParallelCfrPlusSolver;
 import icybee.solver.solver.Solver;
+import icybee.solver.solver.SolverConfig;
 import icybee.solver.trainable.CfrPlusTrainable;
 import icybee.solver.trainable.DiscountedCfrTrainable;
 import icybee.solver.trainable.TrainableFactory;
@@ -274,7 +275,7 @@ public class SolverGui {
 
         TrainableFactory trainerFactory =
                 algorithm.getSelectedIndex() == 0 ? DiscountedCfrTrainable::new : CfrPlusTrainable::new;
-        Solver solver = new ParallelCfrPlusSolver(
+        SolverConfig solverConfig = new SolverConfig(
                 game_tree,
                 player1Range,
                 player2Range,
@@ -286,12 +287,8 @@ public class SolverGui {
                 Integer.valueOf(log_interval.getText()),
                 logfile_name,
                 trainerFactory,
-                mc.isSelected() ? MonteCarolAlg.PUBLIC : MonteCarolAlg.NONE,
-                Integer.valueOf(threads.getText()),
-                1,
-                1,
-                1,
-                16);
+                mc.isSelected() ? MonteCarolAlg.PUBLIC : MonteCarolAlg.NONE);
+        Solver solver = new ParallelCfrPlusSolver(solverConfig, Integer.valueOf(threads.getText()), 1, 1, 1, 16);
         Map train_config = new HashMap();
         train_config.put("stop_exploitibility", Double.valueOf(exploitability.getText()));
         solver.train(train_config);

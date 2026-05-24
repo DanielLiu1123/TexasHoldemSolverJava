@@ -9,6 +9,7 @@ import icybee.solver.solver.CfrPlusRiverSolver;
 import icybee.solver.solver.MonteCarolAlg;
 import icybee.solver.solver.ParallelCfrPlusSolver;
 import icybee.solver.solver.Solver;
+import icybee.solver.solver.SolverConfig;
 import icybee.solver.trainable.DiscountedCfrTrainable;
 import icybee.solver.utils.PrivateRangeConverter;
 import java.io.File;
@@ -268,7 +269,7 @@ public class TexasHoldemSolverTest {
         PrivateCards[] player2Range = PrivateRangeConverter.rangeStr2Cards(player2RangeStr, initialBoard);
 
         String logfile_name = "src/test/resources/outputs/outputs_log.txt";
-        Solver solver = new CfrPlusRiverSolver(
+        Solver solver = new CfrPlusRiverSolver(new SolverConfig(
                 game_tree,
                 player1Range,
                 player2Range,
@@ -280,7 +281,7 @@ public class TexasHoldemSolverTest {
                 10,
                 logfile_name,
                 DiscountedCfrTrainable::new,
-                MonteCarolAlg.NONE);
+                MonteCarolAlg.NONE));
         Map train_config = new HashMap();
         solver.train(train_config);
     }
@@ -306,7 +307,7 @@ public class TexasHoldemSolverTest {
         PrivateCards[] player2Range = PrivateRangeConverter.rangeStr2Cards(player2RangeStr, initialBoard);
 
         String logfile_name = "src/test/resources/outputs/outputs_log.txt";
-        Solver solver = new CfrPlusRiverSolver(
+        Solver solver = new CfrPlusRiverSolver(new SolverConfig(
                 game_tree,
                 player1Range,
                 player2Range,
@@ -318,7 +319,7 @@ public class TexasHoldemSolverTest {
                 10,
                 logfile_name,
                 DiscountedCfrTrainable::new,
-                MonteCarolAlg.NONE);
+                MonteCarolAlg.NONE));
         Map train_config = new HashMap();
         solver.train(train_config);
 
@@ -355,7 +356,7 @@ public class TexasHoldemSolverTest {
         PrivateCards[] player2Range = PrivateRangeConverter.rangeStr2Cards(player2RangeStr, initialBoard);
 
         String logfile_name = "src/test/resources/outputs/outputs_log.txt";
-        Solver solver = new CfrPlusRiverSolver(
+        Solver solver = new CfrPlusRiverSolver(new SolverConfig(
                 game_tree,
                 player1Range,
                 player2Range,
@@ -367,7 +368,7 @@ public class TexasHoldemSolverTest {
                 10,
                 logfile_name,
                 DiscountedCfrTrainable::new,
-                MonteCarolAlg.NONE);
+                MonteCarolAlg.NONE));
         Map train_config = new HashMap();
         solver.train(train_config);
 
@@ -405,7 +406,7 @@ public class TexasHoldemSolverTest {
         PrivateCards[] player2Range = PrivateRangeConverter.rangeStr2Cards(player2RangeStr, initialBoard);
 
         String logfile_name = "src/test/resources/outputs/outputs_log.txt";
-        Solver solver = new CfrPlusRiverSolver(
+        Solver solver = new CfrPlusRiverSolver(new SolverConfig(
                 game_tree,
                 player1Range,
                 player2Range,
@@ -417,7 +418,7 @@ public class TexasHoldemSolverTest {
                 10,
                 logfile_name,
                 DiscountedCfrTrainable::new,
-                MonteCarolAlg.PUBLIC);
+                MonteCarolAlg.PUBLIC));
         Map train_config = new HashMap();
         solver.train(train_config);
 
@@ -456,18 +457,19 @@ public class TexasHoldemSolverTest {
 
         String logfile_name = "src/test/resources/outputs/outputs_log.txt";
         Solver solver = new ParallelCfrPlusSolver(
-                game_tree,
-                player1Range,
-                player2Range,
-                initialBoard,
-                TexasHoldemSolverTest.compairer,
-                TexasHoldemSolverTest.deck,
-                100,
-                false,
-                10,
-                logfile_name,
-                DiscountedCfrTrainable::new,
-                MonteCarolAlg.NONE,
+                new SolverConfig(
+                        game_tree,
+                        player1Range,
+                        player2Range,
+                        initialBoard,
+                        TexasHoldemSolverTest.compairer,
+                        TexasHoldemSolverTest.deck,
+                        100,
+                        false,
+                        10,
+                        logfile_name,
+                        DiscountedCfrTrainable::new,
+                        MonteCarolAlg.NONE),
                 2,
                 1,
                 0,
