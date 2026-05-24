@@ -58,11 +58,11 @@ public class SolverResult {
 
     float sum(float[] ins) {
         float sumnum = 0;
-        for (int i = 0; i < ins.length; i++) sumnum += ins[i];
+        for (float in : ins) sumnum += in;
         return sumnum;
     }
 
-    class NodeDesc {
+    static class NodeDesc {
         GameTreeNode node;
 
         @Nullable
@@ -123,6 +123,7 @@ public class SolverResult {
         game_tree_field.setModel(jtree_field.getModel());
 
         game_tree_field.addTreeSelectionListener(new TreeSelectionListener() {
+            @Override
             public void valueChanged(TreeSelectionEvent e) {
                 DefaultMutableTreeNode node = (DefaultMutableTreeNode) game_tree_field.getLastSelectedPathComponent();
 
@@ -232,8 +233,7 @@ public class SolverResult {
         String[][] content = new String[1][];
 
         GameTreeNode node = desc.node;
-        if (!(node instanceof ActionNode)) return;
-        ActionNode actionNode = (ActionNode) node;
+        if (!(node instanceof ActionNode actionNode)) return;
         String[] actions = new String[actionNode.getActions().size()];
         for (int i = 0; i < actions.length; i++) {
             actions[i] = actionNode.getActions().get(i).toString();
@@ -366,8 +366,7 @@ public class SolverResult {
 
     void reGenerateTree(GameTreeNode node, DefaultMutableTreeNode parent, GameTreeNode.GameRound stop_round) {
         if (node.getRound() != stop_round) return;
-        if (node instanceof ActionNode) {
-            ActionNode actionNode = (ActionNode) node;
+        if (node instanceof ActionNode actionNode) {
             List<GameTreeNode> childs = actionNode.getChildrens();
             List<GameActions> actions = actionNode.getActions();
 
@@ -383,8 +382,7 @@ public class SolverResult {
                 parent.add(one_tree_child);
                 reGenerateTree(one_child, one_tree_child, stop_round);
             }
-        } else if (node instanceof ChanceNode) {
-            ChanceNode chanceNode = (ChanceNode) node;
+        } else if (node instanceof ChanceNode chanceNode) {
             List<GameTreeNode> childs = chanceNode.getChildrens();
             List<Card> cards = chanceNode.getCards();
 
@@ -426,10 +424,9 @@ public class SolverResult {
             this.selected = selected;
 
             GameTreeNode node = desc.node;
-            if (!(node instanceof ActionNode)) {
+            if (!(node instanceof ActionNode actionNode)) {
                 return;
             }
-            ActionNode actionNode = (ActionNode) node;
             DiscountedCfrTrainable trainable =
                     (DiscountedCfrTrainable) Objects.requireNonNull(actionNode.getTrainable());
             float[] strategy = trainable.getAverageStrategy();
@@ -562,6 +559,7 @@ public class SolverResult {
             this.desc = desc;
         }
 
+        @Override
         public Component getTableCellRendererComponent(
                 JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
             EachCellRenderer cell_renderer = new EachCellRenderer(row, column, desc, isSelected);
@@ -570,7 +568,7 @@ public class SolverResult {
         }
     }
 
-    class DetailStrategyInfo {
+    static class DetailStrategyInfo {
         public String cards_name;
         public List<GameActions> actions;
         public float[] strategy;
@@ -662,8 +660,8 @@ public class SolverResult {
                     String card_infos = String.format(
                             "<html><h2 > %s </h2><br><h3>%.3f </h3></html>",
                             one_private_card.toFormatString(), reach_probs[one_player][i]);
-                    if (showType == ShowType.IPRANGE && one_player == 0
-                            || showType == ShowType.OOPRANGE && one_player == 1)
+                    if ((showType == ShowType.IPRANGE && one_player == 0)
+                            || (showType == ShowType.OOPRANGE && one_player == 1))
                         detail_grid_names[num / columnName.length][num % columnName.length] = card_infos;
                     // System.out.println(String.format("%s %s %s %s", one_player, num / columnName.length, num %
                     // columnName.length, reach_probs[one_player][i]));
@@ -688,23 +686,21 @@ public class SolverResult {
 
         int row, colunm;
 
-        @Nullable
-        float[] node_strategy;
+        float @Nullable [] node_strategy;
 
         @Nullable
         List<GameActions> actions;
 
         boolean selected;
 
-        @Nullable
-        float[][][] reach_prob3d;
+        float @Nullable [][][] reach_prob3d;
 
         @SuppressWarnings("NullAway.Init")
         public StragetyDetailCellRenderer(
                 int row,
                 int colunm,
                 @Nullable DetailStrategyInfo[][] strategy2d,
-                @Nullable float[][][] reach_prob3d,
+                float @Nullable [][][] reach_prob3d,
                 boolean selected) {
             this.row = row;
             this.colunm = colunm;
@@ -727,6 +723,7 @@ public class SolverResult {
             g2.drawRect(0, 0, getWidth(), getHeight());
         }
 
+        @Override
         public void paintComponent(Graphics g) {
             if (showType == ShowType.STRATEGY) {
                 paintStrategy(g);
@@ -803,11 +800,10 @@ public class SolverResult {
         @Nullable
         DetailStrategyInfo[][] strategy2d;
 
-        @Nullable
-        float[][][] reach_prob3d;
+        float @Nullable [][][] reach_prob3d;
 
         public StrategyDetailColorTableCellRenderer(
-                @Nullable DetailStrategyInfo[][] strategy2d, @Nullable float[][][] reach_prob3d) {
+                @Nullable DetailStrategyInfo[][] strategy2d, float @Nullable [][][] reach_prob3d) {
             this.strategy2d = strategy2d;
             this.reach_prob3d = reach_prob3d;
         }
