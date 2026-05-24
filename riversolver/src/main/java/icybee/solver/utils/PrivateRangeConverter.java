@@ -9,7 +9,7 @@ import java.util.Objects;
 
 public class PrivateRangeConverter {
     public static PrivateCards[] rangeStr2Cards(String range_str, int[] initial_boards) {
-        String[] range_list = range_str.split(",");
+        String[] range_list = range_str.split(",", -1);
         List<PrivateCards> private_cards = new ArrayList<PrivateCards>();
 
         for (String one_range : range_list) {

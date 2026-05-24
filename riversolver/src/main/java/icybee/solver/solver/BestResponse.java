@@ -138,7 +138,6 @@ public class BestResponse {
         if (cards.size() != node.getChildrens().size()) throw new RuntimeException();
         // float[] cardWeights = getCardsWeights(player,reach_probs[1 - player],current_board);
 
-        int card_num = node.getCards().size();
         // 可能的发牌情况,2代表每个人的holecard是两张
         int possible_deals = node.getChildrens().size() - Card.long2board(current_board).length - 2;
         float[] chance_utility = new float[reach_probs[player].length];
@@ -217,8 +216,7 @@ public class BestResponse {
             // 如果是别人做决定，那么就按照别人的策略加权算出一个 ev
             float[] total_payoffs = new float[player_hands[player]];
 
-            float[] node_strategy = null;
-            node_strategy = Objects.requireNonNull(node.getTrainable(), "trainable not set")
+            float[] node_strategy = Objects.requireNonNull(node.getTrainable(), "trainable not set")
                     .getAverageStrategy();
             if (node_strategy.length != node.getChildrens().size() * reach_probs[node.getPlayer()].length) {
                 throw new RuntimeException(String.format(

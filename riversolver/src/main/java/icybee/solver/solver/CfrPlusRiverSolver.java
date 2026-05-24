@@ -13,8 +13,11 @@ import icybee.solver.ranges.PrivateCards;
 import icybee.solver.ranges.PrivateCardsManager;
 import icybee.solver.ranges.RiverCombs;
 import icybee.solver.trainable.Trainable;
-import java.io.FileWriter;
+import java.io.Writer;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ThreadLocalRandom;
@@ -151,9 +154,7 @@ public class CfrPlusRiverSolver extends Solver {
 
     void setTrainable(GameTreeNode root)
             throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException {
-        if (root instanceof ActionNode) {
-            ActionNode action_node = (ActionNode) root;
-
+        if (root instanceof ActionNode action_node) {
             int player = action_node.getPlayer();
             PrivateCards[] player_privates = this.ranges[player];
 
@@ -163,8 +164,7 @@ public class CfrPlusRiverSolver extends Solver {
 
             List<GameTreeNode> childrens = action_node.getChildrens();
             for (GameTreeNode one_child : childrens) setTrainable(one_child);
-        } else if (root instanceof ChanceNode) {
-            ChanceNode chanceNode = (ChanceNode) root;
+        } else if (root instanceof ChanceNode chanceNode) {
             List<GameTreeNode> childrens = chanceNode.getChildrens();
             for (GameTreeNode one_child : childrens) setTrainable(one_child);
         } else if (root instanceof TerminalNode) {
@@ -188,7 +188,7 @@ public class CfrPlusRiverSolver extends Solver {
         br.printExploitability(tree.getRoot(), 0, tree.getRoot().getPot().floatValue(), initial_board_long);
 
         float[][] reach_probs = this.getReachProbs();
-        FileWriter fileWriter = new FileWriter(this.logfile);
+        Writer fileWriter = Files.newBufferedWriter(Paths.get(this.logfile), StandardCharsets.UTF_8);
 
         long begintime = System.currentTimeMillis();
         long endtime = System.currentTimeMillis();
@@ -240,18 +240,13 @@ public class CfrPlusRiverSolver extends Solver {
             throw new RuntimeException("node type unknown");
         }
          */
-        switch (node.getType()) {
-            case ACTION:
-                return actionUtility(player, (ActionNode) node, reach_probs, iter, current_board);
-            case SHOWDOWN:
-                return showdownUtility(player, (ShowdownNode) node, reach_probs, iter, current_board);
-            case TERMINAL:
-                return terminalUtility(player, (TerminalNode) node, reach_probs, iter, current_board);
-            case CHANCE:
-                return chanceUtility(player, (ChanceNode) node, reach_probs, iter, current_board);
-            default:
-                throw new RuntimeException("node type unknown");
-        }
+        return switch (node.getType()) {
+            case ACTION -> actionUtility(player, (ActionNode) node, reach_probs, iter, current_board);
+            case SHOWDOWN -> showdownUtility(player, (ShowdownNode) node, reach_probs, iter, current_board);
+            case TERMINAL -> terminalUtility(player, (TerminalNode) node, reach_probs, iter, current_board);
+            case CHANCE -> chanceUtility(player, (ChanceNode) node, reach_probs, iter, current_board);
+            default -> throw new RuntimeException("node type unknown");
+        };
     }
 
     float[] getCardsWeights(int player, float[] oppo_reach_probs, long current_board) {
@@ -316,7 +311,6 @@ public class CfrPlusRiverSolver extends Solver {
         if (cards.size() != node.getChildrens().size()) throw new RuntimeException();
         // float[] cardWeights = getCardsWeights(player,reach_probs[1 - player],current_board);
 
-        int card_num = node.getCards().size();
         // 可能的发牌情况,2代表每个人的holecard是两张
         int possible_deals = node.getChildrens().size() - Card.long2board(current_board).length - 2;
 
@@ -403,7 +397,6 @@ public class CfrPlusRiverSolver extends Solver {
 
     float[] actionUtility(int player, ActionNode node, float[][] reach_probs, int iter, long current_board)
             throws BoardNotFoundException {
-        int oppo = 1 - player;
         PrivateCards[] node_player_private_cards = this.ranges[node.getPlayer()];
         Trainable trainable = Objects.requireNonNull(node.getTrainable(), "trainable not set");
 

@@ -385,7 +385,7 @@ public class GameTree {
             return this.oop_commit + this.ip_commit;
         }
 
-        public float get_commit(int player) {
+        float get_commit(int player) {
             if (player == 0) return this.ip_commit;
             else if (player == 1) return this.oop_commit;
             else throw new RuntimeException("unknown player");
@@ -553,15 +553,6 @@ public class GameTree {
                                     root,
                                     rule.deck.getCards());
                         }
-                    } else if (root.getParent() == null) {
-                        nextrule = new Rule(rule);
-                        nextnode = new ActionNode(
-                                List.of(),
-                                List.of(),
-                                nextplayer,
-                                this.intToGameRound(rule.current_round),
-                                (double) rule.get_pot(),
-                                root);
                     } else {
                         nextrule = new Rule(rule);
                         nextnode = new ActionNode(
@@ -587,8 +578,8 @@ public class GameTree {
                     List<Double> bet_sizes = this.get_possible_bets(root, player, nextplayer, rule, betType);
                     for (Double one_betting_size : bet_sizes) {
                         Rule nextrule = new Rule(rule);
-                        if (player == 0) nextrule.ip_commit += one_betting_size;
-                        else if (player == 1) nextrule.oop_commit += one_betting_size;
+                        if (player == 0) nextrule.ip_commit = (float) (nextrule.ip_commit + one_betting_size);
+                        else if (player == 1) nextrule.oop_commit = (float) (nextrule.oop_commit + one_betting_size);
                         else throw new RuntimeException("unknown player");
                         GameTreeNode nextnode = new ActionNode(
                                 List.of(),
@@ -665,8 +656,8 @@ public class GameTree {
                     List<Double> bet_sizes = this.get_possible_bets(root, player, nextplayer, rule, BetType.RAISE);
                     for (Double one_betting_size : bet_sizes) {
                         Rule nextrule = new Rule(rule);
-                        if (player == 0) nextrule.ip_commit += one_betting_size;
-                        else if (player == 1) nextrule.oop_commit += one_betting_size;
+                        if (player == 0) nextrule.ip_commit = (float) (nextrule.ip_commit + one_betting_size);
+                        else if (player == 1) nextrule.oop_commit = (float) (nextrule.oop_commit + one_betting_size);
                         else throw new RuntimeException("unknown player");
                         GameTreeNode nextnode = new ActionNode(
                                 List.of(),
@@ -701,7 +692,7 @@ public class GameTree {
                 case null, default -> {}
             }
         }
-        assert (!actions.isEmpty());
+        assert !actions.isEmpty();
         root.setActions(actions);
         root.setChildrens(childrens);
     }
@@ -729,6 +720,7 @@ public class GameTree {
             all_in = false;
         } else if (betType == BetType.RAISE) bets_from_rule = streetSetting.raise_sizes;
         else throw new RuntimeException("bet type unknown");
+        if (bets_from_rule == null) return new ArrayList<>();
         for (float one_bet : bets_from_rule) {
             bets_ratios.add((double) one_bet / 100);
         }

@@ -7,10 +7,10 @@ public class GameTreeBuildingSettings {
     public static class StreetSetting {
         public float[] bet_sizes;
         public float[] raise_sizes;
-        public @Nullable float[] donk_sizes;
+        public float @Nullable [] donk_sizes;
         public boolean allin;
 
-        public StreetSetting(float[] bet_sizes, float[] raise_sizes, @Nullable float[] donk_sizes, boolean allin) {
+        public StreetSetting(float[] bet_sizes, float[] raise_sizes, float @Nullable [] donk_sizes, boolean allin) {
             this.bet_sizes = bet_sizes;
             this.raise_sizes = raise_sizes;
             this.donk_sizes = donk_sizes;

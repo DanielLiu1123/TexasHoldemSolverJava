@@ -4,6 +4,9 @@ import icybee.solver.Card;
 import icybee.solver.exceptions.BoardNotFoundException;
 import icybee.solver.exceptions.CardsNotFoundException;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -30,14 +33,14 @@ public class Dic5Compairer extends Compairer {
 
     public void load_compairer(String dic_dir, int lines, boolean verbose) throws IOException {
 
-        cardslong2rank = new Hashtable<>(lines * 50);
+        cardslong2rank = new LinkedHashMap<>(lines * 50);
 
-        BufferedReader bufferedReader = new BufferedReader(new FileReader(dic_dir));
+        BufferedReader bufferedReader = Files.newBufferedReader(Paths.get(dic_dir), StandardCharsets.UTF_8);
         String str;
         int ind = 0;
         try (ProgressBar pb = verbose ? new ProgressBar("Dic5Comapirer Load", lines) : null) {
             while ((str = bufferedReader.readLine()) != null) {
-                String[] linesp = str.trim().split(",");
+                String[] linesp = str.trim().split(",", -1);
                 String cards_str = linesp[0];
                 String[] cards = cards_str.split("-");
                 assert (cards.length == 5);

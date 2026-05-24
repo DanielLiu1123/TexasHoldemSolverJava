@@ -13,8 +13,11 @@ import icybee.solver.ranges.PrivateCardsManager;
 import icybee.solver.ranges.RiverCombs;
 import icybee.solver.trainable.DiscountedCfrTrainable;
 import icybee.solver.trainable.Trainable;
-import java.io.FileWriter;
+import java.io.Writer;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.*;
 import org.jspecify.annotations.Nullable;
@@ -166,9 +169,7 @@ public class ParallelCfrPlusSolver extends Solver {
 
     void setTrainable(GameTreeNode root)
             throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException {
-        if (root instanceof ActionNode) {
-            ActionNode action_node = (ActionNode) root;
-
+        if (root instanceof ActionNode action_node) {
             int player = action_node.getPlayer();
             PrivateCards[] player_privates = this.ranges[player];
 
@@ -178,8 +179,7 @@ public class ParallelCfrPlusSolver extends Solver {
 
             List<GameTreeNode> childrens = action_node.getChildrens();
             for (GameTreeNode one_child : childrens) setTrainable(one_child);
-        } else if (root instanceof ChanceNode) {
-            ChanceNode chanceNode = (ChanceNode) root;
+        } else if (root instanceof ChanceNode chanceNode) {
             List<GameTreeNode> childrens = chanceNode.getChildrens();
             for (GameTreeNode one_child : childrens) setTrainable(one_child);
         } else if (root instanceof TerminalNode) {
@@ -191,10 +191,10 @@ public class ParallelCfrPlusSolver extends Solver {
 
     private Double getValue(Map<String, Object> meta, String key) {
         Object value = meta.get(key);
-        if (value instanceof Integer) {
-            return ((Integer) value).doubleValue();
-        } else if (value instanceof Double) {
-            return (Double) value;
+        if (value instanceof Integer i) {
+            return i.doubleValue();
+        } else if (value instanceof Double d) {
+            return d;
         } else {
             return Double.valueOf(0);
         }
@@ -214,8 +214,8 @@ public class ParallelCfrPlusSolver extends Solver {
         br.printExploitability(tree.getRoot(), 0, tree.getRoot().getPot().floatValue(), initial_board_long);
 
         float[][] reach_probs = this.getReachProbs();
-        FileWriter fileWriter = null;
-        if (this.logfile != null) fileWriter = new FileWriter(this.logfile);
+        Writer fileWriter = null;
+        if (this.logfile != null) fileWriter = Files.newBufferedWriter(Paths.get(this.logfile), StandardCharsets.UTF_8);
 
         long begintime = System.currentTimeMillis();
         long endtime = System.currentTimeMillis();
@@ -307,18 +307,13 @@ public class ParallelCfrPlusSolver extends Solver {
             }
             return utility;
              */
-            switch (node.getType()) {
-                case ACTION:
-                    return actionUtility(player, (ActionNode) node, reach_probs, iter, current_board);
-                case SHOWDOWN:
-                    return showdownUtility(player, (ShowdownNode) node, reach_probs, iter, current_board);
-                case TERMINAL:
-                    return terminalUtility(player, (TerminalNode) node, reach_probs, iter, current_board);
-                case CHANCE:
-                    return chanceUtility(player, (ChanceNode) node, reach_probs, iter, current_board);
-                default:
-                    throw new RuntimeException("node type unknown");
-            }
+            return switch (node.getType()) {
+                case ACTION -> actionUtility(player, (ActionNode) node, reach_probs, iter, current_board);
+                case SHOWDOWN -> showdownUtility(player, (ShowdownNode) node, reach_probs, iter, current_board);
+                case TERMINAL -> terminalUtility(player, (TerminalNode) node, reach_probs, iter, current_board);
+                case CHANCE -> chanceUtility(player, (ChanceNode) node, reach_probs, iter, current_board);
+                default -> throw new RuntimeException("node type unknown");
+            };
         }
 
         float[] chanceUtility(int player, ChanceNode node, float[][] reach_probs, int iter, long current_board) {
@@ -326,7 +321,6 @@ public class ParallelCfrPlusSolver extends Solver {
             if (cards.size() != node.getChildrens().size()) throw new RuntimeException();
             // float[] cardWeights = getCardsWeights(player,reach_probs[1 - player],current_board);
 
-            int card_num = node.getCards().size();
             // 可能的发牌情况,2代表每个人的holecard是两张
             int possible_deals = node.getChildrens().size() - Card.long2board(current_board).length - 2;
 
@@ -434,7 +428,6 @@ public class ParallelCfrPlusSolver extends Solver {
         }
 
         float[] actionUtility(int player, ActionNode node, float[][] reach_probs, int iter, long current_board) {
-            int oppo = 1 - player;
             PrivateCards[] node_player_private_cards = this.solver_env.ranges[node.getPlayer()];
             Trainable trainable = Objects.requireNonNull(node.getTrainable(), "trainable not set");
 
@@ -563,8 +556,7 @@ public class ParallelCfrPlusSolver extends Solver {
                     }
                 }
                 trainable.updateRegrets(regrets, iter + 1, reach_probs[player]);
-                if (trainable instanceof DiscountedCfrTrainable) {
-                    DiscountedCfrTrainable dct = (DiscountedCfrTrainable) trainable;
+                if (trainable instanceof DiscountedCfrTrainable dct) {
                     dct.setEvs(payoffs);
                     dct.setReach_probs(reach_probs);
                 }
