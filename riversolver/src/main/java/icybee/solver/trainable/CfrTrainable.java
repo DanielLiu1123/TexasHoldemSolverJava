@@ -82,8 +82,7 @@ public class CfrTrainable extends Trainable {
                 }
             }
         }
-        return this.getcurrentStrategy();
-        // return retval;
+        return retval;
     }
 
     @Override
