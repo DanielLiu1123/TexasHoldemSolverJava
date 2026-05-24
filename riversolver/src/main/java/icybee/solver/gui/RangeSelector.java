@@ -41,7 +41,7 @@ public class RangeSelector {
     float[][] range_matrix;
     float global_range_num = 1;
     JFrame frame;
-    String range_file_root = "resources/ranges";
+    String range_file_root = resolveRangesRoot();
 
     public enum RangeType {
         HOLDEM,
@@ -168,11 +168,7 @@ public class RangeSelector {
         range_text.setText(convertRangeToText());
         range_text.updateUI();
         Path path = Paths.get(this.range_file_root);
-        if (!Files.exists(path)) {
-            this.range_file_root = "src/test/" + this.range_file_root;
-            path = Paths.get(this.range_file_root);
-        }
-        if (!Files.exists(path)) throw new RuntimeException("cannot find range folder");
+        if (!Files.exists(path)) throw new RuntimeException("cannot find range folder: " + path.toAbsolutePath());
         File fileRoot = new File(this.range_file_root);
         DefaultMutableTreeNode root = new DefaultMutableTreeNode(new FileNode(fileRoot));
         DefaultTreeModel treeModel = new DefaultTreeModel(root);
@@ -326,6 +322,18 @@ public class RangeSelector {
                 }
             }
         }
+    }
+
+    private static String resolveRangesRoot() {
+        Path appRoot = AppPaths.getAppRoot();
+        // Distribution layout: <dist-root>/ranges/
+        Path candidate = appRoot.resolve("ranges");
+        if (candidate.toFile().isDirectory()) return candidate.toString();
+        // IDE layout: <module-root>/src/test/resources/ranges/
+        Path testFallback = appRoot.resolve("src/test/resources/ranges");
+        if (testFallback.toFile().isDirectory()) return testFallback.toString();
+        // Return non-existent path; error is reported at init time with the full path
+        return candidate.toString();
     }
 
     public static class FileNode {

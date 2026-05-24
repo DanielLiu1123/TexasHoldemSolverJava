@@ -29,6 +29,21 @@ application {
     applicationName = "RiverSolver"
 }
 
+// Include data files in the distribution alongside the JAR.
+// At runtime, AppPaths.getAppRoot() resolves them relative to the distribution root.
+distributions {
+    main {
+        contents {
+            from("src/test/resources/compairer") {
+                into("compairer")
+            }
+            from("src/test/resources/ranges") {
+                into("ranges")
+            }
+        }
+    }
+}
+
 // see https://github.com/edward3h/systray-mpd/blob/master/build.gradle
 tasks.named<JavaCompile>("compileJava") {
     notCompatibleWithConfigurationCache("Uses Ant tasks for IntelliJ form instrumentation")

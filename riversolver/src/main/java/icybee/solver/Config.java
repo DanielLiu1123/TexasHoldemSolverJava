@@ -3,6 +3,9 @@ package icybee.solver;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.InputStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import org.jspecify.annotations.Nullable;
@@ -45,6 +48,20 @@ public class Config {
         File config_file = new File(input_file);
         FileInputStream fileInputStream = new FileInputStream(config_file);
         Map map = yaml_reader.load(fileInputStream);
+        parseMap(map);
+        resolveRelativePaths(config_file.getParentFile().getAbsolutePath());
+    }
+
+    @SuppressWarnings({"unchecked", "NullAway"})
+    public Config(InputStream inputStream, String baseDir) throws ClassNotFoundException {
+        Yaml yaml_reader = new Yaml(new SafeConstructor(new LoaderOptions()));
+        Map map = yaml_reader.load(inputStream);
+        parseMap(map);
+        resolveRelativePaths(baseDir);
+    }
+
+    @SuppressWarnings({"unchecked", "NullAway"})
+    private void parseMap(Map map) {
         for (Object name : map.keySet()) {
             String key = name.toString();
             Object value = map.get(key);
@@ -75,5 +92,21 @@ public class Config {
                 }
             }
         }
+    }
+
+    private void resolveRelativePaths(String baseDir) {
+        compairer_dic_dir = resolveResourcePath(compairer_dic_dir, baseDir);
+    }
+
+    private @Nullable String resolveResourcePath(@Nullable String path, String baseDir) {
+        if (path == null || Paths.get(path).isAbsolute()) return path;
+        // Try relative to baseDir directly (production distribution layout)
+        Path resolved = Paths.get(baseDir).resolve(path).normalize();
+        if (resolved.toFile().exists()) return resolved.toString();
+        // Fallback: try src/test/resources/<path> relative to baseDir (IDE development layout)
+        Path testFallback =
+                Paths.get(baseDir).resolve("src/test/resources").resolve(path).normalize();
+        if (testFallback.toFile().exists()) return testFallback.toString();
+        return path;
     }
 }

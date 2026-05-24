@@ -14,9 +14,10 @@ import icybee.solver.solver.Solver;
 import icybee.solver.trainable.CfrPlusTrainable;
 import icybee.solver.trainable.DiscountedCfrTrainable;
 import icybee.solver.utils.PrivateRangeConverter;
-import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintStream;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -97,31 +98,38 @@ public class SolverGui {
     }
 
     Config loadConfig(String conf_name) {
-        File file;
-        for (String one_url : new String[] {conf_name, "src/test/" + conf_name}) {
-            file = new File(one_url);
-            Config config;
-            try {
-                config = new Config(file.getAbsolutePath());
-            } catch (Exception e) {
-                continue;
+        Path appRoot = AppPaths.getAppRoot();
+        // Try classpath first (works in both IDE and JAR)
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream(conf_name)) {
+            if (is != null) {
+                return new Config(is, appRoot.toString());
             }
-            return config;
+        } catch (Exception e) {
+            // fall through to file system fallback
         }
-        throw new RuntimeException("load config failed: cannot find config file");
+        // File system fallback
+        for (String candidate : new String[] {
+            appRoot.resolve(conf_name).toString(),
+            appRoot.resolve("src/test/resources").resolve(conf_name).toString()
+        }) {
+            try {
+                return new Config(candidate);
+            } catch (Exception e) {
+                // try next
+            }
+        }
+        throw new RuntimeException("load config failed: cannot find config file: " + conf_name);
     }
 
     private void load_compairer() throws IOException {
         System.out.println("loading holdem compairer dictionary...");
-        String config_name = "resources/yamls/rule_holdem_simple.yaml";
-        Config config = this.loadConfig(config_name);
+        Config config = this.loadConfig("yamls/rule_holdem_simple.yaml");
         this.compairer_holdem = SolverEnvironment.compairerFromConfig(config, false);
         this.holdem_deck = SolverEnvironment.deckFromConfig(config);
         System.out.println("loading holdem compairer dictionary complete");
 
         System.out.println("loading shortdeck compairer dictionary...");
-        config_name = "resources/yamls/rule_shortdeck_simple.yaml";
-        config = this.loadConfig(config_name);
+        config = this.loadConfig("yamls/rule_shortdeck_simple.yaml");
         this.compairer_shortdeck = SolverEnvironment.compairerFromConfig(config, false);
         this.shortdeck_deck = SolverEnvironment.deckFromConfig(config);
         System.out.println("loading shortdeck compairer dictionary complete");
