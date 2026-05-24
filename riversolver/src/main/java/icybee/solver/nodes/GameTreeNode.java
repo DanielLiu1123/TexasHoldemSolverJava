@@ -56,7 +56,7 @@ public abstract class GameTreeNode {
     }
 
     GameRound round;
-    Double pot;
+    double pot;
 
     @Nullable
     GameTreeNode parent;
@@ -98,14 +98,11 @@ public abstract class GameTreeNode {
         this.parent = parent;
     }
 
-    public GameTreeNode(GameRound round, Double pot, @Nullable GameTreeNode parent) {
+    public GameTreeNode(GameRound round, double pot, @Nullable GameTreeNode parent) {
         if (round == null) {
             throw new RuntimeException("round is null in GameTreeNode");
         }
         this.round = round;
-        if (pot == null) {
-            throw new RuntimeException("pot is null in GameTreeNode");
-        }
         this.pot = pot;
         this.parent = parent;
     }
@@ -114,7 +111,7 @@ public abstract class GameTreeNode {
         return round;
     }
 
-    public Double getPot() {
+    public double getPot() {
         return pot;
     }
 

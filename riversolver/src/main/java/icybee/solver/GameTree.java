@@ -119,7 +119,7 @@ public class GameTree {
                 prefix.append("\t");
                 for (int i = 0; i < showdown_node.get_payoffs(ShowdownNode.ShowDownResult.TIE, null).length; i++) {
                     System.out.printf("%sif player %d wins, payoff :", prefix.toString(), i);
-                    Double[] payoffs = showdown_node.get_payoffs(ShowdownNode.ShowDownResult.NOTTIE, i);
+                    double[] payoffs = showdown_node.get_payoffs(ShowdownNode.ShowDownResult.NOTTIE, i);
 
                     for (int player_id = 0; player_id < payoffs.length; player_id++) {
                         System.out.printf(" p%d %f ", player_id, payoffs[player_id]);
@@ -127,7 +127,7 @@ public class GameTree {
                     System.out.println();
                 }
                 System.out.printf("%sif Tie, payoff :", prefix.toString());
-                Double[] payoffs = showdown_node.get_payoffs(ShowdownNode.ShowDownResult.TIE, null);
+                double[] payoffs = showdown_node.get_payoffs(ShowdownNode.ShowDownResult.TIE, null);
 
                 for (int player_id = 0; player_id < payoffs.length; player_id++) {
                     System.out.printf(" p%d %f ", player_id, payoffs[player_id]);
@@ -141,7 +141,7 @@ public class GameTree {
 
                 prefix.append("\t");
                 System.out.printf("%sTerminal payoff :", prefix);
-                Double[] payoffs = terminal_node.get_payoffs();
+                double[] payoffs = terminal_node.get_payoffs();
 
                 for (int player_id = 0; player_id < payoffs.length; player_id++) {
                     System.out.printf(" p%d %f ", player_id, payoffs[player_id]);

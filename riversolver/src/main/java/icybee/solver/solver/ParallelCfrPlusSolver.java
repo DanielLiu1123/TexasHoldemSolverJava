@@ -75,7 +75,7 @@ public class ParallelCfrPlusSolver extends AbstractCfrSolver {
         BestResponse br = new BestResponse(
                 playerPrivates, this.player_number, this.compairer, this.pcm, this.rrm, this.deck, this.debug);
 
-        br.printExploitability(tree.getRoot(), 0, tree.getRoot().getPot().floatValue(), initial_board_long);
+        br.printExploitability(tree.getRoot(), 0, (float) tree.getRoot().getPot(), initial_board_long);
 
         float[][] reachProbs = this.getReachProbs();
 
@@ -105,7 +105,7 @@ public class ParallelCfrPlusSolver extends AbstractCfrSolver {
                     System.out.println(String.format("time used: %.2fs", (float) timeMs / 1000));
                     System.out.println("-------------------");
                     float exploitability = br.printExploitability(
-                            tree.getRoot(), i + 1, tree.getRoot().getPot().floatValue(), initial_board_long);
+                            tree.getRoot(), i + 1, (float) tree.getRoot().getPot(), initial_board_long);
                     ObjectNode jo = MAPPER.createObjectNode();
                     jo.put("iteration", i);
                     jo.put("exploitability", exploitability);
@@ -386,8 +386,8 @@ public class ParallelCfrPlusSolver extends AbstractCfrSolver {
 
         float[] showdownUtility(int player, ShowdownNode node, float[][] reach_probs, int iter, long current_board) {
             int oppo = 1 - player;
-            float win_payoff = node.get_payoffs(ShowdownNode.ShowDownResult.NOTTIE, player)[player].floatValue();
-            float lose_payoff = node.get_payoffs(ShowdownNode.ShowDownResult.NOTTIE, oppo)[player].floatValue();
+            float win_payoff = (float) node.get_payoffs(ShowdownNode.ShowDownResult.NOTTIE, player)[player];
+            float lose_payoff = (float) node.get_payoffs(ShowdownNode.ShowDownResult.NOTTIE, oppo)[player];
             PrivateCards[] player_private_cards = this.solver_env.ranges[player];
             PrivateCards[] oppo_private_cards = this.solver_env.ranges[oppo];
 
@@ -503,9 +503,7 @@ public class ParallelCfrPlusSolver extends AbstractCfrSolver {
 
         float[] terminalUtility(int player, TerminalNode node, float[][] reach_prob, int iter, long current_board) {
 
-            Double player_payoff = node.get_payoffs()[player];
-            if (player_payoff == null)
-                throw new RuntimeException(String.format("player %d 's payoff is not found", player));
+            double player_payoff = node.get_payoffs()[player];
 
             int oppo = 1 - player;
             PrivateCards[] player_hand = playerHands(player);
@@ -539,7 +537,7 @@ public class ParallelCfrPlusSolver extends AbstractCfrSolver {
                 } else {
                     plus_reach_prob = reach_prob[oppo][oppo_same_card_ind];
                 }
-                payoffs[i] = player_payoff.floatValue()
+                payoffs[i] = (float) player_payoff
                         * (oppo_sum
                                 - oppo_card_sum[one_player_hand.card1]
                                 - oppo_card_sum[one_player_hand.card2]

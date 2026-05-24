@@ -7,17 +7,17 @@ import org.jspecify.annotations.Nullable;
  * This file contains implemtation for terminal node, Where all player(s) folds except one player take all.
  */
 public class TerminalNode extends GameTreeNode {
-    Double[] payoffs;
+    double[] payoffs;
     Integer winner;
 
     public TerminalNode(
-            Double[] payoffs, Integer winner, GameTreeNode.GameRound round, Double pot, @Nullable GameTreeNode parent) {
+            double[] payoffs, Integer winner, GameTreeNode.GameRound round, double pot, @Nullable GameTreeNode parent) {
         super(round, pot, parent);
         this.payoffs = payoffs;
         this.winner = winner;
     }
 
-    public Double[] get_payoffs() {
+    public double[] get_payoffs() {
         return payoffs;
     }
 

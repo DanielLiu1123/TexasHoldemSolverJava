@@ -127,13 +127,13 @@ class GameTreeBuilder {
                     double p1Commit = rule.ipCommit;
                     double p2Commit = rule.oopCommit;
                     double peaceGetback = (p1Commit + p2Commit) / 2;
-                    Double[][] payoffs = {
+                    double[][] payoffs = {
                         {p2Commit, -p2Commit},
                         {-p1Commit, p1Commit}
                     };
                     nextRule = new Rule(rule);
                     oneNode = new ShowdownNode(
-                            new Double[] {peaceGetback - p1Commit, peaceGetback - p2Commit},
+                            new double[] {peaceGetback - p1Commit, peaceGetback - p2Commit},
                             payoffs,
                             GameTreeNode.GameRound.fromInt(rule.currentRound),
                             (double) rule.getPot(),
@@ -198,13 +198,13 @@ class GameTreeBuilder {
                             double p1Commit = rule.ipCommit;
                             double p2Commit = rule.oopCommit;
                             double peaceGetback = (p1Commit + p2Commit) / 2;
-                            Double[][] payoffs = {
+                            double[][] payoffs = {
                                 {p2Commit, -p2Commit},
                                 {-p1Commit, p1Commit}
                             };
                             nextRule = new Rule(rule);
                             nextNode = new ShowdownNode(
-                                    new Double[] {peaceGetback - p1Commit, peaceGetback - p2Commit},
+                                    new double[] {peaceGetback - p1Commit, peaceGetback - p2Commit},
                                     payoffs,
                                     GameTreeNode.GameRound.fromInt(rule.currentRound),
                                     (double) rule.getPot(),
@@ -277,11 +277,11 @@ class GameTreeBuilder {
                         double p1Commit = nextRule.ipCommit;
                         double p2Commit = nextRule.oopCommit;
                         double peaceGetback = (p1Commit + p2Commit) / 2;
-                        Double[][] payoffs = {
+                        double[][] payoffs = {
                             {p2Commit, -p2Commit},
                             {-p1Commit, p1Commit}
                         };
-                        Double[] tiePayoffs = new Double[] {peaceGetback - p1Commit, peaceGetback - p2Commit};
+                        double[] tiePayoffs = new double[] {peaceGetback - p1Commit, peaceGetback - p2Commit};
                         nextNode = new ShowdownNode(
                                 tiePayoffs,
                                 payoffs,
@@ -334,11 +334,11 @@ class GameTreeBuilder {
                 }
                 case "fold" -> {
                     Rule nextRule = new Rule(rule);
-                    Double[] payoffs;
+                    double[] payoffs;
                     if (player == 0) {
-                        payoffs = new Double[] {(double) -rule.ipCommit, (double) rule.ipCommit};
+                        payoffs = new double[] {(double) -rule.ipCommit, (double) rule.ipCommit};
                     } else if (player == 1) {
-                        payoffs = new Double[] {(double) rule.oopCommit, (double) -rule.oopCommit};
+                        payoffs = new double[] {(double) rule.oopCommit, (double) -rule.oopCommit};
                     } else throw new RuntimeException("unknown player");
                     GameTreeNode nextNode = new TerminalNode(
                             payoffs,
@@ -403,7 +403,7 @@ class GameTreeBuilder {
         if (rule.getCommit(player) != rule.smallBlind) {
             possibleAmounts = possibleAmounts.stream()
                     .filter(e -> e > 0)
-                    .map(n -> Double.valueOf(n.intValue()))
+                    .map(n -> (double) n.intValue())
                     .collect(Collectors.toList());
         }
         if (rule.getCommit(player) == rule.smallBlind) {

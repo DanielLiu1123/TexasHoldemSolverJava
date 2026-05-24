@@ -275,9 +275,7 @@ public class BestResponse {
         RiverCombs[] oppo_combs = this.rrm.getRiverCombos(
                 1 - player, this.pcm.getPreflopCards(1 - player), board); // this.river_combos[player];
 
-        Double player_payoff = node.get_payoffs()[player];
-        if (player_payoff == null)
-            throw new RuntimeException(String.format("player %d 's payoff is not found", player));
+        double player_payoff = node.get_payoffs()[player];
         float[] payoffs = new float[player_hands[player]];
 
         if (this.player_number != 2) throw new RuntimeException("player NE 2 not supported");
@@ -320,7 +318,7 @@ public class BestResponse {
                                 - oppo_card_sum[player_hc.private_cards.card1]
                                 - oppo_card_sum[player_hc.private_cards.card2]
                                 + add_reach_prob)
-                        * player_payoff.floatValue();
+                        * (float) player_payoff;
             }
         }
 
@@ -348,9 +346,9 @@ public class BestResponse {
         RiverCombs[] oppo_combs = this.rrm.getRiverCombos(
                 1 - player, this.pcm.getPreflopCards(1 - player), board); // this.river_combos[player];
 
-        float win_payoff = node.get_payoffs(ShowdownNode.ShowDownResult.NOTTIE, player)[player].floatValue();
+        float win_payoff = (float) node.get_payoffs(ShowdownNode.ShowDownResult.NOTTIE, player)[player];
         // hard code, 假设了player只有两个
-        float lose_payoff = node.get_payoffs(ShowdownNode.ShowDownResult.NOTTIE, 1 - player)[player].floatValue();
+        float lose_payoff = (float) node.get_payoffs(ShowdownNode.ShowDownResult.NOTTIE, 1 - player)[player];
 
         float[] payoffs = new float[player_hands[player]];
 

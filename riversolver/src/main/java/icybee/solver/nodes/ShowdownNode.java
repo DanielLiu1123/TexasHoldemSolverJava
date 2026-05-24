@@ -8,14 +8,14 @@ import org.jspecify.annotations.Nullable;
  */
 public class ShowdownNode extends GameTreeNode {
 
-    Double[] tie_payoffs;
-    Double[][] player_payoffs;
+    double[] tie_payoffs;
+    double[][] player_payoffs;
 
     public ShowdownNode(
-            Double[] tie_payoffs,
-            Double[][] player_payoffs,
+            double[] tie_payoffs,
+            double[][] player_payoffs,
             GameRound round,
-            Double pot,
+            double pot,
             @Nullable GameTreeNode parent) {
         super(round, pot, parent);
         this.tie_payoffs = tie_payoffs;
@@ -27,10 +27,10 @@ public class ShowdownNode extends GameTreeNode {
         TIE
     }
 
-    public Double[] get_payoffs(ShowDownResult result, @Nullable Integer winner) {
+    public double[] get_payoffs(ShowDownResult result, @Nullable Integer winner) {
         if (result == ShowDownResult.NOTTIE) {
             if (winner == null) throw new RuntimeException("winner must not be null for NOTTIE");
-            Double[] retval = player_payoffs[winner];
+            double[] retval = player_payoffs[winner];
             assert (retval != null);
             return retval;
         } else {

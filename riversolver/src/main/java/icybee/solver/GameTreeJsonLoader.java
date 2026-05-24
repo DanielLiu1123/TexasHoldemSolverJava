@@ -44,7 +44,7 @@ class GameTreeJsonLoader {
         };
     }
 
-    private static void fillDoubles(List<Object> from, Double[] to) {
+    private static void fillDoubles(List<Object> from, double[] to) {
         for (int i = 0; i < from.size(); i++) {
             Object tmp = from.get(i);
             if (tmp instanceof Integer it) {
@@ -121,7 +121,7 @@ class GameTreeJsonLoader {
                         if (!parts.get(0).equals("bet"))
                             throw new ActionNotFoundException(String.format("Action %s not found", parts.get(0)));
                         action = GameTreeNode.PokerActions.BET;
-                        amount = Double.valueOf(parts.get(1));
+                        amount = Double.parseDouble(parts.get(1));
                     } else if (oneAction.contains("raise")) {
                         List<String> parts = List.of(oneAction.split("_", -1));
                         if (parts.size() != 2)
@@ -129,7 +129,7 @@ class GameTreeJsonLoader {
                         if (!parts.get(0).equals("raise"))
                             throw new ActionNotFoundException(String.format("Action %s not found", parts.get(0)));
                         action = GameTreeNode.PokerActions.RAISE;
-                        amount = Double.valueOf(parts.get(1));
+                        amount = Double.parseDouble(parts.get(1));
                     } else {
                         throw new ActionNotFoundException(String.format("%s action not found", oneAction));
                     }
@@ -141,7 +141,7 @@ class GameTreeJsonLoader {
         }
 
         Integer player = (Integer) meta.get("player");
-        Double pot = extractDouble(meta, "pot");
+        double pot = extractDouble(meta, "pot");
         if (player == null) throw new RuntimeException("player is null");
 
         GameTreeNode.GameRound gameRound = GameTreeNode.GameRound.fromString(round);
@@ -155,18 +155,18 @@ class GameTreeJsonLoader {
             Map<String, Object> meta, String round, @Nullable GameTreeNode parent) {
         Map<String, Object> metaPayoffs = Objects.requireNonNull((Map<String, Object>) meta.get("payoffs"), "payoffs");
         List<Object> tmpTiePayoffs = Objects.requireNonNull((List<Object>) metaPayoffs.get("tie"), "tie payoffs");
-        Double[] tiePayoffs = new Double[tmpTiePayoffs.size()];
+        double[] tiePayoffs = new double[tmpTiePayoffs.size()];
         fillDoubles(tmpTiePayoffs, tiePayoffs);
 
-        Double[][] playerPayoffs =
-                new Double[metaPayoffs.keySet().size() - 1][metaPayoffs.keySet().size() - 1];
-        Double pot = extractDouble(meta, "pot");
+        double[][] playerPayoffs =
+                new double[metaPayoffs.keySet().size() - 1][metaPayoffs.keySet().size() - 1];
+        double pot = extractDouble(meta, "pot");
 
         for (String onePlayer : metaPayoffs.keySet()) {
             if (onePlayer.equals("tie")) continue;
             int playerId = Integer.parseInt(onePlayer);
             List<Object> tmpPayoffs = (List<Object>) metaPayoffs.get(onePlayer);
-            Double[] playerPayoff = new Double[tmpPayoffs.size()];
+            double[] playerPayoff = new double[tmpPayoffs.size()];
             fillDoubles(tmpPayoffs, playerPayoff);
             playerPayoffs[playerId] = playerPayoff;
         }
@@ -177,10 +177,10 @@ class GameTreeJsonLoader {
     private static TerminalNode buildTerminalNode(
             Map<String, Object> meta, String round, @Nullable GameTreeNode parent) {
         List<Object> payoffList = Objects.requireNonNull((List<Object>) meta.get("payoff"), "payoff");
-        Double[] payoffs = new Double[payoffList.size()];
+        double[] payoffs = new double[payoffList.size()];
         fillDoubles(payoffList, payoffs);
 
-        Double pot = extractDouble(meta, "pot");
+        double pot = extractDouble(meta, "pot");
         Integer player = (Integer) meta.get("player");
         if (player == null) throw new RuntimeException("player is null");
         return new TerminalNode(payoffs, player, GameTreeNode.GameRound.fromString(round), pot, parent);
@@ -192,7 +192,7 @@ class GameTreeJsonLoader {
             String round,
             @Nullable GameTreeNode parent,
             Deck deck) {
-        Double pot = extractDouble(meta, "pot");
+        double pot = extractDouble(meta, "pot");
         List<GameTreeNode> children = new ArrayList<>();
         for (Card ignored : deck.getCards()) {
             GameTreeNode oneNode = buildNode(childTemplate, deck, null);

@@ -236,7 +236,7 @@ public class RangeSelector {
             String pure_range_str;
             float weight = 1;
             pure_range_str = range_weight.get(0);
-            if (range_weight.size() == 2) weight = Float.valueOf(range_weight.get(1));
+            if (range_weight.size() == 2) weight = Float.parseFloat(range_weight.get(1));
 
             if (pure_range_str.length() == 2 && pure_range_str.charAt(0) != pure_range_str.charAt(1)) {
                 process(pure_range_str + "o", weight);

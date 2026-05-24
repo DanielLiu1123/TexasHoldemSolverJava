@@ -210,24 +210,24 @@ public class SolverGui {
         if (mode == 0) {
             this.game_tree = SolverEnvironment.gameTreeFromParams(
                     java.util.Objects.requireNonNull(this.holdem_deck, "holdem deck not loaded"),
-                    Float.valueOf(this.pot.getText()) / 2,
-                    Float.valueOf(this.pot.getText()) / 2,
+                    Float.parseFloat(this.pot.getText()) / 2,
+                    Float.parseFloat(this.pot.getText()) / 2,
                     round,
                     Integer.valueOf(raise_limit.getText()),
                     (float) 0.5,
                     (float) 1.0,
-                    Float.valueOf(this.stacks.getText()) + Float.valueOf(this.pot.getText()) / 2,
+                    Float.parseFloat(this.stacks.getText()) + Float.parseFloat(this.pot.getText()) / 2,
                     parseSettings());
         } else if (mode == 1) {
             this.game_tree = SolverEnvironment.gameTreeFromParams(
                     java.util.Objects.requireNonNull(this.shortdeck_deck, "shortdeck deck not loaded"),
-                    Float.valueOf(this.pot.getText()) / 2,
-                    Float.valueOf(this.pot.getText()) / 2,
+                    Float.parseFloat(this.pot.getText()) / 2,
+                    Float.parseFloat(this.pot.getText()) / 2,
                     round,
                     Integer.valueOf(raise_limit.getText()),
                     (float) 0.5,
                     (float) 1.0,
-                    Float.valueOf(this.stacks.getText()) + Float.valueOf(this.pot.getText()) / 2,
+                    Float.parseFloat(this.stacks.getText()) + Float.parseFloat(this.pot.getText()) / 2,
                     parseSettings());
         } else {
             throw new RuntimeException("game mode unknown");
@@ -290,7 +290,7 @@ public class SolverGui {
                 mc.isSelected() ? MonteCarloAlg.PUBLIC : MonteCarloAlg.NONE);
         Solver solver = new ParallelCfrPlusSolver(solverConfig, Integer.valueOf(threads.getText()), 1, 1, 1, 16);
         Map train_config = new HashMap();
-        train_config.put("stop_exploitability", Double.valueOf(exploitability.getText()));
+        train_config.put("stop_exploitability", Double.parseDouble(exploitability.getText()));
         solver.train(train_config);
 
         /*

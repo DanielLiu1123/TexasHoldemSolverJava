@@ -26,7 +26,7 @@ public class ChanceNode extends GameTreeNode {
     public ChanceNode(
             @Nullable List<GameTreeNode> children,
             GameRound round,
-            Double pot,
+            double pot,
             @Nullable GameTreeNode parent,
             List<Card> cards,
             boolean donk) {
@@ -39,7 +39,7 @@ public class ChanceNode extends GameTreeNode {
     public ChanceNode(
             @Nullable List<GameTreeNode> children,
             GameRound round,
-            Double pot,
+            double pot,
             @Nullable GameTreeNode parent,
             List<Card> cards) {
         super(round, pot, parent);

@@ -34,7 +34,7 @@ public class CfrPlusRiverSolver extends AbstractCfrSolver {
         BestResponse br = new BestResponse(
                 playerPrivates, this.player_number, this.compairer, this.pcm, this.rrm, this.deck, this.debug);
 
-        br.printExploitability(tree.getRoot(), 0, tree.getRoot().getPot().floatValue(), initial_board_long);
+        br.printExploitability(tree.getRoot(), 0, (float) tree.getRoot().getPot(), initial_board_long);
 
         float[][] reachProbs = this.getReachProbs();
 
@@ -57,7 +57,7 @@ public class CfrPlusRiverSolver extends AbstractCfrSolver {
                     System.out.println("-------------------");
                     endtime = System.currentTimeMillis();
                     float exploitability = br.printExploitability(
-                            tree.getRoot(), i + 1, tree.getRoot().getPot().floatValue(), initial_board_long);
+                            tree.getRoot(), i + 1, (float) tree.getRoot().getPot(), initial_board_long);
                     long time_ms = endtime - begintime;
                     ObjectNode jo = MAPPER.createObjectNode();
                     jo.put("iteration", i);
@@ -298,8 +298,8 @@ public class CfrPlusRiverSolver extends AbstractCfrSolver {
     float[] showdownUtility(int player, ShowdownNode node, float[][] reachProbs, int iter, long currentBoard)
             throws BoardNotFoundException {
         int oppo = 1 - player;
-        float winPayoff = node.get_payoffs(ShowdownNode.ShowDownResult.NOTTIE, player)[player].floatValue();
-        float losePayoff = node.get_payoffs(ShowdownNode.ShowDownResult.NOTTIE, oppo)[player].floatValue();
+        float winPayoff = (float) node.get_payoffs(ShowdownNode.ShowDownResult.NOTTIE, player)[player];
+        float losePayoff = (float) node.get_payoffs(ShowdownNode.ShowDownResult.NOTTIE, oppo)[player];
         PrivateCards[] playerPrivateCards = this.ranges[player];
         PrivateCards[] oppoPrivateCards = this.ranges[oppo];
 
@@ -414,8 +414,7 @@ public class CfrPlusRiverSolver extends AbstractCfrSolver {
     float[] terminalUtility(int player, TerminalNode node, float[][] reachProb, int iter, long currentBoard)
             throws BoardNotFoundException {
 
-        Double playerPayoff = node.get_payoffs()[player];
-        if (playerPayoff == null) throw new RuntimeException(String.format("player %d 's payoff is not found", player));
+        double playerPayoff = node.get_payoffs()[player];
 
         int oppo = 1 - player;
         PrivateCards[] playerHand = playerHands(player);
@@ -450,7 +449,7 @@ public class CfrPlusRiverSolver extends AbstractCfrSolver {
             } else {
                 plusReachProb = reachProb[oppo][oppoSameCardInd];
             }
-            payoffs[i] = playerPayoff.floatValue()
+            payoffs[i] = (float) playerPayoff
                     * (oppoSum - oppoCardSum[onePlayerHand.card1] - oppoCardSum[onePlayerHand.card2] + plusReachProb);
             if (this.debug) {
                 System.out.println(String.format("oppo_card_sum1 %s ", oppoCardSum[onePlayerHand.card1]));

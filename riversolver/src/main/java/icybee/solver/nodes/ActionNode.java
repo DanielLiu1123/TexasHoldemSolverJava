@@ -23,7 +23,7 @@ public class ActionNode extends GameTreeNode {
             List<GameTreeNode> children,
             int player,
             GameRound round,
-            Double pot,
+            double pot,
             @Nullable GameTreeNode parent) {
         super(round, pot, parent);
         assert (actions.size() == children.size());
