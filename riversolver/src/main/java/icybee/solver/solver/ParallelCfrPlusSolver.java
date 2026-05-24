@@ -5,16 +5,13 @@ import static icybee.solver.utils.JsonUtil.MAPPER;
 import icybee.solver.Card;
 import icybee.solver.Deck;
 import icybee.solver.GameTree;
-import icybee.solver.RiverRangeManager;
 import icybee.solver.compairer.Compairer;
 import icybee.solver.nodes.*;
 import icybee.solver.ranges.PrivateCards;
-import icybee.solver.ranges.PrivateCardsManager;
 import icybee.solver.ranges.RiverCombs;
 import icybee.solver.trainable.DiscountedCfrTrainable;
 import icybee.solver.trainable.Trainable;
 import java.io.Writer;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -23,129 +20,47 @@ import java.util.concurrent.*;
 import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.node.ObjectNode;
 
-/**
- * Created by huangxuefeng on 2019/10/11.
- * contains code for cfr solver
- */
-public class ParallelCfrPlusSolver extends Solver {
-    PrivateCards[][] ranges;
-    PrivateCards[] range1;
-    PrivateCards[] range2;
-    int[] initial_board;
-    long initial_board_long;
-    Compairer compairer;
+/** Parallel CFR+ solver using ForkJoin work-stealing. */
+public class ParallelCfrPlusSolver extends AbstractCfrSolver {
 
-    Deck deck;
     ForkJoinPool forkJoinPool;
-    RiverRangeManager rrm;
-    int player_number;
-    int iteration_number;
-    PrivateCardsManager pcm;
-    boolean debug;
-    int print_interval;
-
-    @Nullable
-    String logfile;
-
-    Class<?> trainer;
-    int[] round_deal;
     int nthreads;
     double forkprob_action;
     double forkprob_chance;
     int fork_every_n_depth;
     int no_fork_subtree_size;
 
-    MonteCarolAlg monteCarolAlg;
-
-    PrivateCards[] playerHands(int player) {
-        if (player == 0) {
-            return range1;
-        } else if (player == 1) {
-            return range2;
-        } else {
-            throw new RuntimeException("player not found");
-        }
-    }
-
-    float[][] getReachProbs() {
-        float[][] retval = new float[this.player_number][];
-        for (int player = 0; player < this.player_number; player++) {
-            PrivateCards[] player_cards = this.playerHands(player);
-            float[] reach_prob = new float[player_cards.length];
-            for (int i = 0; i < player_cards.length; i++) {
-                reach_prob[i] = player_cards[i].weight;
-            }
-            retval[player] = reach_prob;
-        }
-        return retval;
-    }
-
-    public PrivateCards[] noDuplicateRange(PrivateCards[] private_range, long board_long) {
-        List<PrivateCards> range_array = new ArrayList<>();
-        Map<Integer, Boolean> rangekv = new HashMap<>();
-        for (PrivateCards one_range : private_range) {
-            if (one_range == null) throw new RuntimeException();
-            if (rangekv.get(one_range.hashCode()) != null)
-                throw new RuntimeException(String.format("duplicated key %s", one_range.toString()));
-            rangekv.put(one_range.hashCode(), Boolean.TRUE);
-            long hand_long = Card.boardInts2long(new int[] {one_range.card1, one_range.card2});
-            if (!Card.boardsHasIntercept(hand_long, board_long)) {
-                range_array.add(one_range);
-            }
-        }
-        PrivateCards[] ret = new PrivateCards[range_array.size()];
-        range_array.toArray(ret);
-        return ret;
-    }
-
     public ParallelCfrPlusSolver(
             GameTree tree,
             PrivateCards[] range1,
             PrivateCards[] range2,
-            int[] initial_board,
+            int[] initialBoard,
             Compairer compairer,
             Deck deck,
-            int iteration_number,
+            int iterationNumber,
             boolean debug,
-            int print_interval,
+            int printInterval,
             @Nullable String logfile,
             Class<?> trainer,
             MonteCarolAlg monteCarolAlg,
             int nthreads,
-            double forkprob_action,
-            double forkprob_chance,
-            int fork_between,
-            int no_fork_subtree_size) {
-        super(tree);
-        // if(board.length != 5) throw new RuntimeException(String.format("board length %d",board.length));
-        this.initial_board = initial_board;
-        this.initial_board_long = Card.boardInts2long(initial_board);
-        this.logfile = logfile;
-        this.trainer = trainer;
-
-        range1 = this.noDuplicateRange(range1, initial_board_long);
-        range2 = this.noDuplicateRange(range2, initial_board_long);
-
-        this.range1 = range1;
-        this.range2 = range2;
-        this.player_number = 2;
-        this.ranges = new PrivateCards[this.player_number][];
-        this.ranges[0] = range1;
-        this.ranges[1] = range2;
-        this.compairer = compairer;
-
-        this.deck = deck;
-
-        this.rrm = new RiverRangeManager(compairer);
-        this.iteration_number = iteration_number;
-
-        PrivateCards[][] private_cards = new PrivateCards[this.player_number][];
-        private_cards[0] = range1;
-        private_cards[1] = range2;
-        pcm = new PrivateCardsManager(private_cards, this.player_number, Card.boardInts2long(this.initial_board));
-        this.debug = debug;
-        this.print_interval = print_interval;
-        this.monteCarolAlg = monteCarolAlg;
+            double forkprobAction,
+            double forkprobChance,
+            int forkBetween,
+            int noForkSubtreeSize) {
+        super(
+                tree,
+                range1,
+                range2,
+                initialBoard,
+                compairer,
+                deck,
+                iterationNumber,
+                debug,
+                printInterval,
+                logfile,
+                trainer,
+                monteCarolAlg);
         if (nthreads >= 1) {
             this.nthreads = nthreads;
         } else if (nthreads == -1) {
@@ -153,50 +68,26 @@ public class ParallelCfrPlusSolver extends Solver {
         } else {
             throw new RuntimeException("nthread not correct");
         }
-
         this.forkJoinPool = new ForkJoinPool(this.nthreads);
-        if (forkprob_action > 1 || forkprob_action < 0)
-            throw new RuntimeException(String.format("forkprob action not between [0,1] : %s", forkprob_action));
-        if (forkprob_chance > 1 || forkprob_chance < 0)
-            throw new RuntimeException(String.format("forkprob chance not between [0,1] : %s", forkprob_chance));
-        this.forkprob_action = forkprob_action;
-        this.forkprob_chance = forkprob_chance;
-        this.fork_every_n_depth = fork_between;
-        this.no_fork_subtree_size = no_fork_subtree_size;
-        this.round_deal = new int[0];
+        if (forkprobAction > 1 || forkprobAction < 0)
+            throw new RuntimeException(String.format("forkprob action not between [0,1] : %s", forkprobAction));
+        if (forkprobChance > 1 || forkprobChance < 0)
+            throw new RuntimeException(String.format("forkprob chance not between [0,1] : %s", forkprobChance));
+        this.forkprob_action = forkprobAction;
+        this.forkprob_chance = forkprobChance;
+        this.fork_every_n_depth = forkBetween;
+        this.no_fork_subtree_size = noForkSubtreeSize;
         System.out.println(String.format("Using %s threads", this.nthreads));
     }
 
-    void setTrainable(GameTreeNode root)
-            throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException {
-        if (root instanceof ActionNode action_node) {
-            int player = action_node.getPlayer();
-            PrivateCards[] player_privates = this.ranges[player];
-
-            action_node.setTrainable((Trainable) this.trainer
-                    .getConstructor(ActionNode.class, PrivateCards[].class)
-                    .newInstance(action_node, player_privates));
-
-            List<GameTreeNode> childrens = action_node.getChildrens();
-            for (GameTreeNode one_child : childrens) setTrainable(one_child);
-        } else if (root instanceof ChanceNode chanceNode) {
-            List<GameTreeNode> childrens = chanceNode.getChildrens();
-            for (GameTreeNode one_child : childrens) setTrainable(one_child);
-        } else if (root instanceof TerminalNode) {
-
-        } else if (root instanceof ShowdownNode) {
-
-        }
-    }
-
-    private Double getValue(Map<String, Object> meta, String key) {
+    private double getDoubleValue(Map<String, Object> meta, String key) {
         Object value = meta.get(key);
         if (value instanceof Integer i) {
             return i.doubleValue();
         } else if (value instanceof Double d) {
             return d;
         } else {
-            return Double.valueOf(0);
+            return 0.0;
         }
     }
 
@@ -204,59 +95,58 @@ public class ParallelCfrPlusSolver extends Solver {
     public void train(Map training_config) throws Exception {
         setTrainable(tree.getRoot());
 
-        PrivateCards[][] player_privates = new PrivateCards[this.player_number][];
-        player_privates[0] = pcm.getPreflopCards(0);
-        player_privates[1] = pcm.getPreflopCards(1);
+        PrivateCards[][] playerPrivates = new PrivateCards[this.player_number][];
+        playerPrivates[0] = pcm.getPreflopCards(0);
+        playerPrivates[1] = pcm.getPreflopCards(1);
 
         BestResponse br = new BestResponse(
-                player_privates, this.player_number, this.compairer, this.pcm, this.rrm, this.deck, this.debug);
+                playerPrivates, this.player_number, this.compairer, this.pcm, this.rrm, this.deck, this.debug);
 
         br.printExploitability(tree.getRoot(), 0, tree.getRoot().getPot().floatValue(), initial_board_long);
 
-        float[][] reach_probs = this.getReachProbs();
+        float[][] reachProbs = this.getReachProbs();
 
         long begintime = System.currentTimeMillis();
         long endtime = System.currentTimeMillis();
 
-        Double stop_exploitibility = this.getValue(training_config, "stop_exploitibility");
+        double stopExploitability = this.getDoubleValue(training_config, "stop_exploitibility");
         try (Writer fileWriter = this.logfile != null
                 ? Files.newBufferedWriter(Paths.get(this.logfile), StandardCharsets.UTF_8)
                 : Writer.nullWriter()) {
             for (int i = 0; i < this.iteration_number; i++) {
-                for (int player_id = 0; player_id < this.player_number; player_id++) {
+                for (int playerId = 0; playerId < this.player_number; playerId++) {
                     if (this.debug) {
                         System.out.println(String.format(
                                 "---------------------------------     player %s --------------------------------",
-                                player_id));
+                                playerId));
                     }
                     this.round_deal = new int[] {-1, -1, -1, -1};
 
                     CfrTask task =
-                            new CfrTask(player_id, this.tree.getRoot(), reach_probs, i, this.initial_board_long, this);
+                            new CfrTask(playerId, this.tree.getRoot(), reachProbs, i, this.initial_board_long, this);
                     forkJoinPool.invoke(task);
                 }
                 if (i % this.print_interval == 0) {
                     endtime = System.currentTimeMillis();
-                    long time_ms = endtime - begintime;
-                    System.out.println(String.format("time used: %.2fs", (float) time_ms / 1000));
+                    long timeMs = endtime - begintime;
+                    System.out.println(String.format("time used: %.2fs", (float) timeMs / 1000));
                     System.out.println("-------------------");
-                    float expliotibility = br.printExploitability(
+                    float exploitability = br.printExploitability(
                             tree.getRoot(), i + 1, tree.getRoot().getPot().floatValue(), initial_board_long);
                     ObjectNode jo = MAPPER.createObjectNode();
                     jo.put("iteration", i);
-                    jo.put("exploitibility", expliotibility);
-                    jo.put("time_ms", time_ms);
+                    jo.put("exploitability", exploitability);
+                    jo.put("time_ms", timeMs);
                     fileWriter.write(String.format("%s\n", jo.toString()));
-                    if (stop_exploitibility > expliotibility) break;
+                    if (stopExploitability > exploitability) break;
                 }
             }
         }
         endtime = System.currentTimeMillis();
-        long time_ms = endtime - begintime;
+        long timeMs = endtime - begintime;
         System.out.println("++++++++++++++++");
-        System.out.println(String.format("solve finish, total time used: %.2fs", (float) time_ms / 1000));
+        System.out.println(String.format("solve finish, total time used: %.2fs", (float) timeMs / 1000));
         forkJoinPool.shutdown();
-        // System.out.println(this.tree.dumps(false).toJSONString());
     }
 
     class CfrTask extends RecursiveTask<float[]> {
@@ -288,20 +178,6 @@ public class ParallelCfrPlusSolver extends Solver {
         }
 
         float[] cfr(int player, GameTreeNode node, float[][] reach_probs, int iter, long current_board) {
-            /*
-            float[] utility = null;
-            if(this.solver_env.player_number != 2) throw new RuntimeException("player number is not 2");
-            if(node instanceof ActionNode) {
-                utility = actionUtility(player, (ActionNode) node,reach_probs, iter,current_board);
-            }else if(node instanceof ShowdownNode){
-                utility = showdownUtility(player,(ShowdownNode)node,reach_probs,iter,current_board);
-            }else if(node instanceof TerminalNode){
-                utility = terminalUtility(player,(TerminalNode) node,reach_probs,iter,current_board);
-            }else if(node instanceof ChanceNode){
-                utility = chanceUtility(player,(ChanceNode) node,reach_probs,iter,current_board);
-            }
-            return utility;
-             */
             return switch (node.getType()) {
                 case ACTION -> actionUtility(player, (ActionNode) node, reach_probs, iter, current_board);
                 case SHOWDOWN -> showdownUtility(player, (ShowdownNode) node, reach_probs, iter, current_board);
@@ -314,13 +190,10 @@ public class ParallelCfrPlusSolver extends Solver {
         float[] chanceUtility(int player, ChanceNode node, float[][] reach_probs, int iter, long current_board) {
             List<Card> cards = this.solver_env.deck.getCards();
             if (cards.size() != node.getChildrens().size()) throw new RuntimeException();
-            // float[] cardWeights = getCardsWeights(player,reach_probs[1 - player],current_board);
 
-            // 可能的发牌情况,2代表每个人的holecard是两张
             int possible_deals = node.getChildrens().size() - Card.long2board(current_board).length - 2;
 
             float[] chance_utility = new float[reach_probs[player].length];
-            // 遍历每一种发牌的可能性
             int random_deal = 0, cardcount = 0;
             if (this.solver_env.monteCarolAlg == MonteCarolAlg.PUBLIC) {
                 if (this.solver_env.round_deal[GameTreeNode.gameRound2int(node.getRound())] == -1) {
@@ -348,7 +221,6 @@ public class ParallelCfrPlusSolver extends Solver {
                 Card one_card = node.getCards().get(card);
                 long card_long = Card.boardCards2long(new Card[] {one_card});
 
-                // 不可能发出和board重复的牌，对吧
                 if (Card.boardsHasIntercept(card_long, current_board)) continue;
                 cardcount += 1;
 
@@ -357,10 +229,8 @@ public class ParallelCfrPlusSolver extends Solver {
                 long new_board_long = current_board | card_long;
                 if (this.solver_env.monteCarolAlg == MonteCarolAlg.PUBLIC) {
                     if (cardcount == random_deal) {
-                        // crete job
                         CfrTask task =
                                 new CfrTask(this.player, one_child, reach_probs, iter, new_board_long, this.solver_env);
-                        // task.fork();
                         return task.compute();
                     } else {
                         continue;
@@ -375,7 +245,6 @@ public class ParallelCfrPlusSolver extends Solver {
                 new_reach_probs[player] = new float[playerPrivateCard.length];
                 new_reach_probs[1 - player] = new float[oppoPrivateCards.length];
 
-                // 检查是否双方 hand和reach prob长度符合要求
                 if (playerPrivateCard.length != reach_probs[player].length)
                     throw new RuntimeException("length not match");
                 if (oppoPrivateCards.length != reach_probs[1 - player].length)
@@ -395,8 +264,6 @@ public class ParallelCfrPlusSolver extends Solver {
                 if (Card.boardsHasIntercept(current_board, card_long))
                     throw new RuntimeException("board has intercept with dealt card");
 
-                // this.cfr(player,one_child,reach_probs,iter,new_board_long);
-                // float[] child_utility = this.solver_env.cfr(player,one_child,new_reach_probs,iter,new_board_long);
                 CfrTask task =
                         new CfrTask(this.player, one_child, new_reach_probs, iter, new_board_long, this.solver_env);
                 if (forkAt) task.fork();
@@ -467,15 +334,12 @@ public class ParallelCfrPlusSolver extends Solver {
                         node_player_private_cards.length));
             }
 
-            // 为了节省计算成本将action regret 存在一位数组而不是二维数组中，两个纬度分别是（该infoset有多少动作,该palyer有多少holecard）
             float[] regrets = new float[actions.size() * node_player_private_cards.length];
 
             float[][] all_action_utility = new float[actions.size()][];
-            // Future<float[]>[] futures = new Future[actions.size()];
             int node_player = node.getPlayer();
 
             CfrTask[] tasklist = new CfrTask[actions.size()];
-            // List<CfrTask> taskarray = new ArrayList<>();
 
             for (int action_id = 0; action_id < actions.size(); action_id++) {
                 float[][] new_reach_prob = new float[this.solver_env.player_number][];
@@ -487,15 +351,10 @@ public class ParallelCfrPlusSolver extends Solver {
                 }
                 new_reach_prob[node_player] = player_new_reach;
 
-                // = this.solver_env.cfr(player,children.get(action_id),new_reach_prob,iter,current_board);
-
                 CfrTask task = new CfrTask(
                         this.player, children.get(action_id), new_reach_prob, iter, current_board, this.solver_env);
 
                 if (forkAt) {
-                    // Future<float[]> fut = null;
-                    // this.solver_env.forkJoinPool.invoke(task);
-                    // futures[action_id] = fut;
                     task.fork();
                 }
                 tasklist[action_id] = task;
@@ -508,9 +367,6 @@ public class ParallelCfrPlusSolver extends Solver {
                 float[] action_utilities;
                 if (forkAt) {
                     try {
-                        // Future<float[]> fut = futures[action_id];
-                        // action_utilities = task.getRawResult();
-                        // action_utilities = this.solver_env.forkJoinPool.invoke(task);
                         action_utilities = task.join();
                     } catch (Exception e) {
                         throw new RuntimeException("future get error");
@@ -520,7 +376,6 @@ public class ParallelCfrPlusSolver extends Solver {
                 }
                 all_action_utility[action_id] = action_utilities;
 
-                // cfr结果是每手牌的收益，payoffs代表的也是每手牌的收益，他们的长度理应相等
                 if (action_utilities.length != payoffs.length) {
                     System.out.println("errmsg");
                     System.out.println(String.format("node player %s ", node.getPlayer()));
@@ -541,11 +396,7 @@ public class ParallelCfrPlusSolver extends Solver {
 
             if (player == node.getPlayer()) {
                 for (int i = 0; i < node_player_private_cards.length; i++) {
-                    // boolean regrets_all_negative = true;
                     for (int action_id = 0; action_id < actions.size(); action_id++) {
-                        // 下面是regret计算的伪代码
-                        // regret[action_id * player_hc: (action_id + 1) * player_hc]
-                        //     = all_action_utilitiy[action_id] - payoff[action_id]
                         regrets[action_id * node_player_private_cards.length + i] =
                                 all_action_utility[action_id][i] - payoffs[i];
                     }
@@ -556,13 +407,11 @@ public class ParallelCfrPlusSolver extends Solver {
                     dct.setReach_probs(reach_probs);
                 }
             }
-            // if(this.solver_env.debug && player == node.getPlayer()) {
 
             return payoffs;
         }
 
         float[] showdownUtility(int player, ShowdownNode node, float[][] reach_probs, int iter, long current_board) {
-            // player win时候player的收益，player lose的时候收益明显为-player_payoff
             int oppo = 1 - player;
             float win_payoff = node.get_payoffs(ShowdownNode.ShowDownResult.NOTTIE, player)[player].floatValue();
             float lose_payoff = node.get_payoffs(ShowdownNode.ShowDownResult.NOTTIE, oppo)[player].floatValue();
@@ -578,7 +427,6 @@ public class ParallelCfrPlusSolver extends Solver {
             float[] card_winsum = new float[52];
 
             int j = 0;
-            // if(player_combs.length != oppo_combs.length) throw new RuntimeException("");
 
             if (this.solver_env.debug) {
                 System.out.println("[PRESHOWDOWN]=======================");
@@ -614,7 +462,6 @@ public class ParallelCfrPlusSolver extends Solver {
                     j++;
                 }
                 if (this.solver_env.debug) {
-                    // 调查这里为什么加完了是负数
                     System.out.println(String.format(
                             "Before Adding %s, win_payoff %s winsum %s, subcard1 %s subcard2 %s",
                             payoffs[one_player_comb.reach_prob_index],
@@ -634,10 +481,8 @@ public class ParallelCfrPlusSolver extends Solver {
                 }
             }
 
-            // 计算失败时的payoff
             float losssum = 0;
             float[] card_losssum = new float[52];
-            for (int i = 0; i < card_losssum.length; i++) card_losssum[i] = 0;
 
             j = oppo_combs.length - 1;
             for (int i = player_combs.length - 1; i >= 0; i--) {
@@ -678,81 +523,8 @@ public class ParallelCfrPlusSolver extends Solver {
                 System.out.println("[SHOWDOWN]============");
                 node.printHistory();
                 System.out.println(String.format("loss payoffs: %s", lose_payoff));
-                /*
-                   player 0 card AdAc
-                   actions: CALL FOLD
-                   history: <- (player 1 BET 2.0)
-                   payoffs : -778.0 -394.0
-                   regrets: [-192.0, 191.0]
-                */
                 System.out.println(String.format("oppo sum %s, substracted payoff %s", losssum, payoffs[0]));
             }
-
-            /*
-            float[] oppo_cardsum = new float[52];
-            float oppo_sum = 0;
-            for(int i = 0;i < this.solver_env.pcm.getPreflopCards(oppo).length;i ++){
-                PrivateCards one_oppo_cards = this.solver_env.pcm.getPreflopCards(oppo)[i];
-                oppo_cardsum[one_oppo_cards.card1] += reach_probs[oppo][i];
-                oppo_cardsum[one_oppo_cards.card2] += reach_probs[oppo][i];
-                oppo_sum += reach_probs[oppo][i];
-            }
-
-            for(int i = 0;i < this.solver_env.pcm.getPreflopCards(player).length;i ++){
-                PrivateCards one_player_cards = this.solver_env.pcm.getPreflopCards(oppo)[i];
-                float oppo_same_card_sum = 0;
-                oppo_same_card_sum += oppo_cardsum[one_player_cards.card1];
-                oppo_same_card_sum += oppo_cardsum[one_player_cards.card2];
-                oppo_same_card_sum -= reach_probs[oppo][this.solver_env.pcm.indPlayer2Player(player,oppo,i)];
-                if(oppo_sum - oppo_same_card_sum == 0) throw new RuntimeException("oppo sum is zero");
-                payoffs[i] /= (oppo_sum - oppo_same_card_sum);
-            }
-            */
-
-            /*
-            if(true){
-                node.printHistory();
-                int ind = -1;
-                for(int i = 0;i < this.solver_env.getPlayerPrivateCard(player).length;i ++){
-                    if(this.solver_env.getPlayerPrivateCard(player)[i].hashCode() ==
-                            (new PrivateCards(
-                                    Card.strCard2int("Qd"),
-                                    Card.strCard2int("7h"),
-                                    1
-                            )).hashCode()
-                    ){
-                        ind = i;
-                    }
-                }
-                if(ind == -1){
-                    throw new RuntimeException();
-                }
-                PrivateCards pc = this.solver_env.getPlayerPrivateCard(player)[ind];
-                System.out.println(pc.toString());
-            }
-            if(true){
-                node.printHistory();
-                int ind = -1;
-                for(int i = 0;i < this.solver_env.getPlayerPrivateCard(player).length;i ++){
-                    if(this.solver_env.getPlayerPrivateCard(player)[i].hashCode() ==
-                            (new PrivateCards(
-                                    Card.strCard2int("Qc"),
-                                    Card.strCard2int("7h"),
-                                    1
-                            )).hashCode()
-                    ){
-                        ind = i;
-                    }
-                }
-                if(ind == -1){
-                    throw new RuntimeException();
-                }
-                PrivateCards pc = this.solver_env.getPlayerPrivateCard(player)[ind];
-                System.out.println(pc.toString());
-            }
-
-             */
-            // node.printHistory();
             return payoffs;
         }
 
