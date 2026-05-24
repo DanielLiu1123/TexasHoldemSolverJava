@@ -36,7 +36,7 @@ abstract class AbstractCfrSolver extends Solver {
 
     TrainableFactory trainerFactory;
     int[] round_deal;
-    MonteCarolAlg monteCarolAlg;
+    MonteCarloAlg monteCarolAlg;
 
     protected AbstractCfrSolver(SolverConfig config) {
         super(config.tree());
@@ -114,10 +114,10 @@ abstract class AbstractCfrSolver extends Solver {
             int player = actionNode.getPlayer();
             PrivateCards[] playerPrivates = this.ranges[player];
             actionNode.setTrainable(this.trainerFactory.create(actionNode, playerPrivates));
-            List<GameTreeNode> children = actionNode.getChildrens();
+            List<GameTreeNode> children = actionNode.getChildren();
             for (GameTreeNode oneChild : children) setTrainable(oneChild);
         } else if (root instanceof ChanceNode chanceNode) {
-            List<GameTreeNode> children = chanceNode.getChildrens();
+            List<GameTreeNode> children = chanceNode.getChildren();
             for (GameTreeNode oneChild : children) setTrainable(oneChild);
         }
     }

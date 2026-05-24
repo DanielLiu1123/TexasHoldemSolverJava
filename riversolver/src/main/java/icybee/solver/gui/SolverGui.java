@@ -8,7 +8,7 @@ import icybee.solver.SolverEnvironment;
 import icybee.solver.compairer.Compairer;
 import icybee.solver.ranges.PrivateCards;
 import icybee.solver.solver.GameTreeBuildingSettings;
-import icybee.solver.solver.MonteCarolAlg;
+import icybee.solver.solver.MonteCarloAlg;
 import icybee.solver.solver.ParallelCfrPlusSolver;
 import icybee.solver.solver.Solver;
 import icybee.solver.solver.SolverConfig;
@@ -287,10 +287,10 @@ public class SolverGui {
                 Integer.valueOf(log_interval.getText()),
                 logfile_name,
                 trainerFactory,
-                mc.isSelected() ? MonteCarolAlg.PUBLIC : MonteCarolAlg.NONE);
+                mc.isSelected() ? MonteCarloAlg.PUBLIC : MonteCarloAlg.NONE);
         Solver solver = new ParallelCfrPlusSolver(solverConfig, Integer.valueOf(threads.getText()), 1, 1, 1, 16);
         Map train_config = new HashMap();
-        train_config.put("stop_exploitibility", Double.valueOf(exploitability.getText()));
+        train_config.put("stop_exploitability", Double.valueOf(exploitability.getText()));
         solver.train(train_config);
 
         /*

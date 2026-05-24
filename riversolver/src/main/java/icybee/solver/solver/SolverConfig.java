@@ -20,4 +20,4 @@ public record SolverConfig(
         int printInterval,
         @Nullable String logfile,
         TrainableFactory trainerFactory,
-        MonteCarolAlg monteCarolAlg) {}
+        MonteCarloAlg monteCarolAlg) {}

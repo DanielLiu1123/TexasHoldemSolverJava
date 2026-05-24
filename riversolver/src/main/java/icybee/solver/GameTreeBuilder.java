@@ -162,7 +162,7 @@ class GameTreeBuilder {
             assert nextRule.currentRound <= 4;
             buildRecursive(oneNode, nextRule, "begin", 0, 0);
         }
-        root.setChildrens(children);
+        root.setChildren(children);
     }
 
     @SuppressWarnings("NullAway")
@@ -355,7 +355,7 @@ class GameTreeBuilder {
         }
         assert !actions.isEmpty();
         root.setActions(actions);
-        root.setChildrens(children);
+        root.setChildren(children);
     }
 
     private static double roundNearest(double number, double roundNum) {

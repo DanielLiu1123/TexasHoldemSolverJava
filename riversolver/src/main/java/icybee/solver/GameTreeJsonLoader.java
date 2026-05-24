@@ -200,7 +200,7 @@ class GameTreeJsonLoader {
         }
         GameTreeNode.GameRound gameRound = GameTreeNode.GameRound.fromString(round);
         ChanceNode chanceNode = new ChanceNode(children, gameRound, pot, parent, deck.getCards());
-        for (GameTreeNode child : chanceNode.getChildrens()) child.setParent(chanceNode);
+        for (GameTreeNode child : chanceNode.getChildren()) child.setParent(chanceNode);
         return chanceNode;
     }
 

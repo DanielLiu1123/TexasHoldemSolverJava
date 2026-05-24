@@ -11,7 +11,7 @@ import org.jspecify.annotations.Nullable;
 public class ActionNode extends GameTreeNode {
 
     List<GameActions> actions;
-    List<GameTreeNode> childrens;
+    List<GameTreeNode> children;
 
     @Nullable
     Trainable trainable;
@@ -20,15 +20,15 @@ public class ActionNode extends GameTreeNode {
 
     public ActionNode(
             List<GameActions> actions,
-            List<GameTreeNode> childrens,
+            List<GameTreeNode> children,
             int player,
             GameRound round,
             Double pot,
             @Nullable GameTreeNode parent) {
         super(round, pot, parent);
-        assert (actions.size() == childrens.size());
+        assert (actions.size() == children.size());
         this.actions = actions;
-        this.childrens = childrens;
+        this.children = children;
         this.player = player;
     }
 
@@ -36,16 +36,16 @@ public class ActionNode extends GameTreeNode {
         return actions;
     }
 
-    public List<GameTreeNode> getChildrens() {
-        return childrens;
+    public List<GameTreeNode> getChildren() {
+        return children;
     }
 
     public void setActions(List<GameActions> actions) {
         this.actions = actions;
     }
 
-    public void setChildrens(List<GameTreeNode> childrens) {
-        this.childrens = childrens;
+    public void setChildren(List<GameTreeNode> children) {
+        this.children = children;
     }
 
     public int getPlayer() {

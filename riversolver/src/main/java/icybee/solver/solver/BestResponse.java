@@ -135,15 +135,15 @@ public class BestResponse {
 
     private float[] chanceBestReponse(ChanceNode node, int player, float[][] reach_probs, long current_board) {
         List<Card> cards = this.deck.getCards();
-        if (cards.size() != node.getChildrens().size()) throw new RuntimeException();
+        if (cards.size() != node.getChildren().size()) throw new RuntimeException();
         // float[] cardWeights = getCardsWeights(player,reach_probs[1 - player],current_board);
 
         // 可能的发牌情况,2代表每个人的holecard是两张
-        int possible_deals = node.getChildrens().size() - Card.long2board(current_board).length - 2;
+        int possible_deals = node.getChildren().size() - Card.long2board(current_board).length - 2;
         float[] chance_utility = new float[reach_probs[player].length];
         // 遍历每一种发牌的可能性
         for (int card = 0; card < node.getCards().size(); card++) {
-            GameTreeNode one_child = node.getChildrens().get(card);
+            GameTreeNode one_child = node.getChildren().get(card);
             Card one_card = node.getCards().get(card);
             long card_long = Card.boardCards2long(new Card[] {one_card});
 
@@ -195,7 +195,7 @@ public class BestResponse {
             // 如果是自己在做决定，那么肯定选对自己的最有利的，反之对于对方来说，这个就是我方expliot了对方,
             // 这里可以当成"player"做决定的时候，action prob是0-1分布，因为需要使用最好的策略去expliot对方，最好的策略一定是ont-hot的
             float[] my_exploitability = null;
-            for (GameTreeNode one_node : node.getChildrens()) {
+            for (GameTreeNode one_node : node.getChildren()) {
                 float[] node_ev = this.bestResponse(one_node, player, reach_probs, board);
                 if (my_exploitability == null) {
                     my_exploitability = node_ev;
@@ -218,14 +218,14 @@ public class BestResponse {
 
             float[] node_strategy = Objects.requireNonNull(node.getTrainable(), "trainable not set")
                     .getAverageStrategy();
-            if (node_strategy.length != node.getChildrens().size() * reach_probs[node.getPlayer()].length) {
+            if (node_strategy.length != node.getChildren().size() * reach_probs[node.getPlayer()].length) {
                 throw new RuntimeException(String.format(
                         "strategy size not match %d - %d",
-                        node_strategy.length, node.getChildrens().size() * reach_probs[node.getPlayer()].length));
+                        node_strategy.length, node.getChildren().size() * reach_probs[node.getPlayer()].length));
             }
 
             // 构造reach probs矩阵
-            for (int action_ind = 0; action_ind < node.getChildrens().size(); action_ind++) {
+            for (int action_ind = 0; action_ind < node.getChildren().size(); action_ind++) {
                 float[][] next_reach_probs = new float[this.player_number][];
                 for (int i = 0; i < this.player_number; i++) {
                     if (i == node.getPlayer()) {
@@ -241,7 +241,7 @@ public class BestResponse {
                     }
                 }
 
-                GameTreeNode one_child = node.getChildrens().get(action_ind);
+                GameTreeNode one_child = node.getChildren().get(action_ind);
                 if (one_child == null) throw new NodeNotFoundException("child node not found");
                 float[] action_payoffs = this.bestResponse(one_child, player, next_reach_probs, board);
                 if (action_payoffs.length != total_payoffs.length)

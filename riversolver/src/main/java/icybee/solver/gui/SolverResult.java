@@ -373,7 +373,7 @@ public class SolverResult {
     void reGenerateTree(GameTreeNode node, DefaultMutableTreeNode parent, GameTreeNode.GameRound stop_round) {
         if (node.getRound() != stop_round) return;
         if (node instanceof ActionNode actionNode) {
-            List<GameTreeNode> childs = actionNode.getChildrens();
+            List<GameTreeNode> childs = actionNode.getChildren();
             List<GameActions> actions = actionNode.getActions();
 
             assert (childs.size() == actions.size());
@@ -389,7 +389,7 @@ public class SolverResult {
                 reGenerateTree(one_child, one_tree_child, stop_round);
             }
         } else if (node instanceof ChanceNode chanceNode) {
-            List<GameTreeNode> childs = chanceNode.getChildrens();
+            List<GameTreeNode> childs = chanceNode.getChildren();
             List<Card> cards = chanceNode.getCards();
 
             assert (childs.size() == cards.size());

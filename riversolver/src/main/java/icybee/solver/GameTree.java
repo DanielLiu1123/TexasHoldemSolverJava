@@ -68,14 +68,14 @@ public class GameTree {
         switch (node) {
             case ActionNode actionNode -> {
                 int subtree_size = 1;
-                for (GameTreeNode one_child : actionNode.getChildrens()) {
+                for (GameTreeNode one_child : actionNode.getChildren()) {
                     subtree_size += this.recurrentSetDepth(one_child, depth + 1);
                 }
                 node.subtree_size = subtree_size;
             }
             case ChanceNode chanceNode -> {
                 int subtree_size = 1;
-                for (GameTreeNode one_child : chanceNode.getChildrens()) {
+                for (GameTreeNode one_child : chanceNode.getChildren()) {
                     subtree_size += this.recurrentSetDepth(one_child, depth + 1);
                 }
                 node.subtree_size = subtree_size;
@@ -92,11 +92,11 @@ public class GameTree {
 
         switch (node) {
             case ActionNode actionNode -> {
-                List<GameTreeNode> childrens = actionNode.getChildrens();
+                List<GameTreeNode> children = actionNode.getChildren();
                 List<GameActions> actions = actionNode.getActions();
 
-                for (int i = 0; i < childrens.size(); i++) {
-                    GameTreeNode one_child = childrens.get(i);
+                for (int i = 0; i < children.size(); i++) {
+                    GameTreeNode one_child = children.get(i);
                     GameActions one_action = actions.get(i);
 
                     StringBuilder prefix = new StringBuilder();
@@ -109,7 +109,7 @@ public class GameTree {
                 StringBuilder prefix = new StringBuilder();
                 prefix.repeat("\t", Math.max(0, depth));
                 System.out.printf("%sCHANCE%n", prefix);
-                recurrentPrintTree(chanceNode.getChildrens().getFirst(), depth + 1, depth_limit);
+                recurrentPrintTree(chanceNode.getChildren().getFirst(), depth + 1, depth_limit);
             }
             case ShowdownNode showdown_node -> {
                 StringBuilder prefix = new StringBuilder();

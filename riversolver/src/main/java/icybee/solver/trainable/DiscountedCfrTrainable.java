@@ -79,7 +79,7 @@ public class DiscountedCfrTrainable extends Trainable {
     public DiscountedCfrTrainable(ActionNode action_node, PrivateCards[] privateCards) {
         this.action_node = action_node;
         this.privateCards = privateCards;
-        this.action_number = action_node.getChildrens().size();
+        this.action_number = action_node.getChildren().size();
         this.card_number = privateCards.length;
 
         this.r_plus = new float[this.action_number * this.card_number];

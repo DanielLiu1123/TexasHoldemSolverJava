@@ -12,7 +12,7 @@ import org.jspecify.annotations.Nullable;
  */
 public class ChanceNode extends GameTreeNode {
     // 如果一个chance node的game round是river，那么实际上它是一个介于turn和river之间的发牌节点
-    List<GameTreeNode> childrens;
+    List<GameTreeNode> children;
 
     @Nullable
     Trainable trainable;
@@ -24,38 +24,36 @@ public class ChanceNode extends GameTreeNode {
     boolean donk;
 
     public ChanceNode(
-            @Nullable List<GameTreeNode> childrens,
+            @Nullable List<GameTreeNode> children,
             GameRound round,
             Double pot,
             @Nullable GameTreeNode parent,
             List<Card> cards,
             boolean donk) {
         super(round, pot, parent);
-        this.childrens = childrens != null ? childrens : new ArrayList<>();
+        this.children = children != null ? children : new ArrayList<>();
         this.cards = cards;
         this.donk = donk;
-        // if(childrens.size() != cards.size()) throw new RuntimeException("Card and childern length not match");
     }
 
     public ChanceNode(
-            @Nullable List<GameTreeNode> childrens,
+            @Nullable List<GameTreeNode> children,
             GameRound round,
             Double pot,
             @Nullable GameTreeNode parent,
             List<Card> cards) {
         super(round, pot, parent);
-        this.childrens = childrens != null ? childrens : new ArrayList<>();
+        this.children = children != null ? children : new ArrayList<>();
         this.cards = cards;
         this.donk = false;
-        // if(childrens.size() != cards.size()) throw new RuntimeException("Card and childern length not match");
     }
 
     public List<Card> getCards() {
         return cards;
     }
 
-    public List<GameTreeNode> getChildrens() {
-        return childrens;
+    public List<GameTreeNode> getChildren() {
+        return children;
     }
 
     public int getPlayer() {
@@ -70,8 +68,8 @@ public class ChanceNode extends GameTreeNode {
         this.trainable = trainable;
     }
 
-    public void setChildrens(List<GameTreeNode> childrens) {
-        this.childrens = childrens;
+    public void setChildren(List<GameTreeNode> children) {
+        this.children = children;
     }
 
     @Override

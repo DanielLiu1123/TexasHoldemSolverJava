@@ -128,7 +128,7 @@ public abstract class GameTreeNode {
             if (parent_node == null) break;
             if (parent_node instanceof ActionNode action_node) {
                 for (int i = 0; i < action_node.getActions().size(); i++) {
-                    if (action_node.getChildrens().get(i) == node) {
+                    if (action_node.getChildren().get(i) == node) {
                         System.out.print(String.format(
                                 "<- (player %s %s)",
                                 action_node.getPlayer(),
@@ -136,8 +136,8 @@ public abstract class GameTreeNode {
                     }
                 }
             } else if (parent_node instanceof ChanceNode chance_node) {
-                for (int i = 0; i < chance_node.getChildrens().size(); i++) {
-                    if (chance_node.getChildrens().get(i) == node) {
+                for (int i = 0; i < chance_node.getChildren().size(); i++) {
+                    if (chance_node.getChildren().get(i) == node) {
                         System.out.print(String.format(
                                 "<- (deal card %s)",
                                 chance_node.getCards().get(i).toString()));

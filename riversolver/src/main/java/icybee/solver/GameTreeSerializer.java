@@ -36,7 +36,7 @@ class GameTreeSerializer {
                 ObjectNode childrenJson = null;
                 for (int i = 0; i < actionNode.getActions().size(); i++) {
                     GameActions oneAction = actionNode.getActions().get(i);
-                    GameTreeNode oneChild = actionNode.getChildrens().get(i);
+                    GameTreeNode oneChild = actionNode.getChildren().get(i);
                     ObjectNode oneJson = toJson(oneChild);
                     if (oneJson != null) {
                         if (childrenJson == null) childrenJson = MAPPER.createObjectNode();
@@ -44,7 +44,7 @@ class GameTreeSerializer {
                     }
                 }
                 if (childrenJson != null) {
-                    retJson.set("childrens", childrenJson);
+                    retJson.set("children", childrenJson);
                 }
                 retJson.set(
                         "strategy",
@@ -58,7 +58,7 @@ class GameTreeSerializer {
             }
             case ChanceNode chanceNode -> {
                 List<Card> cards = chanceNode.getCards();
-                List<GameTreeNode> chanceChildren = chanceNode.getChildrens();
+                List<GameTreeNode> chanceChildren = chanceNode.getChildren();
                 if (cards.size() != chanceChildren.size()) throw new RuntimeException("length not match");
                 ObjectNode retJson = MAPPER.createObjectNode();
 

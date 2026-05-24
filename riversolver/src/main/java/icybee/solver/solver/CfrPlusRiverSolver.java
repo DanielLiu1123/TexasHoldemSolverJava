@@ -137,17 +137,17 @@ public class CfrPlusRiverSolver extends AbstractCfrSolver {
     float[] chanceUtility(int player, ChanceNode node, float[][] reachProbs, int iter, long currentBoard)
             throws BoardNotFoundException {
         List<Card> cards = this.deck.getCards();
-        if (cards.size() != node.getChildrens().size()) throw new RuntimeException();
+        if (cards.size() != node.getChildren().size()) throw new RuntimeException();
 
-        int possibleDeals = node.getChildrens().size() - Card.long2board(currentBoard).length - 2;
+        int possibleDeals = node.getChildren().size() - Card.long2board(currentBoard).length - 2;
 
         float[] chanceUtility = new float[reachProbs[player].length];
         int randomDeal = 0, cardcount = 0;
-        if (this.monteCarolAlg == MonteCarolAlg.PUBLIC) {
+        if (this.monteCarolAlg == MonteCarloAlg.PUBLIC) {
             randomDeal = ThreadLocalRandom.current().nextInt(1, possibleDeals + 1 + 2);
         }
         for (int card = 0; card < node.getCards().size(); card++) {
-            GameTreeNode oneChild = node.getChildrens().get(card);
+            GameTreeNode oneChild = node.getChildren().get(card);
             Card oneCard = node.getCards().get(card);
             long cardLong = Card.boardCards2long(new Card[] {oneCard});
 
@@ -157,7 +157,7 @@ public class CfrPlusRiverSolver extends AbstractCfrSolver {
             if (oneChild == null || oneCard == null) throw new RuntimeException("child is null");
 
             long newBoardLong = currentBoard | cardLong;
-            if (this.monteCarolAlg == MonteCarolAlg.PUBLIC) {
+            if (this.monteCarolAlg == MonteCarloAlg.PUBLIC) {
                 if (cardcount == randomDeal) {
                     float[][] newReachProbs = new float[2][];
 
@@ -209,7 +209,7 @@ public class CfrPlusRiverSolver extends AbstractCfrSolver {
             for (int i = 0; i < childUtility.length; i++) chanceUtility[i] += childUtility[i];
         }
 
-        if (this.monteCarolAlg == MonteCarolAlg.PUBLIC) {
+        if (this.monteCarolAlg == MonteCarloAlg.PUBLIC) {
             throw new RuntimeException("not possible");
         }
         return chanceUtility;
@@ -221,7 +221,7 @@ public class CfrPlusRiverSolver extends AbstractCfrSolver {
         Trainable trainable = Objects.requireNonNull(node.getTrainable(), "trainable not set");
 
         float[] payoffs = new float[this.ranges[player].length];
-        List<GameTreeNode> children = node.getChildrens();
+        List<GameTreeNode> children = node.getChildren();
         List<GameActions> actions = node.getActions();
 
         float[] currentStrategy = trainable.getcurrentStrategy();
