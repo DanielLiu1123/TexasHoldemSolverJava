@@ -1,6 +1,5 @@
 package icybee.solver.gui;
 
-import com.google.common.base.Splitter;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
@@ -234,10 +233,10 @@ public class RangeSelector {
     }
 
     private void processInputString(String input_range) {
-        List<String> range_split = Splitter.on(',').splitToList(input_range);
+        List<String> range_split = List.of(input_range.split(",", -1));
         for (String one_range_str : range_split) {
             if (one_range_str.length() == 0) continue;
-            List<String> range_weight = Splitter.on(':').splitToList(one_range_str);
+            List<String> range_weight = List.of(one_range_str.split(":", -1));
             String pure_range_str;
             float weight = 1;
             pure_range_str = range_weight.get(0);

@@ -19,7 +19,6 @@ dependencies {
     implementation("tools.jackson.core:jackson-databind:${providers.gradleProperty("jacksonVersion").get()}")
     implementation("org.apache.commons:commons-lang3:${providers.gradleProperty("commonsLang3Version").get()}")
     implementation("net.sourceforge.argparse4j:argparse4j:${providers.gradleProperty("argparse4jVersion").get()}")
-    implementation("com.google.guava:guava:${providers.gradleProperty("guavaVersion").get()}")
     implementation("com.jetbrains.intellij.java:java-gui-forms-rt:${providers.gradleProperty("formsRtVersion").get()}")
 
     antTask("com.jetbrains.intellij.java:java-compiler-ant-tasks:+")

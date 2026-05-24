@@ -2,7 +2,6 @@ package icybee.solver;
 
 import static icybee.solver.utils.JsonUtil.MAPPER;
 
-import com.google.common.base.Splitter;
 import icybee.solver.exceptions.ActionNotFoundException;
 import icybee.solver.exceptions.NodeLengthMismatchException;
 import icybee.solver.exceptions.NodeNotFoundException;
@@ -120,7 +119,7 @@ public class GameTree {
                 }
                 default -> {
                     if (one_action.contains("bet")) {
-                        List<String> action_sp = Splitter.on('_').splitToList(one_action);
+                        List<String> action_sp = List.of(one_action.split("_", -1));
                         if (action_sp.size() != 2)
                             throw new RuntimeException(String.format("action sp length %d", action_sp.size()));
                         String action_str = action_sp.get(0);
@@ -130,7 +129,7 @@ public class GameTree {
                         amount = Double.valueOf(action_sp.get(1));
 
                     } else if (one_action.contains("raise")) {
-                        List<String> action_sp = Splitter.on('_').splitToList(one_action);
+                        List<String> action_sp = List.of(one_action.split("_", -1));
                         if (action_sp.size() != 2)
                             throw new RuntimeException(String.format("action sp length %d", action_sp.size()));
                         String action_str = action_sp.get(0);

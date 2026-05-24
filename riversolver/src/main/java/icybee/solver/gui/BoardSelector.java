@@ -1,6 +1,5 @@
 package icybee.solver.gui;
 
-import com.google.common.base.Splitter;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.List;
@@ -48,7 +47,7 @@ public class BoardSelector {
         grid_text = new String[4][columnName.length];
         selecte2d = new boolean[4][columnName.length];
 
-        List<String> boardstr = Splitter.on(',').splitToList(init_board_str);
+        List<String> boardstr = List.of(init_board_str.split(",", -1));
         String colors = "cdhs";
         for (int i = 0; i < 4; i++) {
             for (int j = 0; j < columnName.length; j++) {

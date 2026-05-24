@@ -1,6 +1,5 @@
 package icybee.solver.gui;
 
-import com.google.common.base.Splitter;
 import icybee.solver.Card;
 import icybee.solver.Config;
 import icybee.solver.Deck;
@@ -129,7 +128,7 @@ public class SolverGui {
     }
 
     float[] parseBetSizes(String betstr) {
-        List<String> bets_str = Splitter.on(' ').splitToList(betstr);
+        List<String> bets_str = List.of(betstr.split(" ", -1));
         float[] bet_sizes = new float[bets_str.size()];
         for (int i = 0; i < bets_str.size(); i++) {
             String one_bet_str = bets_str.get(i);
@@ -247,7 +246,7 @@ public class SolverGui {
         // TODO check these ranges
 
         String board = boardstr.getText();
-        List<String> board_cards = Splitter.on(',').splitToList(board);
+        List<String> board_cards = List.of(board.split(",", -1));
 
         int[] initialBoard = new int[board_cards.size()];
         for (int i = 0; i < board_cards.size(); i++) {
