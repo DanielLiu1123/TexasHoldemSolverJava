@@ -11,6 +11,7 @@ import icybee.solver.solver.Solver;
 import icybee.solver.trainable.CfrPlusTrainable;
 import icybee.solver.trainable.CfrTrainable;
 import icybee.solver.trainable.DiscountedCfrTrainable;
+import icybee.solver.trainable.TrainableFactory;
 import icybee.solver.utils.PrivateRangeConverter;
 import java.io.File;
 import java.io.FileWriter;
@@ -111,11 +112,11 @@ public class CommandlineSolver {
         String logfile = ns.getString("logfile");
 
         String algorithm_str = ns.getString("algorithm");
-        Class<?> algorithm =
+        TrainableFactory algorithm =
                 switch (algorithm_str) {
-                    case "cfr" -> CfrTrainable.class;
-                    case "cfr_plus" -> CfrPlusTrainable.class;
-                    case "discounted_cfr" -> DiscountedCfrTrainable.class;
+                    case "cfr" -> CfrTrainable::new;
+                    case "cfr_plus" -> CfrPlusTrainable::new;
+                    case "discounted_cfr" -> DiscountedCfrTrainable::new;
                     default -> throw new RuntimeException(String.format("algorithm not found :%s", algorithm_str));
                 };
         String monte_coral_str = ns.getString("monte_carol");

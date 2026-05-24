@@ -10,8 +10,7 @@ import icybee.solver.nodes.ChanceNode;
 import icybee.solver.nodes.GameTreeNode;
 import icybee.solver.ranges.PrivateCards;
 import icybee.solver.ranges.PrivateCardsManager;
-import icybee.solver.trainable.Trainable;
-import java.lang.reflect.InvocationTargetException;
+import icybee.solver.trainable.TrainableFactory;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 
@@ -36,7 +35,7 @@ abstract class AbstractCfrSolver extends Solver {
     @Nullable
     String logfile;
 
-    Class<?> trainer;
+    TrainableFactory trainerFactory;
     int[] round_deal;
     MonteCarolAlg monteCarolAlg;
 
@@ -51,13 +50,13 @@ abstract class AbstractCfrSolver extends Solver {
             boolean debug,
             int printInterval,
             @Nullable String logfile,
-            Class<?> trainer,
+            TrainableFactory trainerFactory,
             MonteCarolAlg monteCarolAlg) {
         super(tree);
         this.initial_board = initialBoard;
         this.initial_board_long = Card.boardInts2long(initialBoard);
         this.logfile = logfile;
-        this.trainer = trainer;
+        this.trainerFactory = trainerFactory;
 
         range1 = this.noDuplicateRange(range1, initial_board_long);
         range2 = this.noDuplicateRange(range2, initial_board_long);
@@ -123,16 +122,11 @@ abstract class AbstractCfrSolver extends Solver {
         return ret;
     }
 
-    void setTrainable(GameTreeNode root)
-            throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, InstantiationException {
+    void setTrainable(GameTreeNode root) {
         if (root instanceof ActionNode actionNode) {
             int player = actionNode.getPlayer();
             PrivateCards[] playerPrivates = this.ranges[player];
-
-            actionNode.setTrainable((Trainable) this.trainer
-                    .getConstructor(ActionNode.class, PrivateCards[].class)
-                    .newInstance(actionNode, playerPrivates));
-
+            actionNode.setTrainable(this.trainerFactory.create(actionNode, playerPrivates));
             List<GameTreeNode> children = actionNode.getChildrens();
             for (GameTreeNode oneChild : children) setTrainable(oneChild);
         } else if (root instanceof ChanceNode chanceNode) {

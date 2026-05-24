@@ -10,6 +10,7 @@ import icybee.solver.solver.Solver;
 import icybee.solver.trainable.CfrPlusTrainable;
 import icybee.solver.trainable.CfrTrainable;
 import icybee.solver.trainable.DiscountedCfrTrainable;
+import icybee.solver.trainable.TrainableFactory;
 import icybee.solver.utils.PrivateRangeConverter;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -61,11 +62,11 @@ public class PokerSolver {
                 .map(Card::strCard2int)
                 .mapToInt(i -> i)
                 .toArray();
-        Class<?> algorithm_class =
+        TrainableFactory algorithm_class =
                 switch (algorithm) {
-                    case "cfr" -> CfrTrainable.class;
-                    case "cfr_plus" -> CfrPlusTrainable.class;
-                    case "discounted_cfr" -> DiscountedCfrTrainable.class;
+                    case "cfr" -> CfrTrainable::new;
+                    case "cfr_plus" -> CfrPlusTrainable::new;
+                    case "discounted_cfr" -> DiscountedCfrTrainable::new;
                     default -> throw new RuntimeException(String.format("algorithm not found :%s", algorithm));
                 };
 

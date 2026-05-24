@@ -11,6 +11,7 @@ import icybee.solver.nodes.*;
 import icybee.solver.ranges.PrivateCards;
 import icybee.solver.ranges.RiverCombs;
 import icybee.solver.trainable.Trainable;
+import icybee.solver.trainable.TrainableFactory;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -34,7 +35,7 @@ public class CfrPlusRiverSolver extends AbstractCfrSolver {
             boolean debug,
             int printInterval,
             @Nullable String logfile,
-            Class<?> trainer,
+            TrainableFactory trainerFactory,
             MonteCarolAlg monteCarolAlg) {
         super(
                 tree,
@@ -47,7 +48,7 @@ public class CfrPlusRiverSolver extends AbstractCfrSolver {
                 debug,
                 printInterval,
                 logfile,
-                trainer,
+                trainerFactory,
                 monteCarolAlg);
     }
 

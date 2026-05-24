@@ -13,6 +13,7 @@ import icybee.solver.solver.ParallelCfrPlusSolver;
 import icybee.solver.solver.Solver;
 import icybee.solver.trainable.CfrPlusTrainable;
 import icybee.solver.trainable.DiscountedCfrTrainable;
+import icybee.solver.trainable.TrainableFactory;
 import icybee.solver.utils.PrivateRangeConverter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -271,6 +272,8 @@ public class SolverGui {
         Deck deck = java.util.Objects.requireNonNull(
                 mode.getSelectedIndex() == 0 ? this.holdem_deck : this.shortdeck_deck, "deck not loaded");
 
+        TrainableFactory trainerFactory =
+                algorithm.getSelectedIndex() == 0 ? DiscountedCfrTrainable::new : CfrPlusTrainable::new;
         Solver solver = new ParallelCfrPlusSolver(
                 game_tree,
                 player1Range,
@@ -282,7 +285,7 @@ public class SolverGui {
                 false,
                 Integer.valueOf(log_interval.getText()),
                 logfile_name,
-                algorithm.getSelectedIndex() == 0 ? DiscountedCfrTrainable.class : CfrPlusTrainable.class,
+                trainerFactory,
                 mc.isSelected() ? MonteCarolAlg.PUBLIC : MonteCarolAlg.NONE,
                 Integer.valueOf(threads.getText()),
                 1,

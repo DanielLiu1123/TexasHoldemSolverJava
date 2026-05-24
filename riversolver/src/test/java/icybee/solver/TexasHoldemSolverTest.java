@@ -279,7 +279,7 @@ public class TexasHoldemSolverTest {
                 false,
                 10,
                 logfile_name,
-                DiscountedCfrTrainable.class,
+                DiscountedCfrTrainable::new,
                 MonteCarolAlg.NONE);
         Map train_config = new HashMap();
         solver.train(train_config);
@@ -317,7 +317,7 @@ public class TexasHoldemSolverTest {
                 false,
                 10,
                 logfile_name,
-                DiscountedCfrTrainable.class,
+                DiscountedCfrTrainable::new,
                 MonteCarolAlg.NONE);
         Map train_config = new HashMap();
         solver.train(train_config);
@@ -366,7 +366,7 @@ public class TexasHoldemSolverTest {
                 false,
                 10,
                 logfile_name,
-                DiscountedCfrTrainable.class,
+                DiscountedCfrTrainable::new,
                 MonteCarolAlg.NONE);
         Map train_config = new HashMap();
         solver.train(train_config);
@@ -416,7 +416,7 @@ public class TexasHoldemSolverTest {
                 false,
                 10,
                 logfile_name,
-                DiscountedCfrTrainable.class,
+                DiscountedCfrTrainable::new,
                 MonteCarolAlg.PUBLIC);
         Map train_config = new HashMap();
         solver.train(train_config);
@@ -466,7 +466,7 @@ public class TexasHoldemSolverTest {
                 false,
                 10,
                 logfile_name,
-                DiscountedCfrTrainable.class,
+                DiscountedCfrTrainable::new,
                 MonteCarolAlg.NONE,
                 2,
                 1,
