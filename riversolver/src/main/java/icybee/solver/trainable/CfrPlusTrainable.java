@@ -44,6 +44,8 @@ public class CfrPlusTrainable extends Trainable {
 
     float[] regrets;
 
+    float[] cachedCurrentStrategy;
+
     public CfrPlusTrainable(ActionNode action_node, PrivateCards[] privateCards) {
         this.action_node = action_node;
         this.privateCards = privateCards;
@@ -56,6 +58,7 @@ public class CfrPlusTrainable extends Trainable {
         this.cum_r_plus = new float[this.action_number * this.card_number];
         this.cum_r_plus_sum = new float[this.card_number];
         this.regrets = new float[this.action_number * this.card_number];
+        this.cachedCurrentStrategy = new float[this.action_number * this.card_number];
     }
 
     private boolean isAllZeros(float[] input_array) {
@@ -87,39 +90,22 @@ public class CfrPlusTrainable extends Trainable {
 
     @Override
     public float[] getcurrentStrategy() {
-        float[] retval = new float[this.action_number * this.card_number];
         if (this.r_plus_sum == null) {
-            Arrays.fill(retval, 1F / this.action_number);
+            Arrays.fill(cachedCurrentStrategy, 1F / this.action_number);
         } else {
             for (int action_id = 0; action_id < action_number; action_id++) {
                 for (int private_id = 0; private_id < this.card_number; private_id++) {
                     int index = action_id * this.card_number + private_id;
                     if (this.r_plus_sum[private_id] != 0) {
-                        retval[index] = this.r_plus[index] / this.r_plus_sum[private_id];
+                        cachedCurrentStrategy[index] = this.r_plus[index] / this.r_plus_sum[private_id];
                     } else {
-                        retval[index] = 1F / this.action_number;
+                        cachedCurrentStrategy[index] = 1F / this.action_number;
                     }
                     if (Float.isNaN(this.r_plus[index])) throw new RuntimeException();
-                    /*
-                    if(this.r_plus_sum[private_id] == 0)
-                    {
-                        System.out.println("Exception regret status, r_plus_sum == 0:");
-                        System.out.println(String.format("r plus length %s , card num %s",r_plus.length,this.card_number));
-                        for(int i = index % this.card_number;i < this.r_plus.length;i += this.card_number){
-                            System.out.print(String.format("%s:%s ",i,this.r_plus[i]));
-                            if(i == index){
-                                System.out.print("[current]");
-                            }
-                        }
-                        System.out.println();
-                        System.out.println();
-                        throw new RuntimeException();
-                    }
-                     */
                 }
             }
         }
-        return retval;
+        return cachedCurrentStrategy;
     }
 
     public float[] getcurrentStrategy(int private_id) {
