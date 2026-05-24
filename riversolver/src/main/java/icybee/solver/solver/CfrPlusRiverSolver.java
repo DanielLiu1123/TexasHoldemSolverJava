@@ -188,38 +188,35 @@ public class CfrPlusRiverSolver extends Solver {
         br.printExploitability(tree.getRoot(), 0, tree.getRoot().getPot().floatValue(), initial_board_long);
 
         float[][] reach_probs = this.getReachProbs();
-        Writer fileWriter = Files.newBufferedWriter(Paths.get(this.logfile), StandardCharsets.UTF_8);
 
         long begintime = System.currentTimeMillis();
         long endtime = System.currentTimeMillis();
-        for (int i = 0; i < this.iteration_number; i++) {
-            for (int player_id = 0; player_id < this.player_number; player_id++) {
-                if (this.debug) {
-                    System.out.println(String.format(
-                            "---------------------------------     player %s --------------------------------",
-                            player_id));
+        try (Writer fileWriter = Files.newBufferedWriter(Paths.get(this.logfile), StandardCharsets.UTF_8)) {
+            for (int i = 0; i < this.iteration_number; i++) {
+                for (int player_id = 0; player_id < this.player_number; player_id++) {
+                    if (this.debug) {
+                        System.out.println(String.format(
+                                "---------------------------------     player %s --------------------------------",
+                                player_id));
+                    }
+                    this.round_deal = new int[] {-1, -1, -1, -1};
+                    cfr(player_id, this.tree.getRoot(), reach_probs, i, this.initial_board_long);
                 }
-                this.round_deal = new int[] {-1, -1, -1, -1};
-                cfr(player_id, this.tree.getRoot(), reach_probs, i, this.initial_board_long);
-            }
-            if (i % this.print_interval == 0) {
-                System.out.println("-------------------");
-                endtime = System.currentTimeMillis();
-                float expliotibility = br.printExploitability(
-                        tree.getRoot(), i + 1, tree.getRoot().getPot().floatValue(), initial_board_long);
-                if (this.logfile != null) {
+                if (i % this.print_interval == 0) {
+                    System.out.println("-------------------");
+                    endtime = System.currentTimeMillis();
+                    float expliotibility = br.printExploitability(
+                            tree.getRoot(), i + 1, tree.getRoot().getPot().floatValue(), initial_board_long);
                     long time_ms = endtime - begintime;
                     ObjectNode jo = MAPPER.createObjectNode();
                     jo.put("iteration", i);
                     jo.put("exploitibility", expliotibility);
                     jo.put("time_ms", time_ms);
                     fileWriter.write(String.format("%s\n", jo.toString()));
+                    begintime = System.currentTimeMillis();
                 }
-                begintime = System.currentTimeMillis();
             }
         }
-        fileWriter.flush();
-        fileWriter.close();
         // System.out.println(this.tree.dumps(false).toJSONString());
     }
 

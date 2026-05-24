@@ -214,52 +214,47 @@ public class ParallelCfrPlusSolver extends Solver {
         br.printExploitability(tree.getRoot(), 0, tree.getRoot().getPot().floatValue(), initial_board_long);
 
         float[][] reach_probs = this.getReachProbs();
-        Writer fileWriter = null;
-        if (this.logfile != null) fileWriter = Files.newBufferedWriter(Paths.get(this.logfile), StandardCharsets.UTF_8);
 
         long begintime = System.currentTimeMillis();
         long endtime = System.currentTimeMillis();
 
         Double stop_exploitibility = this.getValue(training_config, "stop_exploitibility");
-        for (int i = 0; i < this.iteration_number; i++) {
-            for (int player_id = 0; player_id < this.player_number; player_id++) {
-                if (this.debug) {
-                    System.out.println(String.format(
-                            "---------------------------------     player %s --------------------------------",
-                            player_id));
-                }
-                this.round_deal = new int[] {-1, -1, -1, -1};
+        try (Writer fileWriter = this.logfile != null
+                ? Files.newBufferedWriter(Paths.get(this.logfile), StandardCharsets.UTF_8)
+                : Writer.nullWriter()) {
+            for (int i = 0; i < this.iteration_number; i++) {
+                for (int player_id = 0; player_id < this.player_number; player_id++) {
+                    if (this.debug) {
+                        System.out.println(String.format(
+                                "---------------------------------     player %s --------------------------------",
+                                player_id));
+                    }
+                    this.round_deal = new int[] {-1, -1, -1, -1};
 
-                CfrTask task =
-                        new CfrTask(player_id, this.tree.getRoot(), reach_probs, i, this.initial_board_long, this);
-                forkJoinPool.invoke(task);
-            }
-            if (i % this.print_interval == 0) {
-                endtime = System.currentTimeMillis();
-                long time_ms = endtime - begintime;
-                System.out.println(String.format("time used: %.2fs", (float) time_ms / 1000));
-                System.out.println("-------------------");
-                float expliotibility = br.printExploitability(
-                        tree.getRoot(), i + 1, tree.getRoot().getPot().floatValue(), initial_board_long);
-                if (this.logfile != null) {
+                    CfrTask task =
+                            new CfrTask(player_id, this.tree.getRoot(), reach_probs, i, this.initial_board_long, this);
+                    forkJoinPool.invoke(task);
+                }
+                if (i % this.print_interval == 0) {
+                    endtime = System.currentTimeMillis();
+                    long time_ms = endtime - begintime;
+                    System.out.println(String.format("time used: %.2fs", (float) time_ms / 1000));
+                    System.out.println("-------------------");
+                    float expliotibility = br.printExploitability(
+                            tree.getRoot(), i + 1, tree.getRoot().getPot().floatValue(), initial_board_long);
                     ObjectNode jo = MAPPER.createObjectNode();
                     jo.put("iteration", i);
                     jo.put("exploitibility", expliotibility);
                     jo.put("time_ms", time_ms);
-                    if (fileWriter != null) fileWriter.write(String.format("%s\n", jo.toString()));
+                    fileWriter.write(String.format("%s\n", jo.toString()));
+                    if (stop_exploitibility > expliotibility) break;
                 }
-                if (stop_exploitibility > expliotibility) break;
-                // begintime = System.currentTimeMillis();
             }
         }
         endtime = System.currentTimeMillis();
         long time_ms = endtime - begintime;
         System.out.println("++++++++++++++++");
         System.out.println(String.format("solve finish, total time used: %.2fs", (float) time_ms / 1000));
-        if (fileWriter != null) {
-            fileWriter.flush();
-            fileWriter.close();
-        }
         forkJoinPool.shutdown();
         // System.out.println(this.tree.dumps(false).toJSONString());
     }
