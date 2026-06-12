@@ -2,8 +2,15 @@
 
 set -e
 
-# Format code
+# Format code, then re-stage only the files that were already staged.
+# (A bare `git add -u` here would silently sweep unrelated working-tree
+# changes into every commit.)
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+
 ./gradlew spotlessApply
 
-# Add changes to current commit
-git add -u
+if [ -n "$staged" ]; then
+    echo "$staged" | while IFS= read -r file; do
+        [ -e "$file" ] && git add -- "$file"
+    done
+fi
