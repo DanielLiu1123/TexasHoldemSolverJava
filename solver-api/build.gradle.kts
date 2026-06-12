@@ -39,6 +39,12 @@ application {
     applicationName = "solver-api"
 }
 
+// JavaExec defaults workingDir to this subproject; resolve --resources paths
+// against the repository root instead, matching the README invocation.
+tasks.named<JavaExec>("run") {
+    workingDir = rootDir
+}
+
 tasks.withType<Test>().configureEach {
     // Integration tests load the compairer dictionaries from riversolver's test resources.
     systemProperty("solver.testResources", rootDir.resolve("riversolver/src/test/resources").toString())

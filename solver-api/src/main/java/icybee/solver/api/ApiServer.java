@@ -11,12 +11,12 @@ import java.util.function.Consumer;
  * The embedded HTTP API around the solver core (see ADR 0001).
  *
  * <pre>
- * POST   /api/v1/solves              submit a solve job        → 202 JobView
- * GET    /api/v1/solves/{id}         job status and progress   → 200 JobView
- * GET    /api/v1/solves/{id}/events  live progress (SSE)
+ * POST   /api/v1/solves                submit a solve job        → 202 JobView
+ * GET    /api/v1/solves/{id}           job status and progress   → 200 JobView
+ * GET    /api/v1/solves/{id}/events    live progress (SSE)
  * GET    /api/v1/solves/{id}/strategy  strategy JSON once completed
- * DELETE /api/v1/solves/{id}         request cancellation      → 202 JobView
- * GET    /api/v1/health              process / dictionary status
+ * DELETE /api/v1/solves/{id}           request cancellation      → 202 JobView
+ * GET    /api/v1/health                process / dictionary status
  * </pre>
  */
 public final class ApiServer implements AutoCloseable {
@@ -118,6 +118,8 @@ public final class ApiServer implements AutoCloseable {
             }
         }
         ApiServer server = new ApiServer(resources).start(port);
-        System.out.println(String.format("solver-api listening on http://localhost:%d", server.port()));
+        System.out.println(String.format(
+                "solver-api listening on http://localhost:%d (resources: %s)",
+                server.port(), resources.toAbsolutePath().normalize()));
     }
 }

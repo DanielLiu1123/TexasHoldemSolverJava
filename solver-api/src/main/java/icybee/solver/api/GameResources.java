@@ -37,7 +37,9 @@ public final class GameResources {
     private Loaded load(GameType game) {
         Path dictionary = resourcesDir.resolve(game.dictionaryFile());
         if (!Files.isRegularFile(dictionary)) {
-            throw new IllegalStateException(String.format("compairer dictionary not found: %s", dictionary));
+            throw new IllegalStateException(String.format(
+                    "compairer dictionary not found: %s",
+                    dictionary.toAbsolutePath().normalize()));
         }
         Deck deck = new Deck(game.ranks(), GameType.SUITS);
         try {
