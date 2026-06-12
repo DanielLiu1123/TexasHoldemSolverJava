@@ -38,6 +38,7 @@ abstract class AbstractCfrSolver extends Solver {
     int[] round_deal;
     MonteCarloAlg monteCarloAlg;
     double stop_exploitability;
+    TrainingProgressListener progressListener;
 
     protected AbstractCfrSolver(SolverConfig config) {
         super(config.tree());
@@ -67,6 +68,7 @@ abstract class AbstractCfrSolver extends Solver {
         this.print_interval = config.printInterval();
         this.monteCarloAlg = config.monteCarloAlg();
         this.stop_exploitability = config.stopExploitability();
+        this.progressListener = config.progressListener();
         this.round_deal = new int[0];
     }
 

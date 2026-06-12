@@ -43,7 +43,7 @@ public class CfrPlusRiverSolver extends AbstractCfrSolver {
         try (Writer fileWriter = this.logfile != null
                 ? Files.newBufferedWriter(Paths.get(this.logfile), StandardCharsets.UTF_8)
                 : Writer.nullWriter()) {
-            for (int i = 0; i < this.iteration_number; i++) {
+            for (int i = 0; i < this.iteration_number && !this.stopRequested; i++) {
                 for (int playerId = 0; playerId < this.player_number; playerId++) {
                     if (this.debug) {
                         System.out.println(String.format(
@@ -65,6 +65,7 @@ public class CfrPlusRiverSolver extends AbstractCfrSolver {
                     jo.put("time_ms", time_ms);
                     fileWriter.write(String.format("%s\n", jo.toString()));
                     begintime = System.currentTimeMillis();
+                    this.progressListener.onProgress(i, exploitability, time_ms);
                     if (this.stop_exploitability > 0 && exploitability < this.stop_exploitability) break;
                 }
             }

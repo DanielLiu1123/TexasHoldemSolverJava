@@ -28,7 +28,8 @@ public record SolverConfig(
         @Nullable String logfile,
         TrainableFactory trainerFactory,
         MonteCarloAlg monteCarloAlg,
-        double stopExploitability) {
+        double stopExploitability,
+        TrainingProgressListener progressListener) {
 
     public static Builder builder() {
         return new Builder();
@@ -48,6 +49,7 @@ public record SolverConfig(
         private TrainableFactory trainerFactory = DiscountedCfrTrainable::new;
         private MonteCarloAlg monteCarloAlg = MonteCarloAlg.NONE;
         private double stopExploitability = 0;
+        private TrainingProgressListener progressListener = TrainingProgressListener.NONE;
 
         private Builder() {}
 
@@ -121,6 +123,11 @@ public record SolverConfig(
             return this;
         }
 
+        public Builder progressListener(TrainingProgressListener progressListener) {
+            this.progressListener = progressListener;
+            return this;
+        }
+
         public SolverConfig build() {
             return new SolverConfig(
                     Objects.requireNonNull(tree, "tree"),
@@ -135,7 +142,8 @@ public record SolverConfig(
                     logfile,
                     trainerFactory,
                     monteCarloAlg,
-                    stopExploitability);
+                    stopExploitability,
+                    progressListener);
         }
     }
 }
