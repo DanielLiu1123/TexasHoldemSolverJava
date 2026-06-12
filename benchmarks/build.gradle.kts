@@ -10,6 +10,11 @@ dependencies {
     jmhImplementation(project(":riversolver"))
 }
 
+// The JMH bytecode generator reflects over benchmark classes in its own JVM.
+tasks.withType<me.champeau.jmh.JmhBytecodeGeneratorTask>().configureEach {
+    jvmArgs.add("--add-modules=jdk.incubator.vector")
+}
+
 jmh {
     jmhVersion = providers.gradleProperty("jmhVersion").get()
     resultFormat = "JSON"
@@ -17,8 +22,13 @@ jmh {
     // they are too large (50MB+) to duplicate into this module.
     jvmArgsAppend.add("-Dsolver.testResources=${rootDir.resolve("riversolver/src/test/resources")}")
     jvmArgsAppend.add("-Xmx2g")
+    jvmArgsAppend.add("--add-modules=jdk.incubator.vector")
     if (project.hasProperty("jmhIncludes")) {
         includes.add(project.property("jmhIncludes").toString())
+    }
+    // e.g. -PjmhProfilers=gc,stack
+    if (project.hasProperty("jmhProfilers")) {
+        profilers.addAll(project.property("jmhProfilers").toString().split(","))
     }
 }
 

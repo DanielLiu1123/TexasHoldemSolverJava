@@ -8,6 +8,9 @@ import icybee.solver.ranges.PrivateCards;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import jdk.incubator.vector.FloatVector;
+import jdk.incubator.vector.VectorOperators;
+import jdk.incubator.vector.VectorSpecies;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
@@ -20,6 +23,8 @@ import tools.jackson.databind.node.ObjectNode;
  * The average strategy uses quadratic (t²) weighting, which the paper pairs with PCFR+.
  */
 public class PCfrPlusTrainable extends Trainable {
+
+    static final VectorSpecies<Float> F = FloatVector.SPECIES_PREFERRED;
 
     final ActionNode action_node;
     final PrivateCards[] privateCards;
@@ -75,11 +80,21 @@ public class PCfrPlusTrainable extends Trainable {
     }
 
     private void fillCurrentStrategy(float[] out) {
+        float uniform = 1F / this.action_number;
+        FloatVector uniformV = FloatVector.broadcast(F, uniform);
         for (int action_id = 0; action_id < action_number; action_id++) {
-            for (int private_id = 0; private_id < this.card_number; private_id++) {
-                int index = action_id * this.card_number + private_id;
-                float sum = this.predicted_plus_sum[private_id];
-                out[index] = sum != 0 ? this.predicted_plus[index] / sum : 1F / this.action_number;
+            int base = action_id * this.card_number;
+            int hand = 0;
+            for (; hand <= this.card_number - F.length(); hand += F.length()) {
+                FloatVector sum = FloatVector.fromArray(F, this.predicted_plus_sum, hand);
+                FloatVector normalized = FloatVector.fromArray(F, this.predicted_plus, base + hand)
+                        .div(sum);
+                uniformV.blend(normalized, sum.compare(VectorOperators.NE, 0f)).intoArray(out, base + hand);
+            }
+            for (; hand < this.card_number; hand++) {
+                int index = base + hand;
+                float sum = this.predicted_plus_sum[hand];
+                out[index] = sum != 0 ? this.predicted_plus[index] / sum : uniform;
             }
         }
     }
@@ -91,26 +106,55 @@ public class PCfrPlusTrainable extends Trainable {
         // Accumulate the strategy that was just played (still derivable from the previous
         // prediction state) with quadratic weighting before overwriting that state.
         float weight = (float) iteration_number * iteration_number;
+        float uniform = 1F / this.action_number;
+        FloatVector uniformV = FloatVector.broadcast(F, uniform);
         for (int action_id = 0; action_id < action_number; action_id++) {
-            for (int private_id = 0; private_id < this.card_number; private_id++) {
-                int index = action_id * this.card_number + private_id;
-                float sum = this.predicted_plus_sum[private_id];
-                float played = sum != 0 ? this.predicted_plus[index] / sum : 1F / this.action_number;
-                this.cum_strategy[index] += played * weight * reach_probs[private_id];
+            int base = action_id * this.card_number;
+            int hand = 0;
+            for (; hand <= this.card_number - F.length(); hand += F.length()) {
+                int index = base + hand;
+                FloatVector sum = FloatVector.fromArray(F, this.predicted_plus_sum, hand);
+                FloatVector played = uniformV.blend(
+                        FloatVector.fromArray(F, this.predicted_plus, index).div(sum),
+                        sum.compare(VectorOperators.NE, 0f));
+                played.fma(
+                                FloatVector.fromArray(F, reach_probs, hand).mul(weight),
+                                FloatVector.fromArray(F, this.cum_strategy, index))
+                        .intoArray(this.cum_strategy, index);
+            }
+            for (; hand < this.card_number; hand++) {
+                int index = base + hand;
+                float sum = this.predicted_plus_sum[hand];
+                float played = sum != 0 ? this.predicted_plus[index] / sum : uniform;
+                this.cum_strategy[index] += played * weight * reach_probs[hand];
             }
         }
 
         Arrays.fill(this.predicted_plus_sum, 0);
+        FloatVector zero = FloatVector.zero(F);
         for (int action_id = 0; action_id < action_number; action_id++) {
-            for (int private_id = 0; private_id < this.card_number; private_id++) {
-                int index = action_id * this.card_number + private_id;
-                float one_reg = regrets[index];
-
+            int base = action_id * this.card_number;
+            int hand = 0;
+            for (; hand <= this.card_number - F.length(); hand += F.length()) {
+                int index = base + hand;
+                FloatVector reg = FloatVector.fromArray(F, regrets, index);
                 // RM+ accumulator: R = [R + r]+
-                this.r_plus[index] = Math.max(0, this.r_plus[index] + one_reg);
+                FloatVector r =
+                        FloatVector.fromArray(F, this.r_plus, index).add(reg).max(zero);
+                r.intoArray(this.r_plus, index);
                 // Optimistic prediction m = r (the regret just observed): play ∝ [R + m]+
+                FloatVector predicted = r.add(reg).max(zero);
+                predicted.intoArray(this.predicted_plus, index);
+                FloatVector.fromArray(F, this.predicted_plus_sum, hand)
+                        .add(predicted)
+                        .intoArray(this.predicted_plus_sum, hand);
+            }
+            for (; hand < this.card_number; hand++) {
+                int index = base + hand;
+                float one_reg = regrets[index];
+                this.r_plus[index] = Math.max(0, this.r_plus[index] + one_reg);
                 this.predicted_plus[index] = Math.max(0, this.r_plus[index] + one_reg);
-                this.predicted_plus_sum[private_id] += this.predicted_plus[index];
+                this.predicted_plus_sum[hand] += this.predicted_plus[index];
             }
         }
     }

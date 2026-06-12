@@ -16,6 +16,7 @@ dependencies {
 application {
     mainClass = "icybee.solver.runtime.CommandlineSolver"
     applicationName = "RiverSolver"
+    applicationDefaultJvmArgs = listOf("--add-modules=jdk.incubator.vector")
 }
 
 // Include data files in the distribution alongside the JAR.

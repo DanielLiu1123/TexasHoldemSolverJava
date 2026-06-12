@@ -23,7 +23,10 @@ subprojects {
     }
 
     tasks.withType<JavaCompile>().configureEach {
-        options.compilerArgs.addAll(listOf("-parameters", "-XDaddTypeAnnotationsToSymbol=true"))
+        // jdk.incubator.vector powers the SIMD kernels on the CFR hot path (SimdOps).
+        options.compilerArgs.addAll(
+            listOf("-parameters", "-XDaddTypeAnnotationsToSymbol=true", "--add-modules=jdk.incubator.vector"),
+        )
         options.encoding = "UTF-8"
     }
 
@@ -48,7 +51,7 @@ subprojects {
 
     tasks.withType<Test>().configureEach {
         useJUnitPlatform()
-        jvmArgs("-XX:+EnableDynamicAgentLoading")
+        jvmArgs("-XX:+EnableDynamicAgentLoading", "--add-modules=jdk.incubator.vector")
         // The holdem compairer dictionary (2.6M boxed map entries) alone exceeds
         // Gradle's default 512m test-worker heap.
         maxHeapSize = "2g"

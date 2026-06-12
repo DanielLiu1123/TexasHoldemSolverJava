@@ -30,6 +30,7 @@ tasks.processResources {
 application {
     mainClass = "icybee.solver.api.ApiServer"
     applicationName = "solver-api"
+    applicationDefaultJvmArgs = listOf("--add-modules=jdk.incubator.vector")
 }
 
 // JavaExec defaults workingDir to this subproject; resolve --resources paths

@@ -8,6 +8,7 @@ import icybee.solver.ranges.PrivateCards;
 import icybee.solver.ranges.RiverCombs;
 import icybee.solver.trainable.DiscountedCfrTrainable;
 import icybee.solver.trainable.Trainable;
+import icybee.solver.utils.SimdOps;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -310,10 +311,12 @@ public class ParallelCfrPlusSolver extends AbstractCfrSolver {
                 float[][] new_reach_prob = new float[this.solver_env.player_number][];
                 new_reach_prob[1 - node_player] = reach_probs[1 - node_player];
                 float[] player_new_reach = new float[reach_probs[node_player].length];
-                for (int hand_id = 0; hand_id < player_new_reach.length; hand_id++) {
-                    float strategy_prob = current_strategy[hand_id + action_id * node_player_private_cards.length];
-                    player_new_reach[hand_id] = reach_probs[node_player][hand_id] * strategy_prob;
-                }
+                SimdOps.mul(
+                        current_strategy,
+                        action_id * node_player_private_cards.length,
+                        reach_probs[node_player],
+                        player_new_reach,
+                        player_new_reach.length);
                 new_reach_prob[node_player] = player_new_reach;
 
                 CfrTask task = new CfrTask(
@@ -349,22 +352,26 @@ public class ParallelCfrPlusSolver extends AbstractCfrSolver {
                             "action and payoff length not match %s - %s", action_utilities.length, payoffs.length));
                 }
 
-                for (int hand_id = 0; hand_id < action_utilities.length; hand_id++) {
-                    if (player == node.getPlayer()) {
-                        float strategy_prob = current_strategy[hand_id + action_id * node_player_private_cards.length];
-                        payoffs[hand_id] += strategy_prob * action_utilities[hand_id];
-                    } else {
-                        payoffs[hand_id] += action_utilities[hand_id];
-                    }
+                if (player == node.getPlayer()) {
+                    SimdOps.fma(
+                            current_strategy,
+                            action_id * node_player_private_cards.length,
+                            action_utilities,
+                            payoffs,
+                            action_utilities.length);
+                } else {
+                    SimdOps.add(action_utilities, payoffs, action_utilities.length);
                 }
             }
 
             if (player == node.getPlayer()) {
-                for (int i = 0; i < node_player_private_cards.length; i++) {
-                    for (int action_id = 0; action_id < actions.size(); action_id++) {
-                        regrets[action_id * node_player_private_cards.length + i] =
-                                all_action_utility[action_id][i] - payoffs[i];
-                    }
+                for (int action_id = 0; action_id < actions.size(); action_id++) {
+                    SimdOps.sub(
+                            all_action_utility[action_id],
+                            payoffs,
+                            regrets,
+                            action_id * node_player_private_cards.length,
+                            node_player_private_cards.length);
                 }
                 trainable.updateRegrets(regrets, iter + 1, reach_probs[player]);
                 if (trainable instanceof DiscountedCfrTrainable dct) {

@@ -8,6 +8,7 @@ import icybee.solver.nodes.*;
 import icybee.solver.ranges.PrivateCards;
 import icybee.solver.ranges.RiverCombs;
 import icybee.solver.trainable.Trainable;
+import icybee.solver.utils.SimdOps;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -259,10 +260,12 @@ public class CfrPlusRiverSolver extends AbstractCfrSolver {
         newReachProb[1 - nodePlayer] = reachProbs[1 - nodePlayer];
         for (int actionId = 0; actionId < actions.size(); actionId++) {
             float[] playerNewReach = new float[reachProbs[nodePlayer].length];
-            for (int handId = 0; handId < playerNewReach.length; handId++) {
-                float strategyProb = currentStrategy[handId + actionId * nodePlayerPrivateCards.length];
-                playerNewReach[handId] = reachProbs[nodePlayer][handId] * strategyProb;
-            }
+            SimdOps.mul(
+                    currentStrategy,
+                    actionId * nodePlayerPrivateCards.length,
+                    reachProbs[nodePlayer],
+                    playerNewReach,
+                    playerNewReach.length);
             newReachProb[nodePlayer] = playerNewReach;
             float[] actionUtilities = this.cfr(player, children.get(actionId), newReachProb, iter, currentBoard);
             allActionUtility[actionId] = actionUtilities;
@@ -275,21 +278,26 @@ public class CfrPlusRiverSolver extends AbstractCfrSolver {
                         "action and payoff length not match %s - %s", actionUtilities.length, payoffs.length));
             }
 
-            for (int handId = 0; handId < actionUtilities.length; handId++) {
-                if (player == node.getPlayer()) {
-                    float strategyProb = currentStrategy[handId + actionId * nodePlayerPrivateCards.length];
-                    payoffs[handId] += strategyProb * actionUtilities[handId];
-                } else {
-                    payoffs[handId] += actionUtilities[handId];
-                }
+            if (player == node.getPlayer()) {
+                SimdOps.fma(
+                        currentStrategy,
+                        actionId * nodePlayerPrivateCards.length,
+                        actionUtilities,
+                        payoffs,
+                        actionUtilities.length);
+            } else {
+                SimdOps.add(actionUtilities, payoffs, actionUtilities.length);
             }
         }
 
         if (player == node.getPlayer()) {
-            for (int i = 0; i < nodePlayerPrivateCards.length; i++) {
-                for (int actionId = 0; actionId < actions.size(); actionId++) {
-                    regrets[actionId * nodePlayerPrivateCards.length + i] = allActionUtility[actionId][i] - payoffs[i];
-                }
+            for (int actionId = 0; actionId < actions.size(); actionId++) {
+                SimdOps.sub(
+                        allActionUtility[actionId],
+                        payoffs,
+                        regrets,
+                        actionId * nodePlayerPrivateCards.length,
+                        nodePlayerPrivateCards.length);
             }
             trainable.updateRegrets(regrets, iter + 1, reachProbs[player]);
         }
