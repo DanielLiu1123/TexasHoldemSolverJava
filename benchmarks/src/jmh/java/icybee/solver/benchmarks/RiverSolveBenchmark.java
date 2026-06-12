@@ -31,10 +31,10 @@ import org.openjdk.jmh.annotations.Warmup;
  * tree, and {@link ParallelCfrPlusSolver} shuts down its pool after {@code train()}. The measured
  * time includes the exploitability evaluation the solver always performs on iteration 0.
  */
-@BenchmarkMode(Mode.SingleShotTime)
+@BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
-@Warmup(iterations = 2)
-@Measurement(iterations = 3)
+@Warmup(iterations = 3, time = 3)
+@Measurement(iterations = 5, time = 3)
 @Fork(1)
 public class RiverSolveBenchmark {
 
