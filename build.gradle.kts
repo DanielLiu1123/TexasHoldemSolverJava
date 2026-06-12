@@ -46,6 +46,9 @@ subprojects {
     tasks.withType<Test>().configureEach {
         useJUnitPlatform()
         jvmArgs("-XX:+EnableDynamicAgentLoading")
+        // The holdem compairer dictionary (2.6M boxed map entries) alone exceeds
+        // Gradle's default 512m test-worker heap.
+        maxHeapSize = "2g"
     }
 
     plugins.apply("com.diffplug.spotless")
@@ -70,7 +73,10 @@ subprojects {
     }
     tasks.withType<JavaCompile>().configureEach {
         options.errorprone {
-            isEnabled = project.findProperty("errorprone.enabled")?.toString()?.toBoolean() != false
+            // Note: must target ErrorProneOptions.enabled, not Task.enabled —
+            // `isEnabled` here silently binds to the enclosing task and would
+            // disable compilation entirely when the property is set to false.
+            enabled.set(project.findProperty("errorprone.enabled")?.toString()?.toBoolean() != false)
             excludedPaths = ".*/generated/.*"
             check("NullAway", net.ltgt.gradle.errorprone.CheckSeverity.ERROR)
             option("NullAway:AnnotatedPackages", "icybee.solver")
