@@ -16,6 +16,7 @@ rootProject.name = "texas-holdem-solver"
 
 include(":riversolver")
 include(":benchmarks")
+include(":solver-api")
 
 // Auto install git hooks
 val hooksDir = File(rootDir, ".git/hooks")
