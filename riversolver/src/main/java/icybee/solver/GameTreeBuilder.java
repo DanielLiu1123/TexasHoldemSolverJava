@@ -230,7 +230,7 @@ class GameTreeBuilder {
                                 root);
                     }
                     buildRecursive(nextNode, nextRule, "check", checkTimes + 1, 0);
-                    actions.add(new GameActions(GameTreeNode.PokerActions.CHECK, 0.0));
+                    actions.add(new GameActions(GameTreeNode.PokerActions.CHECK, null));
                     children.add(nextNode);
                 }
                 case "bet" -> {
@@ -301,8 +301,7 @@ class GameTreeBuilder {
                     }
                     assert nextRule.currentRound <= 4;
                     buildRecursive(nextNode, nextRule, "call", 0, 0);
-                    actions.add(new GameActions(
-                            GameTreeNode.PokerActions.CALL, (double) Math.abs(rule.oopCommit - rule.ipCommit)));
+                    actions.add(new GameActions(GameTreeNode.PokerActions.CALL, null));
                     children.add(nextNode);
                 }
                 case "raise" -> {
@@ -347,7 +346,7 @@ class GameTreeBuilder {
                             (double) rule.getPot(),
                             root);
                     buildRecursive(nextNode, nextRule, "fold", 0, 0);
-                    actions.add(new GameActions(GameTreeNode.PokerActions.FOLD, 0.0));
+                    actions.add(new GameActions(GameTreeNode.PokerActions.FOLD, null));
                     children.add(nextNode);
                 }
                 case null, default -> {}
@@ -412,11 +411,13 @@ class GameTreeBuilder {
         } else if (rule.getCommit(player) == rule.bigBlind && rule.getCommit(nextPlayer) == rule.bigBlind) {
             possibleAmounts =
                     possibleAmounts.stream().filter(e -> e >= rule.bigBlind).collect(Collectors.toList());
-        } else {
-            float gap = rule.getCommit(player) - rule.getCommit(nextPlayer);
-            assert gap > 0;
-            possibleAmounts = possibleAmounts.stream().filter(e -> e >= gap * 2).collect(Collectors.toList());
         }
+        // NOTE: a third branch here asserted commit(player) > commit(nextPlayer) and tried to
+        // enforce a minimum raise of twice the outstanding gap. The sign was inverted (the
+        // raiser is the player who has committed *less*), so the filter never removed anything
+        // and the assert failed on every post-flop tree once assertions are enabled. Removed to
+        // keep tree shapes identical; proper min-raise enforcement belongs to a tree-builder
+        // overhaul validated against the strategy regression suite.
         possibleAmounts = possibleAmounts.stream()
                 .filter(e -> e > rule.getCommit(nextPlayer) - rule.getCommit(player))
                 .collect(Collectors.toList());
