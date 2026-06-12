@@ -20,9 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import javax.swing.*;
 import org.jspecify.annotations.Nullable;
 
@@ -275,23 +273,22 @@ public class SolverGui {
 
         TrainableFactory trainerFactory =
                 algorithm.getSelectedIndex() == 0 ? DiscountedCfrTrainable::new : CfrPlusTrainable::new;
-        SolverConfig solverConfig = new SolverConfig(
-                game_tree,
-                player1Range,
-                player2Range,
-                initialBoard,
-                compairer,
-                deck,
-                Integer.valueOf(iteration.getText()),
-                false,
-                Integer.valueOf(log_interval.getText()),
-                logfile_name,
-                trainerFactory,
-                mc.isSelected() ? MonteCarloAlg.PUBLIC : MonteCarloAlg.NONE);
+        SolverConfig solverConfig = SolverConfig.builder()
+                .tree(game_tree)
+                .range1(player1Range)
+                .range2(player2Range)
+                .initialBoard(initialBoard)
+                .compairer(compairer)
+                .deck(deck)
+                .iterationNumber(Integer.valueOf(iteration.getText()))
+                .printInterval(Integer.valueOf(log_interval.getText()))
+                .logfile(logfile_name)
+                .trainerFactory(trainerFactory)
+                .monteCarloAlg(mc.isSelected() ? MonteCarloAlg.PUBLIC : MonteCarloAlg.NONE)
+                .stopExploitability(Double.parseDouble(exploitability.getText()))
+                .build();
         Solver solver = new ParallelCfrPlusSolver(solverConfig, Integer.valueOf(threads.getText()), 1, 1, 1, 16);
-        Map train_config = new HashMap();
-        train_config.put("stop_exploitability", Double.parseDouble(exploitability.getText()));
-        solver.train(train_config);
+        solver.train();
 
         /*
         String output_strategy_file = "out/demo.json";

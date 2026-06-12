@@ -1,7 +1,6 @@
 package icybee.solver.solver;
 
 import icybee.solver.GameTree;
-import java.util.Map;
 
 /**
  * Created by huangxuefeng on 2019/10/9.
@@ -19,5 +18,5 @@ public abstract class Solver {
         return tree;
     }
 
-    public abstract void train(Map training_config) throws Exception;
+    public abstract void train() throws Exception;
 }

@@ -11,7 +11,6 @@ import icybee.solver.solver.SolverConfig;
 import icybee.solver.trainable.DiscountedCfrTrainable;
 import icybee.solver.utils.PrivateRangeConverter;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -72,32 +71,33 @@ public class RiverSolveBenchmark {
     }
 
     static SolverConfig config(Shared shared, GameTree tree) {
-        return new SolverConfig(
-                tree,
-                shared.ipRange,
-                shared.oopRange,
-                shared.board,
-                shared.compairer,
-                shared.deck,
-                CFR_ITERATIONS,
-                false,
-                CFR_ITERATIONS,
-                null,
-                DiscountedCfrTrainable::new,
-                MonteCarloAlg.NONE);
+        return SolverConfig.builder()
+                .tree(tree)
+                .range1(shared.ipRange)
+                .range2(shared.oopRange)
+                .initialBoard(shared.board)
+                .compairer(shared.compairer)
+                .deck(shared.deck)
+                .iterationNumber(CFR_ITERATIONS)
+                .debug(false)
+                .printInterval(CFR_ITERATIONS)
+                .logfile(null)
+                .trainerFactory(DiscountedCfrTrainable::new)
+                .monteCarloAlg(MonteCarloAlg.NONE)
+                .build();
     }
 
     @Benchmark
     public GameTree singleThreaded(Shared shared, FreshTree fresh) throws Exception {
         CfrPlusRiverSolver solver = new CfrPlusRiverSolver(config(shared, fresh.tree));
-        solver.train(new HashMap<String, Object>());
+        solver.train();
         return solver.getTree();
     }
 
     @Benchmark
     public GameTree parallel(Shared shared, FreshTree fresh) throws Exception {
         ParallelCfrPlusSolver solver = new ParallelCfrPlusSolver(config(shared, fresh.tree), -1, 1.0, 0.0, 1, 0);
-        solver.train(new HashMap<String, Object>());
+        solver.train();
         return solver.getTree();
     }
 }

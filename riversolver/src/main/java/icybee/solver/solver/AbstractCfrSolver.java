@@ -36,7 +36,8 @@ abstract class AbstractCfrSolver extends Solver {
 
     TrainableFactory trainerFactory;
     int[] round_deal;
-    MonteCarloAlg monteCarolAlg;
+    MonteCarloAlg monteCarloAlg;
+    double stop_exploitability;
 
     protected AbstractCfrSolver(SolverConfig config) {
         super(config.tree());
@@ -64,7 +65,8 @@ abstract class AbstractCfrSolver extends Solver {
         this.pcm = new PrivateCardsManager(privateCombos, this.player_number, Card.boardInts2long(this.initial_board));
         this.debug = config.debug();
         this.print_interval = config.printInterval();
-        this.monteCarolAlg = config.monteCarolAlg();
+        this.monteCarloAlg = config.monteCarloAlg();
+        this.stop_exploitability = config.stopExploitability();
         this.round_deal = new int[0];
     }
 

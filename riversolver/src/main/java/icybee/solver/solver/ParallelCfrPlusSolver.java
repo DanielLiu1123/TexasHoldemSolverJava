@@ -53,19 +53,8 @@ public class ParallelCfrPlusSolver extends AbstractCfrSolver {
         System.out.println(String.format("Using %s threads", this.nthreads));
     }
 
-    private double getDoubleValue(Map<String, Object> meta, String key) {
-        Object value = meta.get(key);
-        if (value instanceof Integer i) {
-            return i.doubleValue();
-        } else if (value instanceof Double d) {
-            return d;
-        } else {
-            return 0.0;
-        }
-    }
-
     @Override
-    public void train(Map training_config) throws Exception {
+    public void train() throws Exception {
         setTrainable(tree.getRoot());
 
         PrivateCards[][] playerPrivates = new PrivateCards[this.player_number][];
@@ -82,7 +71,6 @@ public class ParallelCfrPlusSolver extends AbstractCfrSolver {
         long begintime = System.currentTimeMillis();
         long endtime = System.currentTimeMillis();
 
-        double stopExploitability = this.getDoubleValue(training_config, "stop_exploitability");
         try (Writer fileWriter = this.logfile != null
                 ? Files.newBufferedWriter(Paths.get(this.logfile), StandardCharsets.UTF_8)
                 : Writer.nullWriter()) {
@@ -111,7 +99,7 @@ public class ParallelCfrPlusSolver extends AbstractCfrSolver {
                     jo.put("exploitability", exploitability);
                     jo.put("time_ms", timeMs);
                     fileWriter.write(String.format("%s\n", jo.toString()));
-                    if (stopExploitability > exploitability) break;
+                    if (this.stop_exploitability > 0 && exploitability < this.stop_exploitability) break;
                 }
             }
         }
@@ -168,7 +156,7 @@ public class ParallelCfrPlusSolver extends AbstractCfrSolver {
 
             float[] chance_utility = new float[reach_probs[player].length];
             int random_deal = 0, cardcount = 0;
-            if (this.solver_env.monteCarolAlg == MonteCarloAlg.PUBLIC) {
+            if (this.solver_env.monteCarloAlg == MonteCarloAlg.PUBLIC) {
                 if (this.solver_env.round_deal[GameTreeNode.gameRound2int(node.getRound())] == -1) {
                     random_deal = ThreadLocalRandom.current().nextInt(1, possible_deals + 1 + 2);
                     this.solver_env.round_deal[GameTreeNode.gameRound2int(node.getRound())] = random_deal;
@@ -200,7 +188,7 @@ public class ParallelCfrPlusSolver extends AbstractCfrSolver {
                 if (one_child == null || one_card == null) throw new RuntimeException("child is null");
 
                 long new_board_long = current_board | card_long;
-                if (this.solver_env.monteCarolAlg == MonteCarloAlg.PUBLIC) {
+                if (this.solver_env.monteCarloAlg == MonteCarloAlg.PUBLIC) {
                     if (cardcount == random_deal) {
                         CfrTask task =
                                 new CfrTask(this.player, one_child, reach_probs, iter, new_board_long, this.solver_env);
@@ -256,7 +244,7 @@ public class ParallelCfrPlusSolver extends AbstractCfrSolver {
                 for (int i = 0; i < child_utility.length; i++) chance_utility[i] += child_utility[i];
             }
 
-            if (this.solver_env.monteCarolAlg == MonteCarloAlg.PUBLIC) {
+            if (this.solver_env.monteCarloAlg == MonteCarloAlg.PUBLIC) {
                 throw new RuntimeException("not possible");
             }
             return chance_utility;

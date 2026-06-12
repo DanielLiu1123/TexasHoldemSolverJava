@@ -4,22 +4,17 @@ import icybee.solver.*;
 import icybee.solver.compairer.Compairer;
 import icybee.solver.gui.SolverGui;
 import icybee.solver.ranges.PrivateCards;
+import icybee.solver.solver.Algorithm;
 import icybee.solver.solver.CfrPlusRiverSolver;
 import icybee.solver.solver.MonteCarloAlg;
 import icybee.solver.solver.ParallelCfrPlusSolver;
 import icybee.solver.solver.Solver;
 import icybee.solver.solver.SolverConfig;
-import icybee.solver.trainable.CfrPlusTrainable;
-import icybee.solver.trainable.CfrTrainable;
-import icybee.solver.trainable.DiscountedCfrTrainable;
-import icybee.solver.trainable.TrainableFactory;
 import icybee.solver.utils.PrivateRangeConverter;
 import java.io.File;
 import java.io.FileWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
@@ -112,22 +107,8 @@ public class CommandlineSolver {
         String output_strategy_file = ns.getString("output_strategy_file");
         String logfile = ns.getString("logfile");
 
-        String algorithm_str = ns.getString("algorithm");
-        TrainableFactory algorithm =
-                switch (algorithm_str) {
-                    case "cfr" -> CfrTrainable::new;
-                    case "cfr_plus" -> CfrPlusTrainable::new;
-                    case "discounted_cfr" -> DiscountedCfrTrainable::new;
-                    default -> throw new RuntimeException(String.format("algorithm not found :%s", algorithm_str));
-                };
-        String monte_coral_str = ns.getString("monte_carol");
-        MonteCarloAlg monte_coral =
-                switch (monte_coral_str) {
-                    case "none" -> MonteCarloAlg.NONE;
-                    case "public" -> MonteCarloAlg.PUBLIC;
-                    default ->
-                        throw new RuntimeException(String.format("monte coral type not found :%s", monte_coral_str));
-                };
+        Algorithm algorithm = Algorithm.fromId(ns.getString("algorithm"));
+        MonteCarloAlg monte_carlo = MonteCarloAlg.fromId(ns.getString("monte_carol"));
         int threads = Integer.parseInt(ns.getString("threads"));
         int fork_every_n_depth = Integer.parseInt(ns.getString("fork_every_n_depth"));
         int no_fork_subtree_size = Integer.parseInt(ns.getString("no_fork_subtree_size"));
@@ -140,19 +121,20 @@ public class CommandlineSolver {
         PrivateCards[] player1Range = PrivateRangeConverter.rangeStr2Cards(player1_range, initial_board);
         PrivateCards[] player2Range = PrivateRangeConverter.rangeStr2Cards(player2_range, initial_board);
 
-        SolverConfig solverConfig = new SolverConfig(
-                game_tree,
-                player1Range,
-                player2Range,
-                initial_board,
-                compairer,
-                deck,
-                iteration_number,
-                debug,
-                print_interval,
-                logfile,
-                algorithm,
-                monte_coral);
+        SolverConfig solverConfig = SolverConfig.builder()
+                .tree(game_tree)
+                .range1(player1Range)
+                .range2(player2Range)
+                .initialBoard(initial_board)
+                .compairer(compairer)
+                .deck(deck)
+                .iterationNumber(iteration_number)
+                .debug(debug)
+                .printInterval(print_interval)
+                .logfile(logfile)
+                .algorithm(algorithm)
+                .monteCarloAlg(monte_carlo)
+                .build();
         Solver solver;
         if (parallel) {
             solver = new ParallelCfrPlusSolver(
@@ -160,8 +142,7 @@ public class CommandlineSolver {
         } else {
             solver = new CfrPlusRiverSolver(solverConfig);
         }
-        Map train_config = new HashMap();
-        solver.train(train_config);
+        solver.train();
 
         String strategy_json = solver.getTree().dumps(false).toString();
         File output_file = new File(output_strategy_file);

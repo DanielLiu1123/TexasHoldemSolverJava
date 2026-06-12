@@ -181,9 +181,6 @@ public class CfrPlusTrainable extends Trainable {
         List<String> actions_str = new ArrayList<>();
         for (GameActions one_action : game_actions) actions_str.add(one_action.toString());
 
-        // SolverEnvironment se = SolverEnvironment.getInstance();
-        // Compairer comp = se.getCompairer();
-
         for (int i = 0; i < this.privateCards.length; i++) {
             PrivateCards one_private_card = this.privateCards[i];
             float[] one_strategy = new float[this.action_number];

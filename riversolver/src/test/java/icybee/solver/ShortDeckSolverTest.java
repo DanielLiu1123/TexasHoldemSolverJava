@@ -15,9 +15,7 @@ import icybee.solver.utils.PrivateRangeConverter;
 import java.io.File;
 import java.io.FileWriter;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -269,21 +267,21 @@ public class ShortDeckSolverTest {
         PrivateCards[] player2Range = PrivateRangeConverter.rangeStr2Cards(player2RangeStr, initialBoard);
 
         String logfile_name = "src/test/resources/outputs/outputs_log.txt";
-        Solver solver = new CfrPlusRiverSolver(new SolverConfig(
-                game_tree,
-                player1Range,
-                player2Range,
-                initialBoard,
-                ShortDeckSolverTest.compairer,
-                ShortDeckSolverTest.deck,
-                100,
-                false,
-                10,
-                logfile_name,
-                DiscountedCfrTrainable::new,
-                MonteCarloAlg.NONE));
-        Map train_config = new HashMap();
-        solver.train(train_config);
+        Solver solver = new CfrPlusRiverSolver(SolverConfig.builder()
+                .tree(game_tree)
+                .range1(player1Range)
+                .range2(player2Range)
+                .initialBoard(initialBoard)
+                .compairer(ShortDeckSolverTest.compairer)
+                .deck(ShortDeckSolverTest.deck)
+                .iterationNumber(100)
+                .debug(false)
+                .printInterval(10)
+                .logfile(logfile_name)
+                .trainerFactory(DiscountedCfrTrainable::new)
+                .monteCarloAlg(MonteCarloAlg.NONE)
+                .build());
+        solver.train();
     }
 
     @Test
@@ -307,21 +305,21 @@ public class ShortDeckSolverTest {
         PrivateCards[] player2Range = PrivateRangeConverter.rangeStr2Cards(player2RangeStr, initialBoard);
 
         String logfile_name = "src/test/resources/outputs/outputs_log.txt";
-        Solver solver = new CfrPlusRiverSolver(new SolverConfig(
-                game_tree,
-                player1Range,
-                player2Range,
-                initialBoard,
-                ShortDeckSolverTest.compairer,
-                ShortDeckSolverTest.deck,
-                100,
-                false,
-                10,
-                logfile_name,
-                DiscountedCfrTrainable::new,
-                MonteCarloAlg.NONE));
-        Map train_config = new HashMap();
-        solver.train(train_config);
+        Solver solver = new CfrPlusRiverSolver(SolverConfig.builder()
+                .tree(game_tree)
+                .range1(player1Range)
+                .range2(player2Range)
+                .initialBoard(initialBoard)
+                .compairer(ShortDeckSolverTest.compairer)
+                .deck(ShortDeckSolverTest.deck)
+                .iterationNumber(100)
+                .debug(false)
+                .printInterval(10)
+                .logfile(logfile_name)
+                .trainerFactory(DiscountedCfrTrainable::new)
+                .monteCarloAlg(MonteCarloAlg.NONE)
+                .build());
+        solver.train();
 
         String strategy_json = solver.getTree().dumps(false).toString();
 
@@ -358,26 +356,26 @@ public class ShortDeckSolverTest {
 
         String logfile_name = "src/test/resources/outputs/outputs_log.txt";
         Solver solver = new ParallelCfrPlusSolver(
-                new SolverConfig(
-                        game_tree,
-                        player1Range,
-                        player2Range,
-                        initialBoard,
-                        ShortDeckSolverTest.compairer,
-                        ShortDeckSolverTest.deck,
-                        31,
-                        false,
-                        10,
-                        logfile_name,
-                        DiscountedCfrTrainable::new,
-                        MonteCarloAlg.NONE),
+                SolverConfig.builder()
+                        .tree(game_tree)
+                        .range1(player1Range)
+                        .range2(player2Range)
+                        .initialBoard(initialBoard)
+                        .compairer(ShortDeckSolverTest.compairer)
+                        .deck(ShortDeckSolverTest.deck)
+                        .iterationNumber(31)
+                        .debug(false)
+                        .printInterval(10)
+                        .logfile(logfile_name)
+                        .trainerFactory(DiscountedCfrTrainable::new)
+                        .monteCarloAlg(MonteCarloAlg.NONE)
+                        .build(),
                 -1,
                 1,
                 0,
                 1,
                 0);
-        Map train_config = new HashMap();
-        solver.train(train_config);
+        solver.train();
     }
 
     @Test
@@ -401,21 +399,21 @@ public class ShortDeckSolverTest {
         PrivateCards[] player2Range = PrivateRangeConverter.rangeStr2Cards(player2RangeStr, initialBoard);
 
         String logfile_name = "src/test/resources/outputs/outputs_log.txt";
-        Solver solver = new CfrPlusRiverSolver(new SolverConfig(
-                game_tree,
-                player1Range,
-                player2Range,
-                initialBoard,
-                ShortDeckSolverTest.compairer,
-                ShortDeckSolverTest.deck,
-                31,
-                false,
-                10,
-                logfile_name,
-                DiscountedCfrTrainable::new,
-                MonteCarloAlg.NONE));
-        Map train_config = new HashMap();
-        solver.train(train_config);
+        Solver solver = new CfrPlusRiverSolver(SolverConfig.builder()
+                .tree(game_tree)
+                .range1(player1Range)
+                .range2(player2Range)
+                .initialBoard(initialBoard)
+                .compairer(ShortDeckSolverTest.compairer)
+                .deck(ShortDeckSolverTest.deck)
+                .iterationNumber(31)
+                .debug(false)
+                .printInterval(10)
+                .logfile(logfile_name)
+                .trainerFactory(DiscountedCfrTrainable::new)
+                .monteCarloAlg(MonteCarloAlg.NONE)
+                .build());
+        solver.train();
 
         System.out.println("end solverTest");
     }
@@ -441,21 +439,21 @@ public class ShortDeckSolverTest {
         PrivateCards[] player2Range = PrivateRangeConverter.rangeStr2Cards(player2RangeStr, initialBoard);
 
         String logfile_name = "src/test/resources/outputs/outputs_log.txt";
-        Solver solver = new CfrPlusRiverSolver(new SolverConfig(
-                game_tree,
-                player1Range,
-                player2Range,
-                initialBoard,
-                ShortDeckSolverTest.compairer,
-                ShortDeckSolverTest.deck,
-                1000,
-                false,
-                100,
-                logfile_name,
-                DiscountedCfrTrainable::new,
-                MonteCarloAlg.PUBLIC));
-        Map train_config = new HashMap();
-        solver.train(train_config);
+        Solver solver = new CfrPlusRiverSolver(SolverConfig.builder()
+                .tree(game_tree)
+                .range1(player1Range)
+                .range2(player2Range)
+                .initialBoard(initialBoard)
+                .compairer(ShortDeckSolverTest.compairer)
+                .deck(ShortDeckSolverTest.deck)
+                .iterationNumber(1000)
+                .debug(false)
+                .printInterval(100)
+                .logfile(logfile_name)
+                .trainerFactory(DiscountedCfrTrainable::new)
+                .monteCarloAlg(MonteCarloAlg.PUBLIC)
+                .build());
+        solver.train();
 
         System.out.println("end solverTest");
     }
@@ -482,26 +480,26 @@ public class ShortDeckSolverTest {
 
         String logfile_name = "src/test/resources/outputs/outputs_log.txt";
         Solver solver = new ParallelCfrPlusSolver(
-                new SolverConfig(
-                        game_tree,
-                        player1Range,
-                        player2Range,
-                        initialBoard,
-                        ShortDeckSolverTest.compairer,
-                        ShortDeckSolverTest.deck,
-                        1000,
-                        false,
-                        100,
-                        logfile_name,
-                        DiscountedCfrTrainable::new,
-                        MonteCarloAlg.PUBLIC),
+                SolverConfig.builder()
+                        .tree(game_tree)
+                        .range1(player1Range)
+                        .range2(player2Range)
+                        .initialBoard(initialBoard)
+                        .compairer(ShortDeckSolverTest.compairer)
+                        .deck(ShortDeckSolverTest.deck)
+                        .iterationNumber(1000)
+                        .debug(false)
+                        .printInterval(100)
+                        .logfile(logfile_name)
+                        .trainerFactory(DiscountedCfrTrainable::new)
+                        .monteCarloAlg(MonteCarloAlg.PUBLIC)
+                        .build(),
                 -1,
                 1,
                 0,
                 1,
                 0);
-        Map train_config = new HashMap();
-        solver.train(train_config);
+        solver.train();
     }
 
     @Test
@@ -525,26 +523,26 @@ public class ShortDeckSolverTest {
 
         String logfile_name = "src/test/resources/outputs/outputs_log.txt";
         Solver solver = new ParallelCfrPlusSolver(
-                new SolverConfig(
-                        game_tree,
-                        player1Range,
-                        player2Range,
-                        initialBoard,
-                        ShortDeckSolverTest.compairer,
-                        ShortDeckSolverTest.deck,
-                        100,
-                        false,
-                        10,
-                        logfile_name,
-                        DiscountedCfrTrainable::new,
-                        MonteCarloAlg.NONE),
+                SolverConfig.builder()
+                        .tree(game_tree)
+                        .range1(player1Range)
+                        .range2(player2Range)
+                        .initialBoard(initialBoard)
+                        .compairer(ShortDeckSolverTest.compairer)
+                        .deck(ShortDeckSolverTest.deck)
+                        .iterationNumber(100)
+                        .debug(false)
+                        .printInterval(10)
+                        .logfile(logfile_name)
+                        .trainerFactory(DiscountedCfrTrainable::new)
+                        .monteCarloAlg(MonteCarloAlg.NONE)
+                        .build(),
                 2,
                 1,
                 0,
                 1,
                 0);
-        Map train_config = new HashMap();
-        solver.train(train_config);
+        solver.train();
 
         String strategy_json = solver.getTree().dumps(false).toString();
 

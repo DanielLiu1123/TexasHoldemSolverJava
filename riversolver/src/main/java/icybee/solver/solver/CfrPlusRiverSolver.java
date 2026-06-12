@@ -24,7 +24,7 @@ public class CfrPlusRiverSolver extends AbstractCfrSolver {
     }
 
     @Override
-    public void train(Map training_config) throws Exception {
+    public void train() throws Exception {
         setTrainable(tree.getRoot());
 
         PrivateCards[][] playerPrivates = new PrivateCards[this.player_number][];
@@ -65,6 +65,7 @@ public class CfrPlusRiverSolver extends AbstractCfrSolver {
                     jo.put("time_ms", time_ms);
                     fileWriter.write(String.format("%s\n", jo.toString()));
                     begintime = System.currentTimeMillis();
+                    if (this.stop_exploitability > 0 && exploitability < this.stop_exploitability) break;
                 }
             }
         }
@@ -143,7 +144,7 @@ public class CfrPlusRiverSolver extends AbstractCfrSolver {
 
         float[] chanceUtility = new float[reachProbs[player].length];
         int randomDeal = 0, cardcount = 0;
-        if (this.monteCarolAlg == MonteCarloAlg.PUBLIC) {
+        if (this.monteCarloAlg == MonteCarloAlg.PUBLIC) {
             randomDeal = ThreadLocalRandom.current().nextInt(1, possibleDeals + 1 + 2);
         }
         for (int card = 0; card < node.getCards().size(); card++) {
@@ -157,7 +158,7 @@ public class CfrPlusRiverSolver extends AbstractCfrSolver {
             if (oneChild == null || oneCard == null) throw new RuntimeException("child is null");
 
             long newBoardLong = currentBoard | cardLong;
-            if (this.monteCarolAlg == MonteCarloAlg.PUBLIC) {
+            if (this.monteCarloAlg == MonteCarloAlg.PUBLIC) {
                 if (cardcount == randomDeal) {
                     float[][] newReachProbs = new float[2][];
 
@@ -209,7 +210,7 @@ public class CfrPlusRiverSolver extends AbstractCfrSolver {
             for (int i = 0; i < childUtility.length; i++) chanceUtility[i] += childUtility[i];
         }
 
-        if (this.monteCarolAlg == MonteCarloAlg.PUBLIC) {
+        if (this.monteCarloAlg == MonteCarloAlg.PUBLIC) {
             throw new RuntimeException("not possible");
         }
         return chanceUtility;

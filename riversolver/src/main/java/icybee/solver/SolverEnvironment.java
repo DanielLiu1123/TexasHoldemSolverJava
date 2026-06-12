@@ -4,56 +4,19 @@ import icybee.solver.compairer.Compairer;
 import icybee.solver.compairer.Dic5Compairer;
 import icybee.solver.solver.GameTreeBuildingSettings;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Objects;
-import org.jspecify.annotations.Nullable;
 
-/**
- * Created by huangxuefeng on 2019/10/6.
- * This file contains the implemtation of the Texas Poker Solver Environment
- */
-public class SolverEnvironment {
-    Config config;
-    Deck deck;
+/** Static factories assembling solver building blocks (deck, compairer, game tree) from configuration. */
+public final class SolverEnvironment {
 
-    Compairer compairer;
-
-    @Nullable
-    GameTree game_tree = null;
-
-    static @Nullable SolverEnvironment se;
-
-    public Compairer getCompairer() {
-        return compairer;
-    }
-
-    public static @Nullable SolverEnvironment getInstance() {
-        return SolverEnvironment.se;
-    }
-
-    SolverEnvironment(Config config) throws ClassNotFoundException, IOException {
-        this.config = config;
-        this.deck = new Deck(Objects.requireNonNull(config.ranks), Objects.requireNonNull(config.suits));
-        if (Objects.requireNonNull(config.compairer_type).equals("Dic5Compairer")) {
-            this.compairer =
-                    new Dic5Compairer(Objects.requireNonNull(config.compairer_dic_dir), config.compairer_lines);
-        } else {
-            throw new ClassNotFoundException();
-        }
-
-        if (this.config.tree_builder) {
-            this.game_tree = new GameTree(Objects.requireNonNull(this.config.tree_builder_json), this.deck);
-        }
-        if (Objects.requireNonNull(this.config.solver_type).equals("cfrplus")) {
-            // solver = new CfrPlusRiverSolver(game_tree);
-        }
-        SolverEnvironment.se = this;
-    }
+    private SolverEnvironment() {}
 
     public static GameTree gameTreeFromConfig(Config config, Deck deck) {
         try {
             return new GameTree(Objects.requireNonNull(config.tree_builder_json), deck);
         } catch (IOException e) {
-            throw new RuntimeException();
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -79,7 +42,7 @@ public class SolverEnvironment {
                     stack,
                     gameTreeBuildingSettings);
         } catch (IOException e) {
-            throw new RuntimeException();
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -87,7 +50,7 @@ public class SolverEnvironment {
         try {
             return new GameTree(json_path, deck);
         } catch (IOException e) {
-            throw new RuntimeException();
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -99,24 +62,21 @@ public class SolverEnvironment {
             throws IOException {
         if (compairer_type.equals("Dic5Compairer")) {
             return new Dic5Compairer(compairer_dic_dir, compairer_lines);
-        } else {
-            throw new RuntimeException();
         }
+        throw new IllegalArgumentException(String.format("compairer type not found: %s", compairer_type));
     }
 
     public static Compairer compairerFromConfig(Config config) throws IOException {
-        if (Objects.requireNonNull(config.compairer_type).equals("Dic5Compairer")) {
-            return new Dic5Compairer(Objects.requireNonNull(config.compairer_dic_dir), config.compairer_lines);
-        } else {
-            throw new RuntimeException();
-        }
+        return compairerFromFile(
+                Objects.requireNonNull(config.compairer_type),
+                Objects.requireNonNull(config.compairer_dic_dir),
+                config.compairer_lines);
     }
 
     public static Compairer compairerFromConfig(Config config, boolean verbose) throws IOException {
         if (Objects.requireNonNull(config.compairer_type).equals("Dic5Compairer")) {
             return new Dic5Compairer(Objects.requireNonNull(config.compairer_dic_dir), config.compairer_lines, verbose);
-        } else {
-            throw new RuntimeException();
         }
+        throw new IllegalArgumentException(String.format("compairer type not found: %s", config.compairer_type));
     }
 }
