@@ -30,6 +30,12 @@ public final class ApiServer implements AutoCloseable {
                     config.showJavalinBanner = false;
                     config.useVirtualThreads = true;
                     config.jsonMapper(new JacksonJsonMapper());
+                    // The web UI is embedded under /web when built (:web-ui:viteBuild);
+                    // tests and API-only builds run without it.
+                    if (ApiServer.class.getResource("/web/index.html") != null) {
+                        config.staticFiles.add("/web", io.javalin.http.staticfiles.Location.CLASSPATH);
+                        config.spaRoot.addFile("/", "/web/index.html", io.javalin.http.staticfiles.Location.CLASSPATH);
+                    }
                 })
                 .exception(IllegalArgumentException.class, (e, ctx) -> ctx.status(HttpStatus.BAD_REQUEST)
                         .json(Map.of("error", String.valueOf(e.getMessage()))))

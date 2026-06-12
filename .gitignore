@@ -115,3 +115,8 @@ gradle-app.setting
 
 # Ignore Gradle build output directory
 build
+
+# Web UI
+web-ui/node_modules/
+web-ui/dist/
+web-ui/.node/

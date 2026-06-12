@@ -11,6 +11,9 @@ val nullAwayVersion: String = providers.gradleProperty("nullAwayVersion").get()
 val junitVersion: String = providers.gradleProperty("junitVersion").get()
 
 subprojects {
+    // web-ui is a Node/Vite module — none of the Java conventions below apply.
+    if (name == "web-ui") return@subprojects
+
     plugins.apply("java")
     plugins.apply("java-library")
 

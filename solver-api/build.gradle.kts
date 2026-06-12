@@ -11,6 +11,11 @@ repositories {
     maven { setUrl("https://cache-redirector.jetbrains.com/intellij-dependencies") }
 }
 
+val webDist by configurations.creating {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+}
+
 dependencies {
     implementation(project(":riversolver"))
     implementation("io.javalin:javalin:${providers.gradleProperty("javalinVersion").get()}")
@@ -18,6 +23,15 @@ dependencies {
     runtimeOnly("org.slf4j:slf4j-simple:${providers.gradleProperty("slf4jVersion").get()}")
 
     testImplementation("org.slf4j:slf4j-simple:${providers.gradleProperty("slf4jVersion").get()}")
+
+    webDist(project(path = ":web-ui", configuration = "webDist"))
+}
+
+// Embed the built web UI under /web on the classpath; ApiServer serves it.
+tasks.processResources {
+    from(webDist) {
+        into("web")
+    }
 }
 
 application {
