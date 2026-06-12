@@ -141,10 +141,18 @@ public final class SolveService implements AutoCloseable {
     }
 
     private static GameTreeBuildingSettings buildSettings(SolveRequest request) {
-        GameTreeBuildingSettings.StreetSetting flop = streetSetting(request.flop(), false);
-        GameTreeBuildingSettings.StreetSetting turn = streetSetting(request.turn(), true);
-        GameTreeBuildingSettings.StreetSetting river = streetSetting(request.river(), true);
-        return new GameTreeBuildingSettings(flop, turn, river, flop, turn, river);
+        return new GameTreeBuildingSettings(
+                streetSetting(firstNonNull(request.flopIp(), request.flop()), false),
+                streetSetting(firstNonNull(request.turnIp(), request.turn()), true),
+                streetSetting(firstNonNull(request.riverIp(), request.river()), true),
+                streetSetting(firstNonNull(request.flopOop(), request.flop()), false),
+                streetSetting(firstNonNull(request.turnOop(), request.turn()), true),
+                streetSetting(firstNonNull(request.riverOop(), request.river()), true));
+    }
+
+    private static SolveRequest.@Nullable StreetSpec firstNonNull(
+            SolveRequest.@Nullable StreetSpec override, SolveRequest.@Nullable StreetSpec shared) {
+        return override != null ? override : shared;
     }
 
     private static GameTreeBuildingSettings.StreetSetting streetSetting(

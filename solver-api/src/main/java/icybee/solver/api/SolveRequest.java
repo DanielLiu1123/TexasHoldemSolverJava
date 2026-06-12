@@ -25,6 +25,12 @@ public record SolveRequest(
         @Nullable StreetSpec flop,
         @Nullable StreetSpec turn,
         @Nullable StreetSpec river,
+        @Nullable StreetSpec flopIp,
+        @Nullable StreetSpec turnIp,
+        @Nullable StreetSpec riverIp,
+        @Nullable StreetSpec flopOop,
+        @Nullable StreetSpec turnOop,
+        @Nullable StreetSpec riverOop,
         @Nullable Integer iterations,
         @Nullable Integer progressInterval,
         @Nullable String algorithm,
@@ -33,8 +39,10 @@ public record SolveRequest(
         @Nullable Double stopExploitability) {
 
     /**
-     * Bet sizing for one street, applied to both positions. Sizes are in percent of the pot.
-     * Defaults: 50% bets and raises, no donk bets, all-in enabled on turn and river only.
+     * Bet sizing for one street. The shared {@code flop}/{@code turn}/{@code river} specs apply to
+     * both positions; the {@code *Ip}/{@code *Oop} variants override per position (donk sizes are
+     * only meaningful out of position). Sizes are in percent of the pot. Defaults: 50% bets and
+     * raises, no donk bets, all-in enabled on turn and river only.
      */
     public record StreetSpec(
             float @Nullable [] betSizes,
