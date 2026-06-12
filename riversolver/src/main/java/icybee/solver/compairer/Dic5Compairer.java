@@ -1,117 +1,137 @@
 package icybee.solver.compairer;
 
 import icybee.solver.Card;
-import icybee.solver.exceptions.BoardNotFoundException;
 import icybee.solver.exceptions.CardsNotFoundException;
-import java.io.*;
+import icybee.solver.utils.LongIntHashMap;
+import java.io.BufferedReader;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+import java.util.List;
 import me.tongfei.progressbar.ProgressBar;
-import org.paukov.combinatorics3.Generator;
-import org.paukov.combinatorics3.IGenerator;
 
 /**
- * Created by huangxuefeng on 2019/10/6.
- * This file contains code for a card compairer
+ * Hand evaluator backed by a 5-card rank dictionary: every 5-card combination maps to a rank
+ * (smaller rank = stronger hand, 0 = royal flush). 6/7-card hands take the best rank over all
+ * 5-card subsets.
+ *
+ * <p>Hands are encoded as 52-bit masks (bit i = card i), so a 5-card subset is the full mask with
+ * two bits cleared and a lookup is a single probe into a primitive-keyed table — no boxing, no
+ * allocation. This sits on the showdown hot path of CFR training.
  */
 public class Dic5Compairer extends Compairer {
-    Map<Long, Integer> cardslong2rank = new HashMap<>();
+
+    private static final int MISSING = -1;
+
+    private final LongIntHashMap cardslong2rank;
 
     public Dic5Compairer(String dic_dir, int lines) throws IOException {
-        super(dic_dir, lines);
-        this.load_compairer(dic_dir, lines, true);
+        this(dic_dir, lines, true);
     }
 
     public Dic5Compairer(String dic_dir, int lines, boolean verbose) throws IOException {
         super(dic_dir, lines);
-        this.load_compairer(dic_dir, lines, verbose);
+        this.cardslong2rank = load(dic_dir, lines, verbose);
     }
 
-    public void load_compairer(String dic_dir, int lines, boolean verbose) throws IOException {
-
-        cardslong2rank = new LinkedHashMap<>(lines * 50);
-
-        BufferedReader bufferedReader = Files.newBufferedReader(Paths.get(dic_dir), StandardCharsets.UTF_8);
-        String str;
-        int ind = 0;
-        try (ProgressBar pb = verbose ? new ProgressBar("Dic5Comapirer Load", lines) : null) {
-            while ((str = bufferedReader.readLine()) != null) {
-                String[] linesp = str.trim().split(",", -1);
-                String cards_str = linesp[0];
-                String[] cards = cards_str.split("-");
+    private static LongIntHashMap load(String dic_dir, int lines, boolean verbose) throws IOException {
+        LongIntHashMap map = new LongIntHashMap(lines);
+        try (BufferedReader reader = Files.newBufferedReader(Paths.get(dic_dir), StandardCharsets.UTF_8);
+                ProgressBar pb = verbose ? new ProgressBar("Dic5Compairer load", lines) : null) {
+            String line;
+            int ind = 0;
+            while ((line = reader.readLine()) != null) {
+                String[] linesp = line.trim().split(",", -1);
+                String[] cards = linesp[0].split("-");
                 assert (cards.length == 5);
 
+                long key = Card.boardCards2long(cards);
                 int rank = Integer.parseInt(linesp[1]);
-                if (cardslong2rank.containsKey(Card.boardCards2long(cards))) {
-                    StringBuilder err_info = new StringBuilder();
-                    for (String one_card : cards) err_info.append(" ").append(one_card);
-                    throw new RuntimeException(String.format(
-                            "cards long already exist: %s ,existed long: %d",
-                            err_info, cardslong2rank.get(Card.boardCards2long(cards))));
+                if (!map.put(key, rank)) {
+                    throw new IllegalStateException(
+                            String.format("duplicate dictionary entry: %s (key %d)", linesp[0], key));
                 }
-                cardslong2rank.put(Card.boardCards2long(cards), rank);
-                ind += 1;
+                ind++;
                 if (ind % 100 == 0 && pb != null) pb.stepBy(100);
             }
         }
+        return map;
     }
 
-    @SuppressWarnings("all")
-    public static <T> List<T> merge(List<T>... args) {
-        final List<T> result = new ArrayList<>();
-
-        for (List<T> list : args) {
-            result.addAll(list);
+    /**
+     * Best (minimal) rank over all 5-card subsets of the hand encoded in {@code handMask}. The
+     * mask must have 5 to 7 bits set.
+     */
+    private int bestRank(long handMask) {
+        int n = Long.bitCount(handMask);
+        if (n == 5) {
+            return requireRank(handMask);
         }
-
-        return result;
+        if (n < 5 || n > 7) {
+            throw new CardsNotFoundException(
+                    String.format("expected 5 to 7 distinct cards, got %d (mask %d)", n, handMask));
+        }
+        int best = Integer.MAX_VALUE;
+        if (n == 6) {
+            long remaining = handMask;
+            while (remaining != 0) {
+                long dropped = Long.lowestOneBit(remaining);
+                best = Math.min(best, requireRank(handMask ^ dropped));
+                remaining ^= dropped;
+            }
+            return best;
+        }
+        // n == 7: drop every pair of cards.
+        long outer = handMask;
+        while (outer != 0) {
+            long droppedFirst = Long.lowestOneBit(outer);
+            outer ^= droppedFirst;
+            long inner = outer; // only pairs ordered after droppedFirst, each pair visited once
+            while (inner != 0) {
+                long droppedSecond = Long.lowestOneBit(inner);
+                best = Math.min(best, requireRank(handMask ^ droppedFirst ^ droppedSecond));
+                inner ^= droppedSecond;
+            }
+        }
+        return best;
     }
 
-    int getRank(List<Card> cards) throws CardsNotFoundException {
-        // inf here
-        IGenerator<List<Card>> cards_gen = Generator.combination(cards).simple(5);
-        List<Integer> rank_list = cards_gen.stream()
-                .map(comb_cards -> {
-                    List<String> cards_str =
-                            comb_cards.stream().map(Card::getCard).collect(Collectors.toList());
-                    // Set<String> cards_set = new HashSet<>(cards_str);
-                    Integer rank = cardslong2rank.get(Card.boardCards2long(cards_str));
-
-                    if (rank == null) {
-                        throw new CardsNotFoundException(cards_str.toString());
-                    }
-                    return rank;
-                })
-                .toList();
-        return Collections.min(rank_list);
+    private int requireRank(long fiveCardMask) {
+        int rank = cardslong2rank.get(fiveCardMask, MISSING);
+        if (rank == MISSING) {
+            throw new CardsNotFoundException(String.format("no rank for 5-card mask %d", fiveCardMask));
+        }
+        return rank;
     }
 
-    int getRank(int[] cards) throws CardsNotFoundException {
-        // inf here
-        List<Integer> cards_list = IntStream.of(cards).boxed().collect(Collectors.toCollection(ArrayList::new));
-        IGenerator<List<Integer>> cards_gen = Generator.combination(cards_list).simple(5);
+    private static long mask(int[] cards) {
+        long mask = 0;
+        for (int card : cards) {
+            if (card < 0 || card >= 52) {
+                throw new CardsNotFoundException(String.format("card with id %d not found", card));
+            }
+            mask |= 1L << card;
+        }
+        if (Long.bitCount(mask) != cards.length) {
+            throw new CardsNotFoundException("duplicate cards in hand");
+        }
+        return mask;
+    }
 
-        List<Integer> rank_list = cards_gen.stream()
-                .map(comb_cards -> {
-                    long board_cards;
-                    try {
-                        board_cards = Card.boardInts2long(comb_cards);
-                    } catch (Exception e) {
-                        throw new CardsNotFoundException("rank is null");
-                    }
-                    Integer rank = cardslong2rank.get(board_cards);
+    private static long mask(List<Card> cards) {
+        int[] ints = new int[cards.size()];
+        for (int i = 0; i < ints.length; i++) {
+            ints[i] = Card.card2int(cards.get(i));
+        }
+        return mask(ints);
+    }
 
-                    if (rank == null) {
-                        throw new CardsNotFoundException("rank is null");
-                    }
-                    return rank;
-                })
-                .toList();
-        return Collections.min(rank_list);
+    private static long disjointUnion(long former, long latter) {
+        if ((former & latter) != 0) {
+            throw new CardsNotFoundException("hand and board share cards");
+        }
+        return former | latter;
     }
 
     CompairResult compairRanks(int rank_former, int rank_latter) {
@@ -121,58 +141,46 @@ public class Dic5Compairer extends Compairer {
         } else if (rank_former > rank_latter) {
             return CompairResult.SMALLER;
         } else {
-            // rank_former == rank_latter
             return CompairResult.EQUAL;
         }
     }
 
     @Override
-    @SuppressWarnings("all")
     public CompairResult compair(List<Card> private_former, List<Card> private_latter, List<Card> public_board)
             throws CardsNotFoundException {
         assert (private_former.size() == 2);
         assert (private_latter.size() == 2);
         assert (public_board.size() == 5);
-        List<Card> former_cards = merge(private_former, public_board);
-        List<Card> latter_cards = merge(private_latter, public_board);
-
-        int rank_former = this.getRank(former_cards);
-        int rank_latter = this.getRank(latter_cards);
-
+        long board = mask(public_board);
+        int rank_former = bestRank(disjointUnion(mask(private_former), board));
+        int rank_latter = bestRank(disjointUnion(mask(private_latter), board));
         return compairRanks(rank_former, rank_latter);
     }
 
     @Override
     public CompairResult compair(int[] private_former, int[] private_latter, int[] public_board)
-            throws CardsNotFoundException, BoardNotFoundException {
+            throws CardsNotFoundException {
         assert (private_former.length == 2);
         assert (private_latter.length == 2);
         assert (public_board.length == 5);
-        int[] former_cards = IntStream.concat(Arrays.stream(private_former), Arrays.stream(public_board))
-                .toArray();
-        int[] latter_cards = IntStream.concat(Arrays.stream(private_latter), Arrays.stream(public_board))
-                .toArray();
-
-        int rank_former = this.getRank(former_cards);
-        int rank_latter = this.getRank(latter_cards);
-
+        long board = mask(public_board);
+        int rank_former = bestRank(disjointUnion(mask(private_former), board));
+        int rank_latter = bestRank(disjointUnion(mask(private_latter), board));
         return compairRanks(rank_former, rank_latter);
     }
 
     @Override
-    @SuppressWarnings("all")
     public int get_rank(List<Card> private_hand, List<Card> public_board) {
-        return this.getRank(merge(private_hand, public_board));
+        return bestRank(disjointUnion(mask(private_hand), mask(public_board)));
     }
 
     @Override
     public int get_rank(int[] private_hand, int[] public_board) {
-        return getRank(IntStream.concat(Arrays.stream(private_hand), Arrays.stream(public_board))
-                .toArray());
+        return bestRank(disjointUnion(mask(private_hand), mask(public_board)));
     }
 
     @Override
     public int get_rank(long private_hand, long public_board) {
-        return this.get_rank(Card.long2board(private_hand), Card.long2board(public_board));
+        return bestRank(disjointUnion(private_hand, public_board));
     }
 }
