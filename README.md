@@ -13,7 +13,7 @@ A open sourced, efficient Texas Hold'em and short deck solver. See this [Introdu
 
 ![algs](img/solvergui.gif)
 
-This is a java-based Texas Hold'em solver, fully open source, have a pio-solver-like gui and a command-line interface (an HTTP API is planned, see docs/adr/). Support standard Texas Hold'em and it's popular variant short-deck.
+This is a java-based Texas Hold'em solver, fully open source, have a pio-solver-like gui, a command-line interface, and an embedded HTTP API (see solver-api/README.md). Support standard Texas Hold'em and it's popular variant short-deck.
 
 Similar to common commercial Texas Hold'ems solvers such as piosolver, TexasHoldemSolverJava focusing on solving post-flop situations, and it's result is aligned with piosolver. On ~~turn and~~ river it's speed is even faster than piosolver, but on flop is slower than piosolver.
 
@@ -65,11 +65,10 @@ Double click the ```riversolver.jar``` to open gui.
 
 ### python api
 
-The JPype-based python interface has been removed in this fork — it depended on
-fragile positional reflection against `PokerSolver`, which no longer exists. A
-language-agnostic HTTP API will replace it; see
-[ADR 0001](docs/adr/0001-unified-http-api-replaces-swing-and-jpype.md). Until
-then, use the command line api below.
+The JPype-based python interface has been removed in this fork
+([ADR 0001](docs/adr/0001-unified-http-api-replaces-swing-and-jpype.md)).
+Call the solver from python — or any language — through the embedded
+[HTTP API](solver-api/README.md) instead.
 
 ### command line api
 

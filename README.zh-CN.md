@@ -11,7 +11,7 @@ README [English](README.md) | [中文](README.zh-CN.md)
 
 ![algs](img/solvergui.gif)
 
-这是一个基于java的德州扑克solver,完全开源,提供图形界面和命令行调用(HTTP API 规划中,见 docs/adr/),实现了标准德州扑克和德州扑克的一个变种-德州扑克短牌的solver,和piosolver等常见德州扑克solver类似，重点提供翻牌后情况的求解，solver求解结果结果和piosolver对齐。速度上在~~turn和~~river上比piosolver快一些，但是flop比piosolver慢。
+这是一个基于java的德州扑克solver,完全开源,提供图形界面、命令行调用和内嵌 HTTP API(见 solver-api/README.md),实现了标准德州扑克和德州扑克的一个变种-德州扑克短牌的solver,和piosolver等常见德州扑克solver类似，重点提供翻牌后情况的求解，solver求解结果结果和piosolver对齐。速度上在~~turn和~~river上比piosolver快一些，但是flop比piosolver慢。
 
 项目特性:
 - 高效,~~转牌和~~河牌计算速度超过piosolver
@@ -62,10 +62,9 @@ riversolver.sh 包含了命令行调用solver的示例
 
 ### python 调用方法
 
-本 fork 已移除基于 JPype 的 python 接口——它依赖对 `PokerSolver` 的脆弱的按位置反射调用，
-该类已不存在。后续将以与语言无关的 HTTP API 取代它，见
-[ADR 0001](docs/adr/0001-unified-http-api-replaces-swing-and-jpype.md)。
-在此之前请使用下面的命令行调用方式。
+本 fork 已移除基于 JPype 的 python 接口
+（[ADR 0001](docs/adr/0001-unified-http-api-replaces-swing-and-jpype.md)）。
+python——以及任何语言——请改用内嵌的 [HTTP API](solver-api/README.md) 调用。
 
 ### 命令行调用方法
 
