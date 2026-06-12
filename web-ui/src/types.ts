@@ -23,7 +23,7 @@ export interface SolveRequest {
   riverOop?: StreetSpec;
   iterations?: number;
   progressInterval?: number;
-  algorithm?: "discounted_cfr" | "cfr_plus" | "cfr";
+  algorithm?: "discounted_cfr" | "pcfr_plus" | "cfr_plus" | "cfr";
   monteCarlo?: "none" | "public";
   threads?: number;
   stopExploitability?: number;

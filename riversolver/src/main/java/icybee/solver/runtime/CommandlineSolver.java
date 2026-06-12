@@ -56,7 +56,7 @@ public class CommandlineSolver {
                 .setDefault((Object) null)
                 .help("calculate best respond ev every other print_interval iterations of cfr");
         parser.addArgument("-a", "--algorithm")
-                .choices("discounted_cfr", "cfr", "cfr_plus")
+                .choices("discounted_cfr", "cfr", "cfr_plus", "pcfr_plus")
                 .setDefault("discounted_cfr")
                 .help("cfr algorithm type");
         parser.addArgument("-m", "--monte_carol")

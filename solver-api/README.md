@@ -45,7 +45,7 @@ curl -s localhost:8080/api/v1/solves/<id>/strategy > strategy.json
 
 Optional request fields and defaults: `game` (holdem), `raiseLimit` (5),
 `iterations` (100), `progressInterval` (10), `algorithm` (discounted_cfr; also
-cfr, cfr_plus), `monteCarlo` (none), `threads` (-1 = all cores),
+pcfr_plus, cfr_plus, cfr), `monteCarlo` (none), `threads` (-1 = all cores),
 `stopExploitability` (0 = run all iterations), and per-street sizing
 `flop`/`turn`/`river`: `{"betSizes":[50],"raiseSizes":[50],"donkSizes":[],"allin":true}`
 in percent of the pot (defaults: 50% bets/raises, all-in on turn and river).

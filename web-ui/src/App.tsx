@@ -143,6 +143,7 @@ export function App() {
             algorithm
             <select value={algorithm} onChange={(e) => setAlgorithm(e.target.value as SolveRequest["algorithm"])}>
               <option value="discounted_cfr">discounted_cfr</option>
+              <option value="pcfr_plus">pcfr_plus</option>
               <option value="cfr_plus">cfr_plus</option>
               <option value="cfr">cfr</option>
             </select>

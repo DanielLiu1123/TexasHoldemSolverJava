@@ -3,13 +3,15 @@ package icybee.solver.solver;
 import icybee.solver.trainable.CfrPlusTrainable;
 import icybee.solver.trainable.CfrTrainable;
 import icybee.solver.trainable.DiscountedCfrTrainable;
+import icybee.solver.trainable.PCfrPlusTrainable;
 import icybee.solver.trainable.TrainableFactory;
 
 /** The CFR variant used to update regrets and strategies at each action node. */
 public enum Algorithm {
     CFR("cfr", CfrTrainable::new),
     CFR_PLUS("cfr_plus", CfrPlusTrainable::new),
-    DISCOUNTED_CFR("discounted_cfr", DiscountedCfrTrainable::new);
+    DISCOUNTED_CFR("discounted_cfr", DiscountedCfrTrainable::new),
+    PCFR_PLUS("pcfr_plus", PCfrPlusTrainable::new);
 
     private final String id;
     private final TrainableFactory trainableFactory;
