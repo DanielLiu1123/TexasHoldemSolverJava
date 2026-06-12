@@ -2,7 +2,6 @@ package icybee.solver.runtime;
 
 import icybee.solver.*;
 import icybee.solver.compairer.Compairer;
-import icybee.solver.gui.SolverGui;
 import icybee.solver.ranges.PrivateCards;
 import icybee.solver.solver.Algorithm;
 import icybee.solver.solver.CfrPlusRiverSolver;
@@ -34,7 +33,7 @@ public class CommandlineSolver {
         return config;
     }
 
-    static void main(String[] args) throws Exception {
+    public static void main(String[] args) throws Exception {
         ArgumentParser parser = ArgumentParsers.newFor("CommandlineSolver")
                 .build()
                 .defaultHelp(true)
@@ -87,7 +86,8 @@ public class CommandlineSolver {
 
         String config_file = ns.getString("config");
         if (config_file == null) {
-            SolverGui.main(new String[0]);
+            parser.printHelp();
+            System.exit(1);
             return;
         }
         String player1_range = ns.getString("player1_range");

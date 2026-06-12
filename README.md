@@ -13,7 +13,7 @@ A open sourced, efficient Texas Hold'em and short deck solver. See this [Introdu
 
 ![algs](img/solvergui.gif)
 
-This is a java-based Texas Hold'em solver, fully open source, have a pio-solver-like gui, a command-line interface, and an embedded HTTP API (see solver-api/README.md). Support standard Texas Hold'em and it's popular variant short-deck.
+This is a java-based Texas Hold'em solver, fully open source, with a browser-based web UI, a command-line interface, and an embedded HTTP API (see solver-api/README.md). Support standard Texas Hold'em and it's popular variant short-deck.
 
 Similar to common commercial Texas Hold'ems solvers such as piosolver, TexasHoldemSolverJava focusing on solving post-flop situations, and it's result is aligned with piosolver. On ~~turn and~~ river it's speed is even faster than piosolver, but on flop is slower than piosolver.
 
@@ -22,7 +22,7 @@ Features:
 - Efficient, ~~turn and~~ river calculation speed exceeds piosolver
 - Accurate, the results are almost the same as piosolver
 - Fully open source and free
-- Have a simple gui
+- Browser-based web UI served by the embedded HTTP API
 - Support standard Texas Hold'em and it's popular variant short-deck
 - Focus on post-flop situations 
 - Supports command line calls
@@ -57,11 +57,16 @@ In addition to downloading the software itself, Texas Holdem solver Java also re
 
 ## Usage
 
-### gui
+### web UI
 
-Make sure the right version of java is installed in your computer(64bit,java 10.x / java 11.x)
+Start the embedded server and open http://localhost:8080 in a browser:
 
-Double click the ```riversolver.jar``` to open gui.
+```bash
+./gradlew :solver-api:run --args="--port 8080 --resources riversolver/src/test/resources"
+```
+
+The original Swing GUI has been removed in this fork in favor of the web UI
+([ADR 0001](docs/adr/0001-unified-http-api-replaces-swing-and-jpype.md)).
 
 ### python api
 

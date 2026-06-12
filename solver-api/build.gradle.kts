@@ -4,13 +4,6 @@ plugins {
 
 description = "Embedded HTTP API exposing the solver core (ADR 0001)"
 
-// riversolver's GUI dependency (java-gui-forms-rt) is only resolvable from the
-// JetBrains repositories, and repository declarations are per-project.
-repositories {
-    maven { setUrl("https://www.jetbrains.com/intellij-repository/releases") }
-    maven { setUrl("https://cache-redirector.jetbrains.com/intellij-dependencies") }
-}
-
 val webDist by configurations.creating {
     isCanBeConsumed = false
     isCanBeResolved = true

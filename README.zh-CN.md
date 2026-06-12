@@ -11,13 +11,13 @@ README [English](README.md) | [中文](README.zh-CN.md)
 
 ![algs](img/solvergui.gif)
 
-这是一个基于java的德州扑克solver,完全开源,提供图形界面、命令行调用和内嵌 HTTP API(见 solver-api/README.md),实现了标准德州扑克和德州扑克的一个变种-德州扑克短牌的solver,和piosolver等常见德州扑克solver类似，重点提供翻牌后情况的求解，solver求解结果结果和piosolver对齐。速度上在~~turn和~~river上比piosolver快一些，但是flop比piosolver慢。
+这是一个基于java的德州扑克solver,完全开源,提供浏览器 Web UI、命令行调用和内嵌 HTTP API(见 solver-api/README.md),实现了标准德州扑克和德州扑克的一个变种-德州扑克短牌的solver,和piosolver等常见德州扑克solver类似，重点提供翻牌后情况的求解，solver求解结果结果和piosolver对齐。速度上在~~turn和~~river上比piosolver快一些，但是flop比piosolver慢。
 
 项目特性:
 - 高效,~~转牌和~~河牌计算速度超过piosolver
 - 准确，结果和piosolver几乎相同
 - 完全开源并且免费
-- 拥有一个简单易用的gui界面
+- 内嵌 HTTP API 直接提供浏览器 Web UI
 - 支持标准德州扑克和流行的变种玩法短牌
 - 主要聚焦在翻牌后求解
 - 支持命令行调用
@@ -54,11 +54,16 @@ riversolver.sh 包含了命令行调用solver的示例
 
 
 ## 使用
-### 图形界面
+### Web UI
 
-确认你已经安装了正确版本的java(64bit,java 10.x / java 11.x)
+启动内嵌服务后用浏览器打开 http://localhost:8080：
 
-双击 ```riversolver.jar``` 打开gui.
+```bash
+./gradlew :solver-api:run --args="--port 8080 --resources riversolver/src/test/resources"
+```
+
+本 fork 已移除原 Swing 图形界面，由 Web UI 取代
+（[ADR 0001](docs/adr/0001-unified-http-api-replaces-swing-and-jpype.md)）。
 
 ### python 调用方法
 
