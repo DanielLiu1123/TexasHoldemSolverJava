@@ -26,59 +26,60 @@ public final class ApiServer implements AutoCloseable {
 
     public ApiServer(Path resourcesDir) {
         this.service = new SolveService(new GameResources(resourcesDir));
+        // Javalin 7: all routes, handlers and lifecycle configuration go into the create block.
         this.app = Javalin.create(config -> {
-                    config.showJavalinBanner = false;
-                    config.useVirtualThreads = true;
-                    config.jsonMapper(new JacksonJsonMapper());
-                    // The web UI is embedded under /web when built (:web-ui:viteBuild);
-                    // tests and API-only builds run without it.
-                    if (ApiServer.class.getResource("/web/index.html") != null) {
-                        config.staticFiles.add("/web", io.javalin.http.staticfiles.Location.CLASSPATH);
-                        config.spaRoot.addFile("/", "/web/index.html", io.javalin.http.staticfiles.Location.CLASSPATH);
-                    }
-                })
-                .exception(IllegalArgumentException.class, (e, ctx) -> ctx.status(HttpStatus.BAD_REQUEST)
-                        .json(Map.of("error", String.valueOf(e.getMessage()))))
-                .exception(tools.jackson.core.JacksonException.class, (e, ctx) -> ctx.status(HttpStatus.BAD_REQUEST)
-                        .json(Map.of("error", String.format("malformed request body: %s", e.getOriginalMessage()))))
-                .post("/api/v1/solves", ctx -> {
-                    SolveRequest request = ctx.bodyAsClass(SolveRequest.class);
-                    SolveJob job = service.create(request);
-                    ctx.status(HttpStatus.ACCEPTED).json(JobView.of(job));
-                })
-                .get("/api/v1/solves/{id}", ctx -> ctx.json(JobView.of(job(ctx.pathParam("id")))))
-                .delete("/api/v1/solves/{id}", ctx -> {
-                    SolveJob job = job(ctx.pathParam("id"));
-                    job.requestCancel();
-                    ctx.status(HttpStatus.ACCEPTED).json(JobView.of(job));
-                })
-                .get("/api/v1/solves/{id}/strategy", ctx -> {
-                    SolveJob job = job(ctx.pathParam("id"));
-                    String strategy = job.strategyJson();
-                    if (strategy == null) {
-                        ctx.status(HttpStatus.CONFLICT)
-                                .json(Map.of("error", String.format("job is %s; no strategy available", job.state())));
-                        return;
-                    }
-                    ctx.contentType("application/json").result(strategy);
-                })
-                .get(
-                        "/api/v1/health",
-                        ctx -> ctx.json(Map.of(
-                                "status",
-                                "ok", //
-                                "loadedGames",
-                                service.resources().loadedGames())));
-
-        app.sse("/api/v1/solves/{id}/events", client -> {
-            SolveJob job = job(client.ctx().pathParam("id"));
-            client.keepAlive();
-            Consumer<ProgressEvent> subscriber = event -> {
-                client.sendEvent(event.type(), event);
-                if (event.isTerminal()) client.close();
-            };
-            client.onClose(() -> job.unsubscribe(subscriber));
-            job.subscribe(subscriber);
+            config.startup.showJavalinBanner = false;
+            config.concurrency.useVirtualThreads = true;
+            config.jsonMapper(new JacksonJsonMapper());
+            // The web UI is embedded under /web when built (:web-ui:viteBuild);
+            // tests and API-only builds run without it.
+            if (ApiServer.class.getResource("/web/index.html") != null) {
+                config.staticFiles.add("/web", io.javalin.http.staticfiles.Location.CLASSPATH);
+                config.spaRoot.addFile("/", "/web/index.html", io.javalin.http.staticfiles.Location.CLASSPATH);
+            }
+            config.routes.exception(IllegalArgumentException.class, (e, ctx) -> ctx.status(HttpStatus.BAD_REQUEST)
+                    .json(Map.of("error", String.valueOf(e.getMessage()))));
+            config.routes.exception(tools.jackson.core.JacksonException.class, (e, ctx) -> ctx.status(
+                            HttpStatus.BAD_REQUEST)
+                    .json(Map.of("error", String.format("malformed request body: %s", e.getOriginalMessage()))));
+            config.routes.post("/api/v1/solves", ctx -> {
+                SolveRequest request = ctx.bodyAsClass(SolveRequest.class);
+                SolveJob job = service.create(request);
+                ctx.status(HttpStatus.ACCEPTED).json(JobView.of(job));
+            });
+            config.routes.get("/api/v1/solves/{id}", ctx -> ctx.json(JobView.of(job(ctx.pathParam("id")))));
+            config.routes.delete("/api/v1/solves/{id}", ctx -> {
+                SolveJob job = job(ctx.pathParam("id"));
+                job.requestCancel();
+                ctx.status(HttpStatus.ACCEPTED).json(JobView.of(job));
+            });
+            config.routes.get("/api/v1/solves/{id}/strategy", ctx -> {
+                SolveJob job = job(ctx.pathParam("id"));
+                String strategy = job.strategyJson();
+                if (strategy == null) {
+                    ctx.status(HttpStatus.CONFLICT)
+                            .json(Map.of("error", String.format("job is %s; no strategy available", job.state())));
+                    return;
+                }
+                ctx.contentType("application/json").result(strategy);
+            });
+            config.routes.get(
+                    "/api/v1/health",
+                    ctx -> ctx.json(Map.of(
+                            "status",
+                            "ok", //
+                            "loadedGames",
+                            service.resources().loadedGames())));
+            config.routes.sse("/api/v1/solves/{id}/events", client -> {
+                SolveJob job = job(client.ctx().pathParam("id"));
+                client.keepAlive();
+                Consumer<ProgressEvent> subscriber = event -> {
+                    client.sendEvent(event.type(), event);
+                    if (event.isTerminal()) client.close();
+                };
+                client.onClose(() -> job.unsubscribe(subscriber));
+                job.subscribe(subscriber);
+            });
         });
     }
 

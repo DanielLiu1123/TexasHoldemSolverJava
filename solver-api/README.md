@@ -1,7 +1,7 @@
 # solver-api
 
 The embedded HTTP API around the solver core ([ADR 0001](../docs/adr/0001-unified-http-api-replaces-swing-and-jpype.md)).
-Javalin 6 on virtual threads; JSON via the project-wide Jackson 3 mapper.
+Javalin 7 on virtual threads; JSON via the project-wide Jackson 3 mapper.
 
 ## Run
 
