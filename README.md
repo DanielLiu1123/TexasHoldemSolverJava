@@ -1,177 +1,159 @@
 # TexasHoldemSolverJava
 
-[![release](https://img.shields.io/github/v/release/bupticybee/TexasHoldemSolverJava?label=release&style=flat-square)](https://github.com/bupticybee/TexasHoldemSolverJava/releases)
-[![license](https://img.shields.io/github/license/bupticybee/TexasHoldemSolverJava?style=flat-square)](https://github.com/bupticybee/TexasHoldemSolverJava/blob/master/LICENSE)
+[![license](https://img.shields.io/github/license/bupticybee/TexasHoldemSolverJava?style=flat-square)](LICENSE)
 
 README [English](README.md) | [中文](README.zh-CN.md)
 
-:rotating_light: This project still works but it's no longer maintained. Please check our latest C++ version [TexasSolver](https://github.com/bupticybee/TexasSolver).
+> **About this fork.** This is a modernized fork of [bupticybee's original
+> TexasHoldemSolverJava](https://github.com/bupticybee/TexasHoldemSolverJava) (no longer
+> maintained upstream). It runs on Java 25 with a Gradle multi-module build; the Swing GUI and
+> JPype Python bridge have been replaced by a browser web UI over an embedded HTTP API
+> ([ADR 0001](docs/adr/0001-unified-http-api-replaces-swing-and-jpype.md)); and the CFR hot
+> loops are SIMD-vectorized with the Java Vector API. For a faster native solver, see the C++
+> port [TexasSolver](https://github.com/bupticybee/TexasSolver).
 
 ## Introduction
 
-A open sourced, efficient Texas Hold'em and short deck solver. See this [Introduction video](https://www.youtube.com/watch?v=beqabWkOSRM) for more.
+An open-source, efficient solver for standard Texas Hold'em and short-deck (six-plus) Hold'em.
+Like commercial solvers such as piosolver, it focuses on **post-flop** play, and its results
+align with piosolver. On the river it is faster than piosolver; on the flop it is slower.
 
-![algs](img/solvergui.gif)
-
-This is a java-based Texas Hold'em solver, fully open source, with a browser-based web UI, a command-line interface, and an embedded HTTP API (see solver-api/README.md). Support standard Texas Hold'em and it's popular variant short-deck.
-
-Similar to common commercial Texas Hold'ems solvers such as piosolver, TexasHoldemSolverJava focusing on solving post-flop situations, and it's result is aligned with piosolver. On ~~turn and~~ river it's speed is even faster than piosolver, but on flop is slower than piosolver.
-
-Features:
-
-- Efficient, ~~turn and~~ river calculation speed exceeds piosolver
-- Accurate, the results are almost the same as piosolver
-- Fully open source and free
-- Browser-based web UI served by the embedded HTTP API
-- Support standard Texas Hold'em and it's popular variant short-deck
-- Focus on post-flop situations 
-- Supports command line calls
-
+Built around Counterfactual Regret Minimization (CFR): it constructs the post-flop game tree,
+runs a CFR variant until the strategy's exploitability converges, and serializes the resulting
+mixed strategy at every node to JSON. See [CONTEXT.md](CONTEXT.md) for the domain glossary.
 
 This project is suitable for:
+
 - high-level Texas Hold'em players
-- Scholars in the field of incomplete information games
+- researchers in imperfect-information games
 
-## install
+## Features
 
-Install 64bit [Java Runtime Environment](https://www.oracle.com/java/technologies/javase-jre8-downloads.html) first.
+- Efficient — river and turn solving comparable to or faster than piosolver
+- Accurate — results closely match piosolver
+- Fully open source and free (MIT)
+- Browser web UI and a language-agnostic HTTP/JSON API (with live SSE convergence streaming)
+- Standard Texas Hold'em and short-deck
+- Selectable CFR variants: `discounted_cfr` (default), `pcfr_plus`, `cfr_plus`, `cfr`
+- SIMD-vectorized CFR hot loops (`jdk.incubator.vector`)
 
-Download the [release package](https://github.com/bupticybee/TexasHoldemSolverJava/releases) unzip it, you will get a folder look like this:
+## Requirements
 
-```
---- Solver
- |- resources
- |- RiverSolver.jar
- |- riversolver.sh
-```
+- **JDK 25** (the build targets Java 25 and uses the incubating Vector API)
+- The Gradle wrapper (`./gradlew`) is included — no separate Gradle install needed
+- Node is fetched automatically by the build for the `web-ui` module
 
-Install is done. It's that simple.
+The repository ships the compairer dictionaries and sample ranges under
+`riversolver/src/test/resources`, so no external data download is required.
 
-```RiverSolver.jar``` is the solver program file.
+## Build & run
 
+### Web UI (recommended)
 
-```riversolver.sh``` contains sample code for command line calls.
-
-In addition to downloading the software itself, Texas Holdem solver Java also relies on JRE 11.0.2 as it's e runtime. Please install Java JRE 11.0.2 in advance.
-
-
-## Usage
-
-### web UI
-
-Start the embedded server and open http://localhost:8080 in a browser:
+Start the embedded server — it serves both the HTTP API and the bundled web UI — then open
+<http://localhost:8080>:
 
 ```bash
 ./gradlew :solver-api:run --args="--port 8080 --resources riversolver/src/test/resources"
 ```
 
-The original Swing GUI has been removed in this fork in favor of the web UI
-([ADR 0001](docs/adr/0001-unified-http-api-replaces-swing-and-jpype.md)).
+The UI provides a range editor, board picker, live convergence chart, and a strategy explorer.
 
-### python api
+### HTTP API
 
-The JPype-based python interface has been removed in this fork
-([ADR 0001](docs/adr/0001-unified-http-api-replaces-swing-and-jpype.md)).
-Call the solver from python — or any language — through the embedded
-[HTTP API](solver-api/README.md) instead.
+The same server exposes a JSON API for solving from any language. Endpoints, request fields,
+and `curl` examples are documented in [solver-api/README.md](solver-api/README.md):
 
-### command line api
-
-Please refer to code in ```riversolver.sh``` in [release package](https://github.com/bupticybee/TexasHoldemSolverJava/releases). 
-
-### Reading the Solver's output
-When running, the solver would generate logs like this:
-```text
-Iter: 0
-player 0 exploitability 1.653075
-player 1 exploitability 2.146374
-Total exploitability 47.493111 precent
--------------------
-Iter: 11
-player 0 exploitability 0.040586
-player 1 exploitability 0.322102
-Total exploitability 4.533607 precent
--------------------
-......
--------------------
-Iter: 41
-player 0 exploitability -0.114473
-player 1 exploitability 0.168947
-Total exploitability 0.680923 precent
-.Using 4 threads
-```
-Be ware how the exploitability converges, normally a strategy with an exploitability < 0.5 is more than enough to serve as an optimal strategy.
-
-An ```output_strategy.json``` file will be generated by the solver after solving. It can be read by any language and you can directly opened by firefox(yes, the famous browser）. The size of the file varies between a few Kb to dozens of Gb.
-
-If opened by firefox, you are excepted to see something looks like this：
-
-![algs](img/strategy1.png)
-
-
-```text
-player : 1
+```bash
+curl -s -X POST localhost:8080/api/v1/solves -H 'Content-Type: application/json' -d '{
+  "game": "shortdeck",
+  "board": "Kd,Jd,Td,7s,8s",
+  "rangeIp":  "AA,KK,QQ,JJ,TT,99,88,AK,AQ,KQ,JT",
+  "rangeOop": "AA,KK,QQ,JJ,TT,99,88,AK,AQ,KQ,JT",
+  "pot": 10, "effectiveStack": 95, "iterations": 100, "stopExploitability": 0.5
+}'
 ```
 
-This field indicates player1 is making his move.
+### Command line
 
-```text
-actions:
-    0: "CHECK"
-    1: "BET 4.0"
+The CLI takes a YAML rule file plus ranges/board/iterations and writes a strategy JSON. Run it
+from the `riversolver` module directory (the sample YAML resolves dictionary paths relative to
+it):
+
+```bash
+./gradlew :riversolver:installDist
+cd riversolver
+./build/install/RiverSolver/bin/RiverSolver \
+  -c src/test/resources/yamls/rule_holdem_simple.yaml \
+  -p1 "AA,KK,QQ,JJ,TT,99,AK,AQ,KQ,JT" \
+  -p2 "AA,KK,QQ,JJ,TT,99,AK,AQ,KQ,JT" \
+  -b "Kd,Jd,Td,7s,8s" -n 100 -i 10 \
+  -a discounted_cfr -o /tmp/strategy.json
 ```
 
-"actions" field contains player1's moves considered by the solver. 
+> Running an `installDist` binary requires `JAVA_HOME` to point at a JDK 25 install.
 
-Strategy field contains optimal strategy for player1 with different hands:
+## Modules
 
-![algs](img/strategy2.png)
+| Module | What it is |
+| --- | --- |
+| `riversolver` | The solver core: game-tree builder, CFR solvers, hand evaluator, CLI |
+| `solver-api` | Embedded HTTP/JSON API (Javalin on virtual threads); serves the web UI |
+| `web-ui` | React + TypeScript front end, bundled into `solver-api` at build time |
+| `benchmarks` | JMH benchmarks for the hand evaluator, tree building, and solving |
 
-Each specific item of strategy contains the "optimal strategy" of specific hand calculated by the solver.
+## Reading the solver's output
 
-![algs](img/strategy3.png)
+While solving, the solver logs exploitability per iteration (in % of the pot):
 
-For example, the figure above represents that when player 1 gets the hand of qd7c (square Q, plum 7), the optimal strategy is to check with 34% probability and bet with 65% probability.
+```text
+Iter: 0   Total exploitability 47.49 percent
+Iter: 11  Total exploitability  4.53 percent
+Iter: 41  Total exploitability  0.68 percent
+```
 
-## Compile the release package
-Normally compiling the release package manually is not required. It can be directly downloaded [here](https://github.com/bupticybee/TexasHoldemSolverJava/releases)
-However if you intend to modify this project, recompiling is required. TexasHoldemSolverJava is a IDEA project, an IDEA environment is required to compile the release package, if you want to compile the release package, please follow the following instruction：
-1. install IntellIJ IDEA
-2. download TexasHoldemSolverJava from github and load to IntellIJ IDEA
-3. press build -> build project to compile the projet from source
-4. press build -> build artifacts -> all artifacts -> build to generate the release package
-5. the release package can be found in the ```out``` folder in project root
+Watch how exploitability converges — a strategy below ~0.5% pot is generally good enough to
+treat as optimal.
 
-## benchmarks
+The strategy JSON maps each node to the actions considered and, per hand, the mixed strategy
+over those actions:
 
-The speed compair with piosolver listed below, turn and river's speed is comparable with piosolver , flop is much slower due to game tree and lack of optimization.
+![strategy](img/strategy2.png)
 
-|                       | flop sample | turn sample | river sample |
-| --------------------- | ----------- | ----------- | ------------ |
-| piosolver             | 7.91s       | 1.5s        | 0.56s        |
-| TexasHoldemSolverJava | 98s         | 4.21s       | 0.06s        |
+For example, with `qd7c` the optimal play might be check 34% / bet 65%.
 
-Input of the above benchmark and result compair with piosolver is listed below.
+![strategy detail](img/strategy3.png)
 
-|                | flop sample | turn sample | river sample |
-| -------------- | ----------- | ----------- | ------------ |
-| input (in text format)        |   [flop](benchmarks/benchmark_flop.txt)          | [turn](benchmarks/benchmark_turn.txt)            |        [river](benchmarks/benchmark_river.txt)      |
-| input (in image format)         |   ![flop](img/flop_setting.jpeg)          | ![turn](img/turn_setting.jpeg)            |       ![river](img/river_setting.jpeg)       | 
-| result compair         |   ![flop](img/flop_result.jpeg)          | ![turn](img/turn_result.jpeg)            |       ![river](img/river_result.jpeg)       | 
+## Benchmarks
 
-The slight different between Piosolver and TexasHoldemSolverJava is due to different tree construction logic and insufficient CFR converge for both software.
+Performance is guarded by the JMH `benchmarks` module:
+
+```bash
+./gradlew :benchmarks:jmh -PjmhIncludes='RiverSolveBenchmark'
+```
+
+See [benchmarks/README.md](benchmarks/README.md) for the available benchmarks. For historical
+reference, the original per-street comparison against piosolver (turn/river comparable, flop
+slower due to tree size):
+
+|                       | flop  | turn  | river |
+| --------------------- | ----- | ----- | ----- |
+| piosolver             | 7.91s | 1.5s  | 0.56s |
+| TexasHoldemSolverJava | 98s   | 4.21s | 0.06s |
 
 ## Algorithm
-As shown in the figure below, thanks to the implementation of the latest algorithm variant discounted CFR ++, algorithm used in this project can be a lot faster than traditional algorithms such as CFR +.
-![algs](img/algs.png)
 
-## c++ version
+The default `discounted_cfr` (Discounted CFR+) converges much faster than classic CFR/CFR+.
+`pcfr_plus` (Predictive CFR+) is also available; on these poker subgames DCFR still converges
+fastest, matching the PCFR+ paper's own poker findings.
 
-If you somehow feel our java version is not fast enough,here is a ported [c++ version](https://github.com/bupticybee/TexasSolver) ,c++ version is faster than java version in turn and river, however still contains certain problems：
+![algorithms](img/algs.png)
 
-- ~~supports only Linux machine~~
-- ~~manually compile is reqiured before use~~
-- ~~c++ version's code is not well optimized~~, it's ~~slower~~ 5x faster than the java version on flop.
+## C++ version
+
+If the Java version is not fast enough, there is a native [C++ port,
+TexasSolver](https://github.com/bupticybee/TexasSolver), which is faster on turn and river and
+roughly 5x faster on the flop.
 
 ## License
 
@@ -180,4 +162,3 @@ If you somehow feel our java version is not fast enough,here is a ported [c++ ve
 ## Contact
 
 icybee@yeah.net
-
