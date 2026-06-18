@@ -355,12 +355,6 @@ abstract class AbstractCfrSolver extends Solver {
         RiverCombs[] playerCombs = this.rrm.getRiverCombos(player, playerPrivateCards, currentBoard);
         RiverCombs[] oppoCombs = this.rrm.getRiverCombos(oppo, oppoPrivateCards, currentBoard);
 
-        float[] payoffs = new float[playerPrivateCards.length];
-
-        float winsum = 0;
-        float[] cardWinsum = new float[52];
-        int j = 0;
-
         if (this.debug) {
             System.out.println("[PRESHOWDOWN]=======================");
             System.out.println(String.format("player0 reach_prob %s", Arrays.toString(reachProbs[0])));
@@ -372,43 +366,13 @@ abstract class AbstractCfrSolver extends Solver {
             System.out.println();
         }
 
-        for (int i = 0; i < playerCombs.length; i++) {
-            RiverCombs onePlayerComb = playerCombs[i];
-            while (j < oppoCombs.length && onePlayerComb.rank < oppoCombs[j].rank) {
-                RiverCombs oneOppoComb = oppoCombs[j];
-                winsum += reachProbs[oppo][oneOppoComb.reach_prob_index];
-                cardWinsum[oneOppoComb.private_cards.card1] += reachProbs[oppo][oneOppoComb.reach_prob_index];
-                cardWinsum[oneOppoComb.private_cards.card2] += reachProbs[oppo][oneOppoComb.reach_prob_index];
-                j++;
-            }
-            payoffs[onePlayerComb.reach_prob_index] = (winsum
-                            - cardWinsum[onePlayerComb.private_cards.card1]
-                            - cardWinsum[onePlayerComb.private_cards.card2])
-                    * winPayoff;
-        }
+        float[] payoffs = ShowdownPayoffs.compute(
+                playerCombs, oppoCombs, reachProbs[oppo], winPayoff, losePayoff, playerPrivateCards.length);
 
-        float losssum = 0;
-        float[] cardLosssum = new float[52];
-        j = oppoCombs.length - 1;
-        for (int i = playerCombs.length - 1; i >= 0; i--) {
-            RiverCombs onePlayerComb = playerCombs[i];
-            while (j >= 0 && onePlayerComb.rank > oppoCombs[j].rank) {
-                RiverCombs oneOppoComb = oppoCombs[j];
-                losssum += reachProbs[oppo][oneOppoComb.reach_prob_index];
-                cardLosssum[oneOppoComb.private_cards.card1] += reachProbs[oppo][oneOppoComb.reach_prob_index];
-                cardLosssum[oneOppoComb.private_cards.card2] += reachProbs[oppo][oneOppoComb.reach_prob_index];
-                j--;
-            }
-            payoffs[onePlayerComb.reach_prob_index] += (losssum
-                            - cardLosssum[onePlayerComb.private_cards.card1]
-                            - cardLosssum[onePlayerComb.private_cards.card2])
-                    * losePayoff;
-        }
         if (this.debug) {
             System.out.println("[SHOWDOWN]============");
             node.printHistory();
             System.out.println(String.format("loss payoffs: %s", losePayoff));
-            System.out.println(String.format("oppo sum %s, substracted payoff %s", losssum, payoffs[0]));
         }
         return payoffs;
     }
