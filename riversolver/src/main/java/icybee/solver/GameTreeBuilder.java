@@ -11,7 +11,6 @@ import icybee.solver.solver.GameTreeBuildingSettings;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /** Builds a GameTree programmatically from betting rules. */
 class GameTreeBuilder {
@@ -71,12 +70,6 @@ class GameTreeBuilder {
         }
     }
 
-    enum BetType {
-        BET,
-        DONK,
-        RAISE
-    }
-
     static GameTreeNode build(
             Deck deck,
             float oopCommit,
@@ -106,11 +99,14 @@ class GameTreeBuilder {
     @SuppressWarnings("NullAway")
     private static GameTreeNode buildRecursive(
             GameTreeNode node, Rule rule, String lastAction, int checkTimes, int raiseTimes) {
-        switch (node) {
-            case ActionNode actionNode -> buildAction(actionNode, rule, lastAction, checkTimes, raiseTimes);
-            case ShowdownNode _, TerminalNode _ -> {}
-            case ChanceNode chanceNode -> buildChance(chanceNode, rule);
-            case null, default -> throw new RuntimeException("node type unknown");
+        if (node instanceof ActionNode actionNode) {
+            buildAction(actionNode, rule, lastAction, checkTimes, raiseTimes);
+        } else if (node instanceof ChanceNode chanceNode) {
+            buildChance(chanceNode, rule);
+        } else if (node instanceof ShowdownNode || node instanceof TerminalNode) {
+            // terminal node: nothing to expand
+        } else {
+            throw new RuntimeException("node type unknown");
         }
         return node;
     }
@@ -234,11 +230,11 @@ class GameTreeBuilder {
                     children.add(nextNode);
                 }
                 case "bet" -> {
-                    BetType betType = BetType.BET;
+                    BetSizing.BetType betType = BetSizing.BetType.BET;
                     if (root.getPlayer() == 1
                             && root.getParent() != null
                             && root.getParent() instanceof ChanceNode chanceNodeBeforeThis) {
-                        if (chanceNodeBeforeThis.isDonk()) betType = BetType.DONK;
+                        if (chanceNodeBeforeThis.isDonk()) betType = BetSizing.BetType.DONK;
                     }
                     List<Double> betSizes = getPossibleBets(root, player, nextPlayer, rule, betType);
                     for (Double oneBettingSize : betSizes) {
@@ -313,7 +309,7 @@ class GameTreeBuilder {
                                 && rule.currentRound == 1)) continue;
                     }
                     if (raiseTimes >= rule.raiseLimit) continue;
-                    List<Double> betSizes = getPossibleBets(root, player, nextPlayer, rule, BetType.RAISE);
+                    List<Double> betSizes = getPossibleBets(root, player, nextPlayer, rule, BetSizing.BetType.RAISE);
                     for (Double oneBettingSize : betSizes) {
                         Rule nextRule = new Rule(rule);
                         if (player == 0) nextRule.ipCommit = (float) (nextRule.ipCommit + oneBettingSize);
@@ -349,7 +345,7 @@ class GameTreeBuilder {
                     actions.add(new GameActions(GameTreeNode.PokerActions.FOLD, null));
                     children.add(nextNode);
                 }
-                case null, default -> {}
+                default -> {}
             }
         }
         assert !actions.isEmpty();
@@ -357,74 +353,20 @@ class GameTreeBuilder {
         root.setChildren(children);
     }
 
-    private static double roundNearest(double number, double roundNum) {
-        roundNum = 1 / roundNum;
-        return Math.round(number * roundNum) / roundNum;
-    }
-
     private static List<Double> getPossibleBets(
-            GameTreeNode root, int player, int nextPlayer, Rule rule, BetType betType) {
+            GameTreeNode root, int player, int nextPlayer, Rule rule, BetSizing.BetType betType) {
         assert player == 1 - nextPlayer;
         GameTreeBuildingSettings.StreetSetting streetSetting = rule.buildSettings.getSettings(root.getRound(), player);
-        ArrayList<Double> betsRatios = new ArrayList<>();
-        boolean allIn = streetSetting.allin;
-        float[] betsFromRule;
-        if (betType == BetType.BET) betsFromRule = streetSetting.bet_sizes;
-        else if (betType == BetType.DONK) {
-            betsFromRule = streetSetting.donk_sizes;
-            allIn = false;
-        } else if (betType == BetType.RAISE) betsFromRule = streetSetting.raise_sizes;
-        else throw new RuntimeException("bet type unknown");
-        if (betsFromRule == null) return new ArrayList<>();
-        for (float oneBet : betsFromRule) {
-            betsRatios.add((double) oneBet / 100);
-        }
-        float pot = rule.ipCommit + rule.oopCommit;
-        List<Double> possibleAmounts = new ArrayList<>();
-        for (Double oneBet : betsRatios) {
-            Double amount;
-            if (rule.oopCommit == rule.smallBlind) {
-                amount = oneBet * rule.bigBlind - rule.smallBlind;
-                amount = roundNearest(amount, rule.smallBlind);
-            } else if (rule.ipCommit == rule.bigBlind && rule.oopCommit == rule.bigBlind) {
-                amount = oneBet * rule.bigBlind;
-                amount = roundNearest(amount, rule.smallBlind);
-            } else {
-                amount = oneBet * pot;
-                amount = roundNearest(amount, rule.bigBlind);
-            }
-            if (amount < rule.stack - rule.getCommit(player)) {
-                possibleAmounts.add(amount);
-            }
-        }
-        if (allIn) possibleAmounts.add((double) (rule.stack - rule.getCommit(player)));
-
-        if (rule.getCommit(player) != rule.smallBlind) {
-            possibleAmounts = possibleAmounts.stream()
-                    .filter(e -> e > 0)
-                    .map(n -> (double) n.intValue())
-                    .collect(Collectors.toList());
-        }
-        if (rule.getCommit(player) == rule.smallBlind) {
-            possibleAmounts =
-                    possibleAmounts.stream().filter(e -> e >= rule.bigBlind).collect(Collectors.toList());
-        } else if (rule.getCommit(player) == rule.bigBlind && rule.getCommit(nextPlayer) == rule.bigBlind) {
-            possibleAmounts =
-                    possibleAmounts.stream().filter(e -> e >= rule.bigBlind).collect(Collectors.toList());
-        }
-        // NOTE: a third branch here asserted commit(player) > commit(nextPlayer) and tried to
-        // enforce a minimum raise of twice the outstanding gap. The sign was inverted (the
-        // raiser is the player who has committed *less*), so the filter never removed anything
-        // and the assert failed on every post-flop tree once assertions are enabled. Removed to
-        // keep tree shapes identical; proper min-raise enforcement belongs to a tree-builder
-        // overhaul validated against the strategy regression suite.
-        possibleAmounts = possibleAmounts.stream()
-                .filter(e -> e > rule.getCommit(nextPlayer) - rule.getCommit(player))
-                .collect(Collectors.toList());
-        possibleAmounts = possibleAmounts.stream()
-                .filter(e -> e <= rule.stack - rule.getCommit(player))
-                .collect(Collectors.toList());
-        return possibleAmounts;
+        return BetSizing.possibleBets(
+                player,
+                nextPlayer,
+                rule.ipCommit,
+                rule.oopCommit,
+                rule.smallBlind,
+                rule.bigBlind,
+                rule.stack,
+                streetSetting,
+                betType);
     }
 
     private GameTreeBuilder() {}
