@@ -6,7 +6,6 @@ import icybee.solver.Card;
 import icybee.solver.nodes.*;
 import icybee.solver.ranges.PrivateCards;
 import icybee.solver.ranges.RiverCombs;
-import icybee.solver.trainable.DiscountedCfrTrainable;
 import icybee.solver.trainable.Trainable;
 import icybee.solver.utils.SimdOps;
 import java.io.Writer;
@@ -374,10 +373,6 @@ public class ParallelCfrPlusSolver extends AbstractCfrSolver {
                             node_player_private_cards.length);
                 }
                 trainable.updateRegrets(regrets, iter + 1, reach_probs[player]);
-                if (trainable instanceof DiscountedCfrTrainable dct) {
-                    dct.setEvs(payoffs);
-                    dct.setReach_probs(reach_probs);
-                }
             }
 
             return payoffs;

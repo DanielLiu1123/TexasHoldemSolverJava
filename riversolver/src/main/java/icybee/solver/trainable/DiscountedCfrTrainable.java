@@ -12,7 +12,6 @@ import jdk.incubator.vector.FloatVector;
 import jdk.incubator.vector.VectorMask;
 import jdk.incubator.vector.VectorOperators;
 import jdk.incubator.vector.VectorSpecies;
-import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
@@ -32,34 +31,6 @@ public class DiscountedCfrTrainable extends Trainable {
     float gamma = 2;
     float theta = 0.9f;
 
-    float @Nullable [][] reach_probs;
-
-    float @Nullable [] evs;
-
-    public PrivateCards[] getPrivateCards() {
-        return privateCards;
-    }
-
-    public float[] getR_plus() {
-        return r_plus;
-    }
-
-    public float[] getR_plus_sum() {
-        return r_plus_sum;
-    }
-
-    public float[] getCum_r_plus() {
-        return cum_r_plus;
-    }
-
-    public float[] getCum_r_plus_sum() {
-        return cum_r_plus_sum;
-    }
-
-    public float @Nullable [][] getReach_probs() {
-        return reach_probs;
-    }
-
     float[] r_plus_sum;
 
     float[] cum_r_plus;
@@ -69,19 +40,6 @@ public class DiscountedCfrTrainable extends Trainable {
 
     float[] cachedCurrentStrategy;
 
-    public void setReach_probs(float[][] reach_probs) {
-        this.reach_probs = reach_probs;
-    }
-
-    public float @Nullable [] getEvs() {
-        return evs;
-    }
-
-    public void setEvs(float[] evs) {
-        this.evs = evs;
-    }
-
-    @SuppressWarnings("NullAway.Init")
     public DiscountedCfrTrainable(ActionNode action_node, PrivateCards[] privateCards) {
         this.action_node = action_node;
         this.privateCards = privateCards;
