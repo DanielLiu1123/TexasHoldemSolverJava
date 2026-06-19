@@ -45,12 +45,6 @@ public class Card {
         return rankToString(rank) + suitToString(suit);
     }
 
-    public static String intCard2FormatStr(int card) {
-        int rank = card / 4 + 2;
-        int suit = card - (rank - 2) * 4;
-        return rankToString(rank) + suitToFormatString(suit);
-    }
-
     public static long boardCards2long(String[] cards) {
         Card[] cards_objs = new Card[cards.length];
         for (int i = 0; i < cards.length; i++) {
@@ -161,16 +155,6 @@ public class Card {
         };
     }
 
-    static String suitToFormatString(int suit) {
-        return switch (suit) {
-            case 0 -> "<font color=\"black\">♣</font>";
-            case 1 -> "<font color=\"red\">♦</font>";
-            case 2 -> "<font color=\"red\">♥</font>";
-            case 3 -> "<font color=\"black\">♠</font>";
-            default -> "♣</font>";
-        };
-    }
-
     static String rankToString(int rank) {
         return switch (rank) {
             case 2 -> "2";
@@ -209,10 +193,6 @@ public class Card {
         };
     }
 
-    static String[] getRanks() {
-        return new String[] {"2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"};
-    }
-
     static int suitToInt(char suit) {
         return switch (suit) {
             case 'c' -> 0; // 梅花
@@ -230,9 +210,5 @@ public class Card {
     @Override
     public String toString() {
         return this.card;
-    }
-
-    public String toFormatString() {
-        return this.card.replace('c', '♣').replace('d', '♦').replace('h', '♥').replace('s', '♠');
     }
 }
