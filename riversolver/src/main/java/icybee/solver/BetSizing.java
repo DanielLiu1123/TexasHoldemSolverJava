@@ -37,6 +37,8 @@ final class BetSizing {
     }
 
     /**
+     * Returns the legal amounts (chips on top of the current commit) a player may put in.
+     *
      * @param player the acting player (0 = IP, 1 = OOP)
      * @param nextPlayer {@code 1 - player}
      * @param streetSetting the configured sizings for this street and player
@@ -102,17 +104,32 @@ final class BetSizing {
             possibleAmounts =
                     possibleAmounts.stream().filter(e -> e >= bigBlind).collect(Collectors.toList());
         }
-        // NOTE: a third branch here asserted commit(player) > commit(nextPlayer) and tried to
-        // enforce a minimum raise of twice the outstanding gap. The sign was inverted (the
-        // raiser is the player who has committed *less*), so the filter never removed anything
-        // and the assert failed on every post-flop tree once assertions are enabled. Removed to
-        // keep tree shapes identical; proper min-raise enforcement belongs here, validated against
-        // the strategy regression suite and a white-box BetSizing test.
+        // A raise must put in more than the amount needed to call.
         possibleAmounts = possibleAmounts.stream()
                 .filter(e -> e > nextCommit - playerCommit)
                 .collect(Collectors.toList());
         possibleAmounts =
                 possibleAmounts.stream().filter(e -> e <= stack - playerCommit).collect(Collectors.toList());
+
+        // Minimum-raise enforcement. When the actor faces a wager (has committed less than the
+        // opponent), a legal raise must raise *by* at least the outstanding amount to call — the
+        // total put in is >= 2 * (nextCommit - playerCommit). A short all-in is exempt: a player
+        // may always move all-in, even for less than a full raise (the tree does not model the
+        // "does not reopen betting" consequence). For an opening bet (no outstanding wager) there
+        // is nothing to raise over. (This replaces an earlier attempt whose sign was inverted — it
+        // asserted commit(player) > commit(nextPlayer), but the raiser is the player who has
+        // committed *less* — so it never fired.)
+        float gap = nextCommit - playerCommit;
+        if (gap > 0) {
+            double minRaise = 2.0 * gap;
+            double rawAllIn = stack - playerCommit;
+            // Match the integer flooring the configured sizes went through above, so the all-in
+            // amount can be recognized exactly.
+            final double allInAmt = (playerCommit != smallBlind) ? (double) (int) rawAllIn : rawAllIn;
+            possibleAmounts = possibleAmounts.stream()
+                    .filter(e -> e >= minRaise || e == allInAmt)
+                    .collect(Collectors.toList());
+        }
         return possibleAmounts;
     }
 }
