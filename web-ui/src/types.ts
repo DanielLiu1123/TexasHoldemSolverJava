@@ -46,15 +46,20 @@ export interface JobView {
   events: ProgressEvent[];
 }
 
-/** Strategy tree as produced by GameTree.dumps. Terminal/showdown nodes are absent. */
-export type StrategyNode = ActionStrategyNode | ChanceStrategyNode;
+/**
+ * A single strategy-tree node, fetched on demand by path (the full post-flop tree is far too large
+ * to ship at once — a flop solve dumps close to a gigabyte). The server returns just this node plus
+ * the labels of its navigable children.
+ */
+export type StrategyNode = ActionStrategyNode | ChanceStrategyNode | TerminalStrategyNode;
 
 export interface ActionStrategyNode {
   node_type: "action_node";
   /** 0 = in position, 1 = out of position */
   player: 0 | 1;
   actions: string[];
-  children?: Record<string, StrategyNode>;
+  /** Action labels that lead to a further (non-terminal) node — i.e. are navigable. */
+  childActions: string[];
   strategy: {
     actions: string[];
     /** combo (e.g. "AhKs") → probability per action, parallel to actions */
@@ -64,6 +69,10 @@ export interface ActionStrategyNode {
 
 export interface ChanceStrategyNode {
   node_type: "chance_node";
-  deal_number: number;
-  deal_cards: Record<string, StrategyNode>;
+  /** Dealt-card labels (e.g. "Ah"); navigate by appending one to the path. */
+  cards: string[];
+}
+
+export interface TerminalStrategyNode {
+  node_type: "terminal";
 }

@@ -25,7 +25,6 @@ public final class SolveJob {
 
     private volatile State state = State.RUNNING;
     private volatile @Nullable String error;
-    private volatile @Nullable String strategyJson;
     private volatile @Nullable Solver solver;
     private volatile boolean cancelRequested;
 
@@ -49,8 +48,9 @@ public final class SolveJob {
         return error;
     }
 
-    public @Nullable String strategyJson() {
-        return strategyJson;
+    /** The trained solver (and its game tree), available once the run has produced a result. */
+    public @Nullable Solver solver() {
+        return solver;
     }
 
     public boolean cancelRequested() {
@@ -93,8 +93,12 @@ public final class SolveJob {
         if (attached != null) attached.requestStop();
     }
 
-    void complete(String strategyJson) {
-        this.strategyJson = strategyJson;
+    /**
+     * Marks the run finished. The strategy itself is not materialized here — it is served lazily,
+     * one node at a time, by walking {@link #solver()}'s game tree (see {@code StrategyNodeView}),
+     * because dumping the whole post-flop tree as one JSON blob can reach ~1 GB.
+     */
+    void complete() {
         if (cancelRequested) {
             this.state = State.CANCELLED;
             publish(ProgressEvent.cancelled());

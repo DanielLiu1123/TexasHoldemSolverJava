@@ -48,7 +48,7 @@ export function RangeEditor({ title, ranks, value, onChange }: Props) {
       <div className="range-editor-head">
         <h3>{title}</h3>
         <label className="weight-control">
-          weight {weight.toFixed(2)}
+          权重 {weight.toFixed(2)}
           <input
             type="range"
             min="0.05"
@@ -58,9 +58,9 @@ export function RangeEditor({ title, ranks, value, onChange }: Props) {
             onChange={(e) => setWeight(Number.parseFloat(e.target.value))}
           />
         </label>
-        <span className="muted">{combos} combos</span>
+        <span className="muted">{combos} 个组合</span>
         <button type="button" className="link" onClick={() => onChange("")}>
-          clear
+          清空
         </button>
       </div>
       <RangeGrid

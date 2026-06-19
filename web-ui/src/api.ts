@@ -33,8 +33,13 @@ export async function cancelJob(id: string): Promise<JobView> {
   return (await expectOk(await fetch(`${BASE}/solves/${id}`, { method: "DELETE" }))).json();
 }
 
-export async function getStrategy(id: string): Promise<StrategyNode> {
-  return (await expectOk(await fetch(`${BASE}/solves/${id}/strategy`))).json();
+/**
+ * Fetches a single strategy node addressed by `path` (a list of edge labels from the root; empty =
+ * root). One node per request — the tree is walked lazily rather than downloaded whole.
+ */
+export async function getStrategyNode(id: string, path: string[]): Promise<StrategyNode> {
+  const query = path.length > 0 ? `?path=${encodeURIComponent(path.join(","))}` : "";
+  return (await expectOk(await fetch(`${BASE}/solves/${id}/strategy${query}`))).json();
 }
 
 /**

@@ -55,13 +55,17 @@ public final class ApiServer implements AutoCloseable {
             });
             config.routes.get("/api/v1/solves/{id}/strategy", ctx -> {
                 SolveJob job = job(ctx.pathParam("id"));
-                String strategy = job.strategyJson();
-                if (strategy == null) {
+                icybee.solver.solver.Solver solver = job.solver();
+                SolveJob.State state = job.state();
+                if (solver == null || state == SolveJob.State.RUNNING || state == SolveJob.State.FAILED) {
                     ctx.status(HttpStatus.CONFLICT)
-                            .json(Map.of("error", String.format("job is %s; no strategy available", job.state())));
+                            .json(Map.of("error", String.format("job is %s; no strategy available", state)));
                     return;
                 }
-                ctx.contentType("application/json").result(strategy);
+                // Lazy, per-node: ?path=CHECK,BET 10.0,Ah walks to one node (no path = root).
+                ctx.contentType("application/json")
+                        .result(StrategyNodeView.atPath(solver.getTree(), ctx.queryParam("path"))
+                                .toString());
             });
             config.routes.get(
                     "/api/v1/health",

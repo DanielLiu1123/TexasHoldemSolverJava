@@ -17,7 +17,7 @@ export function BoardPicker({ ranks, value, onChange }: Props) {
   return (
     <div className="board-picker">
       <div className="board-current">
-        {value.length === 0 && <span className="muted">pick 3–5 cards</span>}
+        {value.length === 0 && <span className="muted">点下方牌面，选出 3–5 张公共牌 →</span>}
         {value.map((card) => (
           <button type="button" key={card} className="card selected" onClick={() => toggle(card)}>
             {card[0]}

@@ -1,14 +1,13 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { getStrategyNode } from "../api";
 import { SUIT_COLOR, SUIT_SYMBOL, comboToCell } from "../poker";
 import type { ActionStrategyNode, StrategyNode } from "../types";
 import { RangeGrid } from "./RangeGrid";
 
 interface Props {
-  root: StrategyNode;
+  solveId: string;
   ranks: string[];
 }
-
-type Step = { kind: "action" | "card"; label: string };
 
 /** Color per action label: folds blue, checks/calls green, bets/raises warm by size order. */
 function actionColors(actions: string[]): Map<string, string> {
@@ -23,47 +22,62 @@ function actionColors(actions: string[]): Map<string, string> {
   return colors;
 }
 
-function walk(root: StrategyNode, path: Step[]): StrategyNode | null {
-  let node: StrategyNode | null = root;
-  for (const step of path) {
-    if (node === null) return null;
-    if (node.node_type === "action_node") node = node.children?.[step.label] ?? null;
-    else node = node.deal_cards[step.label] ?? null;
-  }
-  return node;
-}
+/**
+ * Walks the solved tree one node at a time: the current path is a list of edge labels, and each
+ * node is fetched on demand (the whole tree is far too large to ship at once).
+ */
+export function StrategyExplorer({ solveId, ranks }: Props) {
+  const [path, setPath] = useState<string[]>([]);
+  const [node, setNode] = useState<StrategyNode | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-export function StrategyExplorer({ root, ranks }: Props) {
-  const [path, setPath] = useState<Step[]>([]);
-  const node = useMemo(() => walk(root, path), [root, path]);
+  useEffect(() => {
+    let cancelled = false;
+    setError(null);
+    setNode(null);
+    getStrategyNode(solveId, path)
+      .then((n) => {
+        if (!cancelled) setNode(n);
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e instanceof Error ? e.message : String(e));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [solveId, path]);
 
   return (
     <div className="strategy-explorer">
       <nav className="breadcrumbs">
         <button type="button" className="crumb" onClick={() => setPath([])}>
-          root
+          起点
         </button>
-        {path.map((step, i) => (
-          <button type="button" key={`${i}-${step.label}`} className="crumb" onClick={() => setPath(path.slice(0, i + 1))}>
-            {step.label}
+        {path.map((label, i) => (
+          <button
+            type="button"
+            key={`${i}-${label}`}
+            className="crumb"
+            onClick={() => setPath(path.slice(0, i + 1))}
+          >
+            {label}
           </button>
         ))}
       </nav>
-      {node === null && <p className="muted">terminal node — hand is over here.</p>}
+
+      {error && <p className="error">加载失败：{error}</p>}
+      {!error && !node && <p className="muted">加载中…</p>}
+
+      {node?.node_type === "terminal" && <p className="muted">终局节点 —— 这条线到此结束。</p>}
       {node?.node_type === "action_node" && (
-        <ActionNodeView node={node} ranks={ranks} onDescend={(label) => setPath([...path, { kind: "action", label }])} />
+        <ActionNodeView node={node} ranks={ranks} onDescend={(label) => setPath([...path, label])} />
       )}
       {node?.node_type === "chance_node" && (
         <div className="chance-view">
-          <h3>dealt card</h3>
+          <h3>选择发出的牌</h3>
           <div className="deal-cards">
-            {Object.keys(node.deal_cards).map((card) => (
-              <button
-                type="button"
-                key={card}
-                className="card"
-                onClick={() => setPath([...path, { kind: "card", label: card }])}
-              >
+            {node.cards.map((card) => (
+              <button type="button" key={card} className="card" onClick={() => setPath([...path, card])}>
                 {card[0]}
                 <span style={{ color: SUIT_COLOR[card[1]] }}>{SUIT_SYMBOL[card[1]]}</span>
               </button>
@@ -113,9 +127,11 @@ function ActionNodeView({
     return totals.map((t) => (count > 0 ? t / count : 0));
   }, [node, cellMix]);
 
+  const navigable = useMemo(() => new Set(node.childActions), [node]);
+
   return (
     <div className="action-view">
-      <h3>{node.player === 0 ? "IP" : "OOP"} to act</h3>
+      <h3>轮到 {node.player === 0 ? "IP（有利位）" : "OOP（不利位）"} 行动</h3>
       <div className="action-buttons">
         {node.strategy.actions.map((action, i) => (
           <button
@@ -123,7 +139,7 @@ function ActionNodeView({
             key={action}
             className="action-button"
             style={{ borderColor: colors.get(action) }}
-            disabled={!node.children?.[action]}
+            disabled={!navigable.has(action)}
             onClick={() => onDescend(action)}
           >
             <span className="dot" style={{ background: colors.get(action) }} />
