@@ -4,9 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import icybee.solver.utils.JsonUtil;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Objects;
@@ -77,8 +79,21 @@ class SolveApiIntegrationTest {
                         .build(),
                 HttpResponse.BodyHandlers.ofString());
         assertThat(strategy.statusCode()).isEqualTo(200);
-        JsonNode strategyJson = JsonUtil.MAPPER.readTree(strategy.body());
-        assertThat(strategyJson.has("children")).isTrue();
+        JsonNode root = JsonUtil.MAPPER.readTree(strategy.body());
+        assertThat(root.get("node_type").asString()).isEqualTo("action_node");
+        assertThat(root.get("strategy").has("strategy")).isTrue();
+        assertThat(root.get("childActions").size()).isGreaterThan(0);
+
+        // Lazy navigation: fetching a child edge returns just that node, not the whole subtree.
+        String childLabel = root.get("childActions").get(0).asString();
+        HttpResponse<String> childNode = client.send(
+                HttpRequest.newBuilder(URI.create(base + "/solves/" + id + "/strategy?path="
+                                + URLEncoder.encode(childLabel, StandardCharsets.UTF_8)))
+                        .GET()
+                        .build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertThat(childNode.statusCode()).isEqualTo(200);
+        assertThat(JsonUtil.MAPPER.readTree(childNode.body()).has("node_type")).isTrue();
     }
 
     @Test

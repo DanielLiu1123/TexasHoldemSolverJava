@@ -131,7 +131,7 @@ public final class SolveService implements AutoCloseable {
             job.attachSolver(solver);
             solver.train();
 
-            job.complete(solver.getTree().dumps(false).toString());
+            job.complete();
         } catch (Throwable e) {
             // Throwable, not Exception: tree building uses `assert`, and an escaping
             // AssertionError must not leave the job RUNNING forever.

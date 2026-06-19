@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { cancelJob, createSolve, getJob, getStrategy, subscribe } from "./api";
+import { cancelJob, createSolve, getJob, subscribe } from "./api";
 import { ranksFor } from "./poker";
 import { BoardPicker } from "./components/BoardPicker";
 import { ProgressPanel } from "./components/ProgressPanel";
@@ -7,7 +7,7 @@ import { RangeEditor } from "./components/RangeEditor";
 import { StreetForm } from "./components/StreetForm";
 import { StrategyExplorer } from "./components/StrategyExplorer";
 import { Collapsible, Field, InfoTip, Section, Segmented } from "./components/ui";
-import type { GameType, JobView, ProgressEvent, SolveRequest, StrategyNode, StreetSpec } from "./types";
+import type { GameType, JobView, ProgressEvent, SolveRequest, StreetSpec } from "./types";
 
 const DEFAULT_RANGE =
   "AA,KK,QQ,JJ,TT,99,88,77,66,AK,AQ,AJ,AT,A9,A8,KQ,KJ,KT,QJ,QT,JT,T9s,98s,87s,76s";
@@ -33,7 +33,6 @@ export function App() {
 
   const [job, setJob] = useState<JobView | null>(null);
   const [events, setEvents] = useState<ProgressEvent[]>([]);
-  const [strategy, setStrategy] = useState<StrategyNode | null>(null);
   const [error, setError] = useState<string | null>(null);
   const unsubscribe = useRef<(() => void) | null>(null);
   const resultRef = useRef<HTMLDivElement | null>(null);
@@ -41,31 +40,12 @@ export function App() {
   const ranks = ranksFor(game);
   const ready = board.length >= 3;
   const running = job?.state === "RUNNING";
+  const solved = job?.state === "COMPLETED" || job?.state === "CANCELLED";
 
   useEffect(() => () => unsubscribe.current?.(), []);
 
-  // Load the strategy off the authoritative job state rather than the SSE event, so a transient
-  // fetch hiccup surfaces as an error instead of silently leaving the result panel empty.
-  useEffect(() => {
-    if (job?.state !== "COMPLETED" || strategy) return;
-    const id = job.id;
-    let cancelled = false;
-    (async () => {
-      try {
-        const s = await getStrategy(id);
-        if (!cancelled) setStrategy(s);
-      } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : String(e));
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [job?.state, job?.id, strategy]);
-
   const runSolve = useCallback(async (request: SolveRequest) => {
     setError(null);
-    setStrategy(null);
     setEvents([]);
     try {
       const created = await createSolve(request);
@@ -319,39 +299,12 @@ export function App() {
           </section>
         )}
 
-        {job?.state === "COMPLETED" && !strategy && (
-          <section className="panel result-panel">
-            <div className="panel-head">
-              <h2>策略结果</h2>
-            </div>
-            {error ? (
-              <p className="error">
-                策略加载失败：{error}{" "}
-                <button
-                  type="button"
-                  className="link"
-                  onClick={() => {
-                    setError(null);
-                    getStrategy(job.id)
-                      .then(setStrategy)
-                      .catch((e) => setError(e instanceof Error ? e.message : String(e)));
-                  }}
-                >
-                  重试
-                </button>
-              </p>
-            ) : (
-              <p className="muted">正在加载策略结果…</p>
-            )}
-          </section>
-        )}
-
-        {strategy && (
+        {job && solved && (
           <section className="panel result-panel">
             <div className="panel-head">
               <h2>策略结果</h2>
               <InfoTip>
-                点动作按钮可深入到下一个决策点；网格里每个格子的颜色按各动作的概率比例填充。
+                点动作按钮可深入到下一个决策点；网格里每个格子的颜色按各动作的概率比例填充。整棵树按需逐节点加载。
               </InfoTip>
             </div>
             <p className="legend">
@@ -365,7 +318,7 @@ export function App() {
                 <span className="dot" style={{ background: "#e67e22" }} /> 下注/加注 bet·raise（越深=越大）
               </span>
             </p>
-            <StrategyExplorer root={strategy} ranks={ranks} />
+            <StrategyExplorer solveId={job.id} ranks={ranks} />
           </section>
         )}
       </div>
