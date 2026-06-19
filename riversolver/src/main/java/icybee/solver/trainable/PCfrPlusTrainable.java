@@ -1,17 +1,10 @@
 package icybee.solver.trainable;
 
-import static icybee.solver.utils.JsonUtil.MAPPER;
-
 import icybee.solver.nodes.ActionNode;
-import icybee.solver.nodes.GameActions;
 import icybee.solver.ranges.PrivateCards;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import jdk.incubator.vector.FloatVector;
 import jdk.incubator.vector.VectorOperators;
-import jdk.incubator.vector.VectorSpecies;
-import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Predictive CFR+ (PCFR+, Farina/Kroer/Sandholm 2021, "Faster Game Solving via Predictive
@@ -20,16 +13,11 @@ import tools.jackson.databind.node.ObjectNode;
  * <p>Regret-matching+ with an optimistic prediction step: cumulative regrets update exactly like
  * RM+ ({@code R = [R + r]+}), but the strategy for the next iteration is proportional to
  * {@code [R + m]+} where the prediction {@code m} is the most recent instantaneous regret vector.
- * The average strategy uses quadratic (t²) weighting, which the paper pairs with PCFR+.
+ * The average strategy uses quadratic (t²) weighting, which the paper pairs with PCFR+. Its
+ * accumulator shape differs from the RM+ variants, so it extends {@link AbstractCfrTrainable}
+ * directly rather than {@link RegretMatchingTrainable}.
  */
-public class PCfrPlusTrainable extends Trainable {
-
-    static final VectorSpecies<Float> F = FloatVector.SPECIES_PREFERRED;
-
-    final ActionNode action_node;
-    final PrivateCards[] privateCards;
-    final int action_number;
-    final int card_number;
+public class PCfrPlusTrainable extends AbstractCfrTrainable {
 
     /** Cumulative clipped regrets R (RM+ accumulator). */
     final float[] r_plus;
@@ -42,19 +30,17 @@ public class PCfrPlusTrainable extends Trainable {
     /** Average strategy accumulator: played strategy × reach × t². */
     final float[] cum_strategy;
 
-    final float[] cachedCurrentStrategy;
-
     public PCfrPlusTrainable(ActionNode action_node, PrivateCards[] privateCards) {
-        this.action_node = action_node;
-        this.privateCards = privateCards;
-        this.action_number = action_node.getChildren().size();
-        this.card_number = privateCards.length;
-
+        super(action_node, privateCards);
         this.r_plus = new float[this.action_number * this.card_number];
         this.predicted_plus = new float[this.action_number * this.card_number];
         this.predicted_plus_sum = new float[this.card_number];
         this.cum_strategy = new float[this.action_number * this.card_number];
-        this.cachedCurrentStrategy = new float[this.action_number * this.card_number];
+    }
+
+    @Override
+    protected float[] strategyForDump() {
+        return getAverageStrategy();
     }
 
     @Override
@@ -157,30 +143,5 @@ public class PCfrPlusTrainable extends Trainable {
                 this.predicted_plus_sum[hand] += this.predicted_plus[index];
             }
         }
-    }
-
-    @Override
-    public ObjectNode dumps(boolean with_state) {
-        if (with_state) throw new RuntimeException("state storage not implemented");
-
-        ObjectNode strategy = MAPPER.createObjectNode();
-        float[] average_strategy = this.getAverageStrategy();
-        List<GameActions> game_actions = action_node.getActions();
-        List<String> actions_str = new ArrayList<>();
-        for (GameActions one_action : game_actions) actions_str.add(one_action.toString());
-
-        for (int i = 0; i < this.privateCards.length; i++) {
-            PrivateCards one_private_card = this.privateCards[i];
-            float[] one_strategy = new float[this.action_number];
-            for (int j = 0; j < this.action_number; j++) {
-                one_strategy[j] = average_strategy[j * this.privateCards.length + i];
-            }
-            strategy.set(String.format("%s", one_private_card.toString()), MAPPER.valueToTree(one_strategy));
-        }
-
-        ObjectNode retjson = MAPPER.createObjectNode();
-        retjson.set("actions", MAPPER.valueToTree(actions_str));
-        retjson.set("strategy", strategy);
-        return retjson;
     }
 }

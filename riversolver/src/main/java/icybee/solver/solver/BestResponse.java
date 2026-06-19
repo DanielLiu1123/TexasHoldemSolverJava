@@ -122,12 +122,13 @@ public class BestResponse {
     */
 
     public float[] bestResponse(GameTreeNode node, int player, float[][] reach_probs, long board) {
+        if (node == null) throw new RuntimeException("Node type not understood: null");
         return switch (node) {
             case ActionNode actionNode -> actionBestResponse(actionNode, player, reach_probs, board);
             case ShowdownNode showdownNode -> showdownBestResponse(showdownNode, player, reach_probs, board);
             case TerminalNode terminalNode -> terminalBestReponse(terminalNode, player, reach_probs, board);
             case ChanceNode chanceNode -> chanceBestReponse(chanceNode, player, reach_probs, board);
-            case null, default ->
+            default ->
                 throw new RuntimeException(String.format(
                         "Node type not understood %s", node.getClass().getName()));
         };
@@ -350,50 +351,9 @@ public class BestResponse {
         // hard code, 假设了player只有两个
         float lose_payoff = (float) node.get_payoffs(ShowdownNode.ShowDownResult.NOTTIE, 1 - player)[player];
 
-        float[] payoffs = new float[player_hands[player]];
+        float[] payoffs = ShowdownPayoffs.compute(
+                player_combs, oppo_combs, reach_probs[oppo], win_payoff, lose_payoff, player_hands[player]);
 
-        // 计算胜利时的payoff
-        float winsum = 0;
-        float[] card_winsum = new float[52];
-
-        int j = 0;
-        // if(player_combs.length != oppo_combs.length) throw new RuntimeException("");
-
-        for (RiverCombs one_player_comb : player_combs) {
-            while (j < oppo_combs.length && one_player_comb.rank < oppo_combs[j].rank) {
-                RiverCombs one_oppo_comb = oppo_combs[j];
-                winsum += reach_probs[oppo][one_oppo_comb.reach_prob_index];
-
-                card_winsum[one_oppo_comb.private_cards.card1] += reach_probs[oppo][one_oppo_comb.reach_prob_index];
-                card_winsum[one_oppo_comb.private_cards.card2] += reach_probs[oppo][one_oppo_comb.reach_prob_index];
-                j++;
-            }
-            payoffs[one_player_comb.reach_prob_index] = (winsum
-                            - card_winsum[one_player_comb.private_cards.card1]
-                            - card_winsum[one_player_comb.private_cards.card2])
-                    * win_payoff;
-        }
-
-        // 计算失败时的payoff
-        float losssum = 0;
-        float[] card_losssum = new float[52];
-
-        j = oppo_combs.length - 1;
-        for (int i = player_combs.length - 1; i >= 0; i--) {
-            RiverCombs one_player_comb = player_combs[i];
-            while (j >= 0 && one_player_comb.rank > oppo_combs[j].rank) {
-                RiverCombs one_oppo_comb = oppo_combs[j];
-                losssum += reach_probs[oppo][one_oppo_comb.reach_prob_index];
-
-                card_losssum[one_oppo_comb.private_cards.card1] += reach_probs[oppo][one_oppo_comb.reach_prob_index];
-                card_losssum[one_oppo_comb.private_cards.card2] += reach_probs[oppo][one_oppo_comb.reach_prob_index];
-                j--;
-            }
-            payoffs[one_player_comb.reach_prob_index] += (losssum
-                            - card_losssum[one_player_comb.private_cards.card1]
-                            - card_losssum[one_player_comb.private_cards.card2])
-                    * lose_payoff;
-        }
         if (this.debug) {
             System.out.println("[showdown]");
             node.printHistory();
