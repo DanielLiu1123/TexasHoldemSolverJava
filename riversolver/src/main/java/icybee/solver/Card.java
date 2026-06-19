@@ -18,16 +18,20 @@ public class Card {
 
     String card;
 
+    /** The integer id (0..51), parsed once at construction — see {@link #strCard2int}. */
+    final int cardInt;
+
     Card(String card) {
         this.card = card;
+        this.cardInt = strCard2int(card);
     }
 
     public int getCardInt() {
-        return Card.strCard2int(this.card);
+        return this.cardInt;
     }
 
     public static int card2int(Card card) {
-        return strCard2int(card.getCard());
+        return card.cardInt;
     }
 
     public static int strCard2int(String card) {
@@ -43,12 +47,6 @@ public class Card {
         int rank = card / 4 + 2;
         int suit = card - (rank - 2) * 4;
         return rankToString(rank) + suitToString(suit);
-    }
-
-    public static String intCard2FormatStr(int card) {
-        int rank = card / 4 + 2;
-        int suit = card - (rank - 2) * 4;
-        return rankToString(rank) + suitToFormatString(suit);
     }
 
     public static long boardCards2long(String[] cards) {
@@ -161,16 +159,6 @@ public class Card {
         };
     }
 
-    static String suitToFormatString(int suit) {
-        return switch (suit) {
-            case 0 -> "<font color=\"black\">♣</font>";
-            case 1 -> "<font color=\"red\">♦</font>";
-            case 2 -> "<font color=\"red\">♥</font>";
-            case 3 -> "<font color=\"black\">♠</font>";
-            default -> "♣</font>";
-        };
-    }
-
     static String rankToString(int rank) {
         return switch (rank) {
             case 2 -> "2";
@@ -209,10 +197,6 @@ public class Card {
         };
     }
 
-    static String[] getRanks() {
-        return new String[] {"2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"};
-    }
-
     static int suitToInt(char suit) {
         return switch (suit) {
             case 'c' -> 0; // 梅花
@@ -230,9 +214,5 @@ public class Card {
     @Override
     public String toString() {
         return this.card;
-    }
-
-    public String toFormatString() {
-        return this.card.replace('c', '♣').replace('d', '♦').replace('h', '♥').replace('s', '♠');
     }
 }
