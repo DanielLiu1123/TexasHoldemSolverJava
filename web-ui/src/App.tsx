@@ -44,6 +44,25 @@ export function App() {
 
   useEffect(() => () => unsubscribe.current?.(), []);
 
+  // Load the strategy off the authoritative job state rather than the SSE event, so a transient
+  // fetch hiccup surfaces as an error instead of silently leaving the result panel empty.
+  useEffect(() => {
+    if (job?.state !== "COMPLETED" || strategy) return;
+    const id = job.id;
+    let cancelled = false;
+    (async () => {
+      try {
+        const s = await getStrategy(id);
+        if (!cancelled) setStrategy(s);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : String(e));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [job?.state, job?.id, strategy]);
+
   const runSolve = useCallback(async (request: SolveRequest) => {
     setError(null);
     setStrategy(null);
@@ -55,11 +74,7 @@ export function App() {
       unsubscribe.current?.();
       unsubscribe.current = subscribe(created.id, async (event) => {
         setEvents((prev) => [...prev, event]);
-        if (event.type !== "progress") {
-          const finished = await getJob(created.id);
-          setJob(finished);
-          if (event.type === "completed") setStrategy(await getStrategy(created.id));
-        }
+        if (event.type !== "progress") setJob(await getJob(created.id));
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -301,6 +316,33 @@ export function App() {
               events={events}
               onCancel={async () => setJob(await cancelJob(job.id))}
             />
+          </section>
+        )}
+
+        {job?.state === "COMPLETED" && !strategy && (
+          <section className="panel result-panel">
+            <div className="panel-head">
+              <h2>策略结果</h2>
+            </div>
+            {error ? (
+              <p className="error">
+                策略加载失败：{error}{" "}
+                <button
+                  type="button"
+                  className="link"
+                  onClick={() => {
+                    setError(null);
+                    getStrategy(job.id)
+                      .then(setStrategy)
+                      .catch((e) => setError(e instanceof Error ? e.message : String(e)));
+                  }}
+                >
+                  重试
+                </button>
+              </p>
+            ) : (
+              <p className="muted">正在加载策略结果…</p>
+            )}
           </section>
         )}
 
