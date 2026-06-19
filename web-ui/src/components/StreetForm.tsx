@@ -16,13 +16,19 @@ function parseSizes(text: string): number[] | undefined {
   return sizes.length > 0 ? sizes : undefined;
 }
 
-/** Bet sizing controls for one street; sizes are in percent of the pot. */
+const STREET_LABEL: Record<Props["street"], string> = {
+  flop: "翻牌 flop",
+  turn: "转牌 turn",
+  river: "河牌 river",
+};
+
+/** Bet sizing controls for one street; sizes are in percent of the pot (e.g. "50 75 100"). */
 export function StreetForm({ street, value, onChange, withDonk }: Props) {
   return (
     <fieldset className="street-form">
-      <legend>{street}</legend>
+      <legend>{STREET_LABEL[street]}</legend>
       <label>
-        bet %
+        下注 %
         <input
           type="text"
           defaultValue={(value.betSizes ?? [50]).join(" ")}
@@ -30,7 +36,7 @@ export function StreetForm({ street, value, onChange, withDonk }: Props) {
         />
       </label>
       <label>
-        raise %
+        加注 %
         <input
           type="text"
           defaultValue={(value.raiseSizes ?? [50]).join(" ")}
@@ -39,7 +45,7 @@ export function StreetForm({ street, value, onChange, withDonk }: Props) {
       </label>
       {withDonk && (
         <label>
-          donk % (OOP)
+          领打 % (OOP)
           <input
             type="text"
             defaultValue={(value.donkSizes ?? []).join(" ")}
@@ -53,7 +59,7 @@ export function StreetForm({ street, value, onChange, withDonk }: Props) {
           checked={value.allin ?? street !== "flop"}
           onChange={(e) => onChange({ ...value, allin: e.target.checked })}
         />
-        all-in
+        允许全下
       </label>
     </fieldset>
   );

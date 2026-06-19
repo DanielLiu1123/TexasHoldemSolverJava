@@ -41,7 +41,7 @@ export function StrategyExplorer({ root, ranks }: Props) {
     <div className="strategy-explorer">
       <nav className="breadcrumbs">
         <button type="button" className="crumb" onClick={() => setPath([])}>
-          root
+          起点
         </button>
         {path.map((step, i) => (
           <button type="button" key={`${i}-${step.label}`} className="crumb" onClick={() => setPath(path.slice(0, i + 1))}>
@@ -49,13 +49,13 @@ export function StrategyExplorer({ root, ranks }: Props) {
           </button>
         ))}
       </nav>
-      {node === null && <p className="muted">terminal node — hand is over here.</p>}
+      {node === null && <p className="muted">终局节点 —— 这条线到此结束。</p>}
       {node?.node_type === "action_node" && (
         <ActionNodeView node={node} ranks={ranks} onDescend={(label) => setPath([...path, { kind: "action", label }])} />
       )}
       {node?.node_type === "chance_node" && (
         <div className="chance-view">
-          <h3>dealt card</h3>
+          <h3>选择发出的牌</h3>
           <div className="deal-cards">
             {Object.keys(node.deal_cards).map((card) => (
               <button
@@ -115,7 +115,7 @@ function ActionNodeView({
 
   return (
     <div className="action-view">
-      <h3>{node.player === 0 ? "IP" : "OOP"} to act</h3>
+      <h3>轮到 {node.player === 0 ? "IP（有利位）" : "OOP（不利位）"} 行动</h3>
       <div className="action-buttons">
         {node.strategy.actions.map((action, i) => (
           <button

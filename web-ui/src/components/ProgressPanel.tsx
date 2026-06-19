@@ -6,16 +6,29 @@ interface Props {
   onCancel: () => void;
 }
 
+const STATE_LABEL: Record<JobState, string> = {
+  RUNNING: "求解中",
+  COMPLETED: "已完成",
+  FAILED: "失败",
+  CANCELLED: "已取消",
+};
+
 /** Live convergence view: exploitability-over-iterations chart plus the event log. */
 export function ProgressPanel({ state, events, onCancel }: Props) {
   const progress = events.filter((e) => e.type === "progress");
+  const last = progress.at(-1);
   return (
     <div className="progress-panel">
       <div className="progress-head">
-        <span className={`state state-${state.toLowerCase()}`}>{state}</span>
+        <span className={`state state-${state.toLowerCase()}`}>{STATE_LABEL[state]}</span>
+        {last && (
+          <span className="muted">
+            当前可利用度 <b>{last.exploitability.toFixed(3)}%</b> 底池
+          </span>
+        )}
         {state === "RUNNING" && (
           <button type="button" onClick={onCancel}>
-            cancel
+            取消
           </button>
         )}
       </div>
@@ -23,8 +36,8 @@ export function ProgressPanel({ state, events, onCancel }: Props) {
       <div className="event-log">
         {progress.map((e) => (
           <div key={e.iteration} className="event-row">
-            <span>iter {e.iteration}</span>
-            <span>{e.exploitability.toFixed(3)}% pot</span>
+            <span>第 {e.iteration} 次</span>
+            <span>{e.exploitability.toFixed(3)}% 底池</span>
             <span className="muted">{e.elapsedMs} ms</span>
           </div>
         ))}
