@@ -14,10 +14,12 @@ import icybee.solver.trainable.DiscountedCfrTrainable;
 import icybee.solver.utils.PrivateRangeConverter;
 import java.io.File;
 import java.io.FileWriter;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  *
@@ -26,6 +28,9 @@ import org.junit.jupiter.api.Test;
 public class TexasHoldemSolverTest {
     static Compairer compairer;
     static Deck deck;
+
+    @TempDir
+    static Path outputDir;
 
     static Config loadConfig(String conf_name) {
         ClassLoader classLoader = TexasHoldemSolverTest.class.getClassLoader();
@@ -266,7 +271,7 @@ public class TexasHoldemSolverTest {
         PrivateCards[] player1Range = PrivateRangeConverter.rangeStr2Cards(player1RangeStr, initialBoard);
         PrivateCards[] player2Range = PrivateRangeConverter.rangeStr2Cards(player2RangeStr, initialBoard);
 
-        String logfile_name = "src/test/resources/outputs/outputs_log.txt";
+        String logfile_name = outputDir.resolve("outputs_log.txt").toString();
         Solver solver = new CfrPlusRiverSolver(SolverConfig.builder()
                 .tree(game_tree)
                 .range1(player1Range)
@@ -304,7 +309,7 @@ public class TexasHoldemSolverTest {
         PrivateCards[] player1Range = PrivateRangeConverter.rangeStr2Cards(player1RangeStr, initialBoard);
         PrivateCards[] player2Range = PrivateRangeConverter.rangeStr2Cards(player2RangeStr, initialBoard);
 
-        String logfile_name = "src/test/resources/outputs/outputs_log.txt";
+        String logfile_name = outputDir.resolve("outputs_log.txt").toString();
         Solver solver = new CfrPlusRiverSolver(SolverConfig.builder()
                 .tree(game_tree)
                 .range1(player1Range)
@@ -323,7 +328,7 @@ public class TexasHoldemSolverTest {
 
         String strategy_json = solver.getTree().dumps(false).toString();
 
-        String strategy_fname = "src/test/resources/outputs/outputs_strategy.json";
+        String strategy_fname = outputDir.resolve("outputs_strategy.json").toString();
 
         File output_file = new File(strategy_fname);
         FileWriter writer = new FileWriter(output_file);
@@ -353,7 +358,7 @@ public class TexasHoldemSolverTest {
         PrivateCards[] player1Range = PrivateRangeConverter.rangeStr2Cards(player1RangeStr, initialBoard);
         PrivateCards[] player2Range = PrivateRangeConverter.rangeStr2Cards(player2RangeStr, initialBoard);
 
-        String logfile_name = "src/test/resources/outputs/outputs_log.txt";
+        String logfile_name = outputDir.resolve("outputs_log.txt").toString();
         Solver solver = new CfrPlusRiverSolver(SolverConfig.builder()
                 .tree(game_tree)
                 .range1(player1Range)
@@ -372,7 +377,7 @@ public class TexasHoldemSolverTest {
 
         String strategy_json = solver.getTree().dumps(false).toString();
 
-        String strategy_fname = "src/test/resources/outputs/outputs_strategy.json";
+        String strategy_fname = outputDir.resolve("outputs_strategy.json").toString();
 
         File output_file = new File(strategy_fname);
         FileWriter writer = new FileWriter(output_file);
@@ -403,7 +408,7 @@ public class TexasHoldemSolverTest {
         PrivateCards[] player1Range = PrivateRangeConverter.rangeStr2Cards(player1RangeStr, initialBoard);
         PrivateCards[] player2Range = PrivateRangeConverter.rangeStr2Cards(player2RangeStr, initialBoard);
 
-        String logfile_name = "src/test/resources/outputs/outputs_log.txt";
+        String logfile_name = outputDir.resolve("outputs_log.txt").toString();
         Solver solver = new CfrPlusRiverSolver(SolverConfig.builder()
                 .tree(game_tree)
                 .range1(player1Range)
@@ -422,7 +427,7 @@ public class TexasHoldemSolverTest {
 
         String strategy_json = solver.getTree().dumps(false).toString();
 
-        String strategy_fname = "src/test/resources/outputs/outputs_strategy.json";
+        String strategy_fname = outputDir.resolve("outputs_strategy.json").toString();
 
         File output_file = new File(strategy_fname);
         FileWriter writer = new FileWriter(output_file);
@@ -453,7 +458,7 @@ public class TexasHoldemSolverTest {
         PrivateCards[] player1Range = PrivateRangeConverter.rangeStr2Cards(player1RangeStr, initialBoard);
         PrivateCards[] player2Range = PrivateRangeConverter.rangeStr2Cards(player2RangeStr, initialBoard);
 
-        String logfile_name = "src/test/resources/outputs/outputs_log.txt";
+        String logfile_name = outputDir.resolve("outputs_log.txt").toString();
         Solver solver = new ParallelCfrPlusSolver(
                 SolverConfig.builder()
                         .tree(game_tree)
@@ -478,7 +483,7 @@ public class TexasHoldemSolverTest {
 
         String strategy_json = solver.getTree().dumps(false).toString();
 
-        String strategy_fname = "src/test/resources/outputs/outputs_strategy.json";
+        String strategy_fname = outputDir.resolve("outputs_strategy.json").toString();
 
         File output_file = new File(strategy_fname);
         FileWriter writer = new FileWriter(output_file);
