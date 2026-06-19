@@ -18,16 +18,20 @@ public class Card {
 
     String card;
 
+    /** The integer id (0..51), parsed once at construction — see {@link #strCard2int}. */
+    final int cardInt;
+
     Card(String card) {
         this.card = card;
+        this.cardInt = strCard2int(card);
     }
 
     public int getCardInt() {
-        return Card.strCard2int(this.card);
+        return this.cardInt;
     }
 
     public static int card2int(Card card) {
-        return strCard2int(card.getCard());
+        return card.cardInt;
     }
 
     public static int strCard2int(String card) {
