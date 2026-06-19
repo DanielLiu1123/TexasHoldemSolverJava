@@ -13,10 +13,39 @@ const STATE_LABEL: Record<JobState, string> = {
   CANCELLED: "已取消",
 };
 
+/** Plain-language verdict for a final exploitability (% of pot). */
+function verdict(exploitability: number): { tier: "great" | "good" | "ok" | "rough"; title: string; detail: string } {
+  if (exploitability <= 0.5)
+    return {
+      tier: "great",
+      title: "已收敛到接近最优（GTO）",
+      detail: "对手即使完美应对，也几乎占不到便宜，可直接把这套策略当作标准答案使用。",
+    };
+  if (exploitability <= 1)
+    return {
+      tier: "good",
+      title: "已接近最优",
+      detail: "作为近似 GTO 策略使用没有问题；若想更精确，可在高级设置里调高迭代次数。",
+    };
+  if (exploitability <= 2)
+    return {
+      tier: "ok",
+      title: "大致收敛，可作参考",
+      detail: "整体方向可信，但仍有可被利用的空间。增大迭代次数能进一步逼近最优。",
+    };
+  return {
+    tier: "rough",
+    title: "尚未充分收敛",
+    detail: "当前策略还比较粗糙。建议把迭代次数调大，或把「提前停止阈值」调低后重新求解。",
+  };
+}
+
 /** Live convergence view: exploitability-over-iterations chart plus the event log. */
 export function ProgressPanel({ state, events, onCancel }: Props) {
   const progress = events.filter((e) => e.type === "progress");
   const last = progress.at(-1);
+  const done = state === "COMPLETED" && last;
+  const summary = done ? verdict(last.exploitability) : null;
   return (
     <div className="progress-panel">
       <div className="progress-head">
@@ -32,6 +61,18 @@ export function ProgressPanel({ state, events, onCancel }: Props) {
           </button>
         )}
       </div>
+      {done && summary && last && (
+        <div className={`solve-summary summary-${summary.tier}`}>
+          <div className="summary-title">{summary.title}</div>
+          <p className="summary-text">
+            经过 <b>{last.iteration}</b> 次迭代（约 {(last.elapsedMs / 1000).toFixed(1)}s），最终可利用度收敛到{" "}
+            <b>{last.exploitability.toFixed(3)}%</b> 底池。{summary.detail}
+          </p>
+          <p className="summary-next">
+            ↓ 在下方「策略结果」里点动作按钮，就能看到每手牌该怎么打（过牌 / 下注 / 加注的最优比例）。
+          </p>
+        </div>
+      )}
       {progress.length > 0 && <ConvergenceChart points={progress} />}
       <div className="event-log">
         {progress.map((e) => (

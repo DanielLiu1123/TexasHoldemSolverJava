@@ -697,6 +697,67 @@ h3 {
   color: var(--red);
 }
 
+/* completed summary */
+.solve-summary {
+  margin: 4px 0 16px;
+  padding: 14px 16px 14px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--line-2);
+  border-left-width: 4px;
+  background: var(--surface-2);
+}
+
+.summary-title {
+  font-weight: 700;
+  font-size: 15.5px;
+  margin-bottom: 5px;
+}
+
+.summary-text {
+  margin: 0;
+  font-size: 14px;
+  color: #d6e2db;
+}
+
+.summary-text b {
+  color: var(--text);
+}
+
+.summary-next {
+  margin: 9px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.summary-great,
+.summary-good {
+  border-left-color: var(--green);
+  background: rgba(79, 199, 138, 0.08);
+}
+
+.summary-great .summary-title,
+.summary-good .summary-title {
+  color: var(--green);
+}
+
+.summary-ok {
+  border-left-color: var(--gold);
+  background: rgba(230, 180, 80, 0.08);
+}
+
+.summary-ok .summary-title {
+  color: var(--gold-2);
+}
+
+.summary-rough {
+  border-left-color: var(--red);
+  background: rgba(255, 128, 115, 0.08);
+}
+
+.summary-rough .summary-title {
+  color: var(--red);
+}
+
 .chart {
   width: 100%;
   max-width: 560px;
