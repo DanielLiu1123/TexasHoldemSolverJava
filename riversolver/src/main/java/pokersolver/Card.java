@@ -50,19 +50,19 @@ public class Card {
     }
 
     public static long boardCards2long(String[] cards) {
-        Card[] cards_objs = new Card[cards.length];
+        Card[] cardsObjs = new Card[cards.length];
         for (int i = 0; i < cards.length; i++) {
-            cards_objs[i] = new Card(cards[i]);
+            cardsObjs[i] = new Card(cards[i]);
         }
-        return boardCards2long(cards_objs);
+        return boardCards2long(cardsObjs);
     }
 
     public static long boardCards2long(List<String> cards) {
-        Card[] cards_objs = new Card[cards.size()];
+        Card[] cardsObjs = new Card[cards.size()];
         for (int i = 0; i < cards.size(); i++) {
-            cards_objs[i] = new Card(cards.get(i));
+            cardsObjs[i] = new Card(cards.get(i));
         }
-        return boardCards2long(cards_objs);
+        return boardCards2long(cardsObjs);
     }
 
     public static long boardCard2long(Card card) {
@@ -75,11 +75,11 @@ public class Card {
     }
 
     public static long boardCards2long(Card[] cards) {
-        int[] board_int = new int[cards.length];
+        int[] boardInt = new int[cards.length];
         for (int i = 0; i < cards.length; i++) {
-            board_int[i] = Card.card2int(cards[i]);
+            boardInt[i] = Card.card2int(cards[i]);
         }
-        return boardInts2long(board_int);
+        return boardInts2long(boardInt);
     }
 
     public static boolean boardsHasIntercept(long board1, long board2) {
@@ -91,34 +91,34 @@ public class Card {
         return boardInts2long(array);
     }
 
-    public static long privateHand2long(PrivateCards one_hand) {
-        return boardInts2long(new int[] {one_hand.card1, one_hand.card2});
+    public static long privateHand2long(PrivateCards oneHand) {
+        return boardInts2long(new int[] {oneHand.card1, oneHand.card2});
     }
 
     public static long boardInts2long(int[] board) {
         if (board.length < 1 || board.length > 7) {
             throw new RuntimeException(Arrays.toString(board));
         }
-        long board_long = 0;
-        for (int one_card : board) {
+        long boardLong = 0;
+        for (int oneCard : board) {
             // 这里hard code了一副扑克牌是52张
-            if (one_card < 0 || one_card >= 52) {
-                throw new RuntimeException(String.format("Card with id %d not found", one_card));
+            if (oneCard < 0 || oneCard >= 52) {
+                throw new RuntimeException(String.format("Card with id %d not found", oneCard));
             }
             // long d
             // long 的range 在- 2 ^ 63 - 1 ~ + 2^ 63之间,所以不用太担心溢出问题
-            board_long += (Long.valueOf(1) << one_card);
+            boardLong += (Long.valueOf(1) << oneCard);
         }
-        return board_long;
+        return boardLong;
     }
 
-    public static int[] long2board(long board_long) {
+    public static int[] long2board(long boardLong) {
         List<Integer> board = new ArrayList<>();
         for (int i = 0; i < 52; i++) {
-            if ((board_long & 1) == 1) {
+            if ((boardLong & 1) == 1) {
                 board.add(i);
             }
-            board_long = board_long >> 1;
+            boardLong = boardLong >> 1;
         }
         if (board.size() < 1 || board.size() > 7) {
             throw new RuntimeException(String.format(
@@ -131,20 +131,19 @@ public class Card {
         return retval;
     }
 
-    public static Card[] long2boardCards(long board_long) throws BoardNotFoundException {
-        int[] board = long2board(board_long);
-        List<Card> board_cards = new ArrayList<>();
-        for (int one_board : board) {
-            board_cards.add(new Card(intCard2Str(one_board)));
+    public static Card[] long2boardCards(long boardLong) throws BoardNotFoundException {
+        int[] board = long2board(boardLong);
+        List<Card> boardCards = new ArrayList<>();
+        for (int oneBoard : board) {
+            boardCards.add(new Card(intCard2Str(oneBoard)));
         }
-        if (board_cards.size() < 1 || board_cards.size() > 7) {
+        if (boardCards.size() < 1 || boardCards.size() > 7) {
             throw new BoardNotFoundException(String.format(
-                    "board length not correct, board length %d, boards %s",
-                    board_cards.size(), Arrays.toString(board)));
+                    "board length not correct, board length %d, boards %s", boardCards.size(), Arrays.toString(board)));
         }
-        Card retval[] = new Card[board_cards.size()];
-        for (int i = 0; i < board_cards.size(); i++) {
-            retval[i] = board_cards.get(i);
+        Card retval[] = new Card[boardCards.size()];
+        for (int i = 0; i < boardCards.size(); i++) {
+            retval[i] = boardCards.get(i);
         }
         return retval;
     }

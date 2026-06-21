@@ -24,22 +24,22 @@ public abstract class AbstractCfrTrainable extends Trainable {
 
     static final VectorSpecies<Float> F = FloatVector.SPECIES_PREFERRED;
 
-    final ActionNode action_node;
+    final ActionNode actionNode;
     final PrivateCards[] privateCards;
-    final int action_number;
-    final int card_number;
+    final int actionNumber;
+    final int cardNumber;
     final float[] cachedCurrentStrategy;
 
-    protected AbstractCfrTrainable(ActionNode action_node, PrivateCards[] privateCards) {
-        this.action_node = action_node;
+    protected AbstractCfrTrainable(ActionNode actionNode, PrivateCards[] privateCards) {
+        this.actionNode = actionNode;
         this.privateCards = privateCards;
-        this.action_number = action_node.getChildren().size();
-        this.card_number = privateCards.length;
-        this.cachedCurrentStrategy = new float[this.action_number * this.card_number];
+        this.actionNumber = actionNode.getChildren().size();
+        this.cardNumber = privateCards.length;
+        this.cachedCurrentStrategy = new float[this.actionNumber * this.cardNumber];
     }
 
-    static boolean isAllZeros(float[] input_array) {
-        for (float v : input_array) {
+    static boolean isAllZeros(float[] inputArray) {
+        for (float v : inputArray) {
             if (v != 0) return false;
         }
         return true;
@@ -53,25 +53,25 @@ public abstract class AbstractCfrTrainable extends Trainable {
     protected abstract float[] strategyForDump();
 
     @Override
-    public final ObjectNode dumps(boolean with_state) {
-        if (with_state) throw new RuntimeException("state storage not implemented");
+    public final ObjectNode dumps(boolean withState) {
+        if (withState) throw new RuntimeException("state storage not implemented");
 
         float[] strategy = strategyForDump();
-        List<String> actions_str = new ArrayList<>();
-        for (GameActions one_action : action_node.getActions()) actions_str.add(one_action.toString());
+        List<String> actionsStr = new ArrayList<>();
+        for (GameActions oneAction : actionNode.getActions()) actionsStr.add(oneAction.toString());
 
-        ObjectNode strategy_json = MAPPER.createObjectNode();
+        ObjectNode strategyJson = MAPPER.createObjectNode();
         for (int i = 0; i < this.privateCards.length; i++) {
-            float[] one_strategy = new float[this.action_number];
-            for (int j = 0; j < this.action_number; j++) {
-                one_strategy[j] = strategy[j * this.privateCards.length + i];
+            float[] oneStrategy = new float[this.actionNumber];
+            for (int j = 0; j < this.actionNumber; j++) {
+                oneStrategy[j] = strategy[j * this.privateCards.length + i];
             }
-            strategy_json.set(this.privateCards[i].toString(), MAPPER.valueToTree(one_strategy));
+            strategyJson.set(this.privateCards[i].toString(), MAPPER.valueToTree(oneStrategy));
         }
 
         ObjectNode retjson = MAPPER.createObjectNode();
-        retjson.set("actions", MAPPER.valueToTree(actions_str));
-        retjson.set("strategy", strategy_json);
+        retjson.set("actions", MAPPER.valueToTree(actionsStr));
+        retjson.set("strategy", strategyJson);
         return retjson;
     }
 }

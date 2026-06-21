@@ -18,7 +18,7 @@ import tools.jackson.databind.node.ObjectNode;
  */
 public class GameTree {
     @Nullable
-    String tree_json_dir;
+    String treeJsonDir;
 
     GameTreeNode root;
     Deck deck;
@@ -31,35 +31,27 @@ public class GameTree {
         return root;
     }
 
-    public GameTree(String tree_json_dir, Deck deck) throws IOException {
-        this.tree_json_dir = tree_json_dir;
+    public GameTree(String treeJsonDir, Deck deck) throws IOException {
+        this.treeJsonDir = treeJsonDir;
         this.deck = deck;
-        this.root = GameTreeJsonLoader.load(tree_json_dir, deck);
+        this.root = GameTreeJsonLoader.load(treeJsonDir, deck);
         recurrentSetDepth(this.root, 0);
     }
 
     public GameTree(
             Deck deck,
-            float oop_commit,
-            float ip_commit,
-            int current_round,
-            int raise_limit,
-            float small_blind,
-            float big_blind,
+            float oopCommit,
+            float ipCommit,
+            int currentRound,
+            int raiseLimit,
+            float smallBlind,
+            float bigBlind,
             float stack,
             GameTreeBuildingSettings buildingSettings)
             throws IOException {
         this.deck = deck;
         this.root = GameTreeBuilder.build(
-                deck,
-                oop_commit,
-                ip_commit,
-                current_round,
-                raise_limit,
-                small_blind,
-                big_blind,
-                stack,
-                buildingSettings);
+                deck, oopCommit, ipCommit, currentRound, raiseLimit, smallBlind, bigBlind, stack, buildingSettings);
         recurrentSetDepth(this.root, 0);
     }
 
@@ -67,26 +59,26 @@ public class GameTree {
         node.depth = depth;
         switch (node) {
             case ActionNode actionNode -> {
-                int subtree_size = 1;
-                for (GameTreeNode one_child : actionNode.getChildren()) {
-                    subtree_size += this.recurrentSetDepth(one_child, depth + 1);
+                int subtreeSize = 1;
+                for (GameTreeNode oneChild : actionNode.getChildren()) {
+                    subtreeSize += this.recurrentSetDepth(oneChild, depth + 1);
                 }
-                node.subtree_size = subtree_size;
+                node.subtreeSize = subtreeSize;
             }
             case ChanceNode chanceNode -> {
-                int subtree_size = 1;
-                for (GameTreeNode one_child : chanceNode.getChildren()) {
-                    subtree_size += this.recurrentSetDepth(one_child, depth + 1);
+                int subtreeSize = 1;
+                for (GameTreeNode oneChild : chanceNode.getChildren()) {
+                    subtreeSize += this.recurrentSetDepth(oneChild, depth + 1);
                 }
-                node.subtree_size = subtree_size;
+                node.subtreeSize = subtreeSize;
             }
-            default -> node.subtree_size = 1;
+            default -> node.subtreeSize = 1;
         }
-        return node.subtree_size;
+        return node.subtreeSize;
     }
 
-    void recurrentPrintTree(GameTreeNode node, int depth, int depth_limit) throws ClassCastException {
-        if (depth_limit != -1 && depth >= depth_limit) {
+    void recurrentPrintTree(GameTreeNode node, int depth, int depthLimit) throws ClassCastException {
+        if (depthLimit != -1 && depth >= depthLimit) {
             return;
         }
 
@@ -96,55 +88,55 @@ public class GameTree {
                 List<GameActions> actions = actionNode.getActions();
 
                 for (int i = 0; i < children.size(); i++) {
-                    GameTreeNode one_child = children.get(i);
-                    GameActions one_action = actions.get(i);
+                    GameTreeNode oneChild = children.get(i);
+                    GameActions oneAction = actions.get(i);
 
                     StringBuilder prefix = new StringBuilder();
                     prefix.repeat("\t", Math.max(0, depth));
-                    System.out.printf("%sp%s: %s%n", prefix, actionNode.getPlayer(), one_action.toString());
-                    recurrentPrintTree(one_child, depth + 1, depth_limit);
+                    System.out.printf("%sp%s: %s%n", prefix, actionNode.getPlayer(), oneAction.toString());
+                    recurrentPrintTree(oneChild, depth + 1, depthLimit);
                 }
             }
             case ChanceNode chanceNode -> {
                 StringBuilder prefix = new StringBuilder();
                 prefix.repeat("\t", Math.max(0, depth));
                 System.out.printf("%sCHANCE%n", prefix);
-                recurrentPrintTree(chanceNode.getChildren().getFirst(), depth + 1, depth_limit);
+                recurrentPrintTree(chanceNode.getChildren().getFirst(), depth + 1, depthLimit);
             }
-            case ShowdownNode showdown_node -> {
+            case ShowdownNode showdownNode -> {
                 StringBuilder prefix = new StringBuilder();
                 prefix.repeat("\t", Math.max(0, depth));
-                System.out.printf("%s SHOWDOWN pot %f %n", prefix.toString(), showdown_node.getPot());
+                System.out.printf("%s SHOWDOWN pot %f %n", prefix.toString(), showdownNode.getPot());
 
                 prefix.append("\t");
-                for (int i = 0; i < showdown_node.get_payoffs(ShowdownNode.ShowDownResult.TIE, null).length; i++) {
+                for (int i = 0; i < showdownNode.getPayoffs(ShowdownNode.ShowDownResult.TIE, null).length; i++) {
                     System.out.printf("%sif player %d wins, payoff :", prefix.toString(), i);
-                    double[] payoffs = showdown_node.get_payoffs(ShowdownNode.ShowDownResult.NOTTIE, i);
+                    double[] payoffs = showdownNode.getPayoffs(ShowdownNode.ShowDownResult.NOTTIE, i);
 
-                    for (int player_id = 0; player_id < payoffs.length; player_id++) {
-                        System.out.printf(" p%d %f ", player_id, payoffs[player_id]);
+                    for (int playerId = 0; playerId < payoffs.length; playerId++) {
+                        System.out.printf(" p%d %f ", playerId, payoffs[playerId]);
                     }
                     System.out.println();
                 }
                 System.out.printf("%sif Tie, payoff :", prefix.toString());
-                double[] payoffs = showdown_node.get_payoffs(ShowdownNode.ShowDownResult.TIE, null);
+                double[] payoffs = showdownNode.getPayoffs(ShowdownNode.ShowDownResult.TIE, null);
 
-                for (int player_id = 0; player_id < payoffs.length; player_id++) {
-                    System.out.printf(" p%d %f ", player_id, payoffs[player_id]);
+                for (int playerId = 0; playerId < payoffs.length; playerId++) {
+                    System.out.printf(" p%d %f ", playerId, payoffs[playerId]);
                 }
                 System.out.println();
             }
-            case TerminalNode terminal_node -> {
+            case TerminalNode terminalNode -> {
                 StringBuilder prefix = new StringBuilder();
                 prefix.repeat("\t", Math.max(0, depth));
-                System.out.printf("%s TERMINAL pot %f %n", prefix, terminal_node.getPot());
+                System.out.printf("%s TERMINAL pot %f %n", prefix, terminalNode.getPot());
 
                 prefix.append("\t");
                 System.out.printf("%sTerminal payoff :", prefix);
-                double[] payoffs = terminal_node.get_payoffs();
+                double[] payoffs = terminalNode.getPayoffs();
 
-                for (int player_id = 0; player_id < payoffs.length; player_id++) {
-                    System.out.printf(" p%d %f ", player_id, payoffs[player_id]);
+                for (int playerId = 0; playerId < payoffs.length; playerId++) {
+                    System.out.printf(" p%d %f ", playerId, payoffs[playerId]);
                 }
                 System.out.println();
             }
@@ -159,8 +151,8 @@ public class GameTree {
         recurrentPrintTree(this.root, 0, depth);
     }
 
-    public ObjectNode dumps(boolean with_status) {
-        if (with_status) throw new RuntimeException();
+    public ObjectNode dumps(boolean withStatus) {
+        if (withStatus) throw new RuntimeException();
         return GameTreeSerializer.dumps(this.root);
     }
 }

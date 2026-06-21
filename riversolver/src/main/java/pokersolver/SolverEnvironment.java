@@ -14,7 +14,7 @@ public final class SolverEnvironment {
 
     public static GameTree gameTreeFromConfig(Config config, Deck deck) {
         try {
-            return new GameTree(Objects.requireNonNull(config.tree_builder_json), deck);
+            return new GameTree(Objects.requireNonNull(config.treeBuilderJson), deck);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -22,23 +22,23 @@ public final class SolverEnvironment {
 
     public static GameTree gameTreeFromParams(
             Deck deck,
-            float oop_commit,
-            float ip_commit,
-            int current_round,
-            int raise_limit,
-            float small_blind,
-            float big_blind,
+            float oopCommit,
+            float ipCommit,
+            int currentRound,
+            int raiseLimit,
+            float smallBlind,
+            float bigBlind,
             float stack,
             GameTreeBuildingSettings gameTreeBuildingSettings) {
         try {
             return new GameTree(
                     deck,
-                    oop_commit,
-                    ip_commit,
-                    current_round,
-                    raise_limit,
-                    small_blind,
-                    big_blind,
+                    oopCommit,
+                    ipCommit,
+                    currentRound,
+                    raiseLimit,
+                    smallBlind,
+                    bigBlind,
                     stack,
                     gameTreeBuildingSettings);
         } catch (IOException e) {
@@ -46,9 +46,9 @@ public final class SolverEnvironment {
         }
     }
 
-    public static GameTree gameTreeFromJson(String json_path, Deck deck) {
+    public static GameTree gameTreeFromJson(String jsonPath, Deck deck) {
         try {
-            return new GameTree(json_path, deck);
+            return new GameTree(jsonPath, deck);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -58,25 +58,25 @@ public final class SolverEnvironment {
         return new Deck(Objects.requireNonNull(config.ranks), Objects.requireNonNull(config.suits));
     }
 
-    public static Compairer compairerFromFile(String compairer_type, String compairer_dic_dir, int compairer_lines)
+    public static Compairer compairerFromFile(String compairerType, String compairerDicDir, int compairerLines)
             throws IOException {
-        if (compairer_type.equals("Dic5Compairer")) {
-            return new Dic5Compairer(compairer_dic_dir, compairer_lines);
+        if (compairerType.equals("Dic5Compairer")) {
+            return new Dic5Compairer(compairerDicDir, compairerLines);
         }
-        throw new IllegalArgumentException(String.format("compairer type not found: %s", compairer_type));
+        throw new IllegalArgumentException(String.format("compairer type not found: %s", compairerType));
     }
 
     public static Compairer compairerFromConfig(Config config) throws IOException {
         return compairerFromFile(
-                Objects.requireNonNull(config.compairer_type),
-                Objects.requireNonNull(config.compairer_dic_dir),
-                config.compairer_lines);
+                Objects.requireNonNull(config.compairerType),
+                Objects.requireNonNull(config.compairerDicDir),
+                config.compairerLines);
     }
 
     public static Compairer compairerFromConfig(Config config, boolean verbose) throws IOException {
-        if (Objects.requireNonNull(config.compairer_type).equals("Dic5Compairer")) {
-            return new Dic5Compairer(Objects.requireNonNull(config.compairer_dic_dir), config.compairer_lines, verbose);
+        if (Objects.requireNonNull(config.compairerType).equals("Dic5Compairer")) {
+            return new Dic5Compairer(Objects.requireNonNull(config.compairerDicDir), config.compairerLines, verbose);
         }
-        throw new IllegalArgumentException(String.format("compairer type not found: %s", config.compairer_type));
+        throw new IllegalArgumentException(String.format("compairer type not found: %s", config.compairerType));
     }
 }

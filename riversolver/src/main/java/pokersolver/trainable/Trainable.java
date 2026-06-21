@@ -12,7 +12,7 @@ public abstract class Trainable {
 
     public abstract float[] getcurrentStrategy();
 
-    public abstract void updateRegrets(float[] regrets, int iteration_number, float[] reach_probs);
+    public abstract void updateRegrets(float[] regrets, int iterationNumber, float[] reachProbs);
 
-    public abstract ObjectNode dumps(boolean with_state);
+    public abstract ObjectNode dumps(boolean withState);
 }

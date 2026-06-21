@@ -10,13 +10,13 @@ public class PrivateCards {
     public int card1;
     public int card2;
     public float weight;
-    public float relative_prob;
+    public float relativeProb;
 
     public PrivateCards(int card1, int card2, float weight) {
         this.card1 = card1;
         this.card2 = card2;
         this.weight = weight;
-        this.relative_prob = 0;
+        this.relativeProb = 0;
     }
 
     public long toBoardLong() {
@@ -32,7 +32,7 @@ public class PrivateCards {
         }
     }
 
-    public static int hash_hand(int card1, int card2) {
+    public static int hashHand(int card1, int card2) {
         if (card1 > card2) {
             return card1 * 52 + card2;
         } else {
@@ -50,18 +50,18 @@ public class PrivateCards {
     }
 
     public String summary() {
-        String card_1 = Card.intCard2Str(card1);
-        String card_2 = Card.intCard2Str(card2);
-        boolean samecolor = (card_1.charAt(1) == card_2.charAt(1));
-        boolean samerank = (card_1.charAt(0) == card_2.charAt(0));
+        String card1Str = Card.intCard2Str(card1);
+        String card2Str = Card.intCard2Str(card2);
+        boolean samecolor = (card1Str.charAt(1) == card2Str.charAt(1));
+        boolean samerank = (card1Str.charAt(0) == card2Str.charAt(0));
         if (samerank) {
-            return String.format("%s%s", card_1.charAt(0), card_2.charAt(0));
+            return String.format("%s%s", card1Str.charAt(0), card2Str.charAt(0));
         }
         String summary;
         if (card1 > card2) {
-            summary = String.format("%s%s", card_1.charAt(0), card_2.charAt(0));
+            summary = String.format("%s%s", card1Str.charAt(0), card2Str.charAt(0));
         } else {
-            summary = String.format("%s%s", card_2.charAt(0), card_1.charAt(0));
+            summary = String.format("%s%s", card2Str.charAt(0), card1Str.charAt(0));
         }
         if (samecolor) {
             summary += "s";
@@ -71,7 +71,7 @@ public class PrivateCards {
         return summary;
     }
 
-    public int[] get_hands() {
+    public int[] getHands() {
         if (card1 > card2) {
             return new int[] {card1, card2};
         } else {

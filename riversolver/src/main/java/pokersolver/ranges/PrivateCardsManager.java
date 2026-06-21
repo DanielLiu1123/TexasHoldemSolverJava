@@ -10,26 +10,26 @@ import pokersolver.exceptions.BoardNotFoundException;
  * getting and setting private infos
  */
 public class PrivateCardsManager {
-    PrivateCards[][] private_cards;
-    int player_number;
+    PrivateCards[][] privateCards;
+    int playerNumber;
     long initialboard;
-    int[][] card_player_index;
+    int[][] cardPlayerIndex;
 
-    public PrivateCardsManager(PrivateCards[][] private_cards, int player_number, long initialboard) {
-        this.private_cards = private_cards;
-        this.player_number = player_number;
-        this.card_player_index = new int[52 * 52][];
+    public PrivateCardsManager(PrivateCards[][] privateCards, int playerNumber, long initialboard) {
+        this.privateCards = privateCards;
+        this.playerNumber = playerNumber;
+        this.cardPlayerIndex = new int[52 * 52][];
         for (int i = 0; i < 52 * 52; i++) {
-            this.card_player_index[i] = new int[this.player_number];
-            Arrays.fill(this.card_player_index[i], -1);
+            this.cardPlayerIndex[i] = new int[this.playerNumber];
+            Arrays.fill(this.cardPlayerIndex[i], -1);
         }
 
         // 用一个二维数组记录每个Private Combo的对应index,方便从一方的手牌找对方的同名卡牌的index
-        for (int player_id = 0; player_id < player_number; player_id++) {
-            PrivateCards[] privateCombos = private_cards[player_id];
+        for (int playerId = 0; playerId < playerNumber; playerId++) {
+            PrivateCards[] privateCombos = privateCards[playerId];
             for (int i = 0; i < privateCombos.length; i++) {
-                PrivateCards one_private_combo = privateCombos[i];
-                this.card_player_index[one_private_combo.hashCode()][player_id] = i;
+                PrivateCards onePrivateCombo = privateCombos[i];
+                this.cardPlayerIndex[onePrivateCombo.hashCode()][playerId] = i;
             }
         }
 
@@ -43,65 +43,65 @@ public class PrivateCardsManager {
     }
 
     public PrivateCards[] getPreflopCards(int player) {
-        return this.private_cards[player];
+        return this.privateCards[player];
     }
 
-    public @Nullable Integer indPlayer2Player(int from_player, int to_player, int index) {
-        if (index < 0 || index >= this.getPreflopCards(from_player).length) throw new RuntimeException();
-        PrivateCards player_combo = this.getPreflopCards(from_player)[index];
-        int to_player_index = this.card_player_index[player_combo.hashCode()][to_player];
-        if (to_player_index == -1) {
+    public @Nullable Integer indPlayer2Player(int fromPlayer, int toPlayer, int index) {
+        if (index < 0 || index >= this.getPreflopCards(fromPlayer).length) throw new RuntimeException();
+        PrivateCards playerCombo = this.getPreflopCards(fromPlayer)[index];
+        int toPlayerIndex = this.cardPlayerIndex[playerCombo.hashCode()][toPlayer];
+        if (toPlayerIndex == -1) {
             return null;
         } else {
-            return to_player_index;
+            return toPlayerIndex;
         }
     }
 
     public float[] getInitialReachProb(int player, long initialboard) throws BoardNotFoundException {
-        int cards_len = this.private_cards[player].length;
-        float[] probs = new float[cards_len];
-        for (int i = 0; i < cards_len; i++) {
-            PrivateCards pc = this.private_cards[player][i];
+        int cardsLen = this.privateCards[player].length;
+        float[] probs = new float[cardsLen];
+        for (int i = 0; i < cardsLen; i++) {
+            PrivateCards pc = this.privateCards[player][i];
             if (Card.boardsHasIntercept(initialboard, Card.boardInts2long(new int[] {pc.card1, pc.card2}))) {
                 probs[i] = 0;
             } else {
-                probs[i] = this.private_cards[player][i].weight;
+                probs[i] = this.privateCards[player][i].weight;
             }
         }
         return probs;
     }
 
     public void setRelativeProbs() throws BoardNotFoundException {
-        int players = this.private_cards.length;
-        for (int player_id = 0; player_id < players; player_id++) {
-            int oppo = 1 - player_id;
-            float player_prob_sum = 0;
+        int players = this.privateCards.length;
+        for (int playerId = 0; playerId < players; playerId++) {
+            int oppo = 1 - playerId;
+            float playerProbSum = 0;
 
-            for (int i = 0; i < this.private_cards[player_id].length; i++) {
-                float oppo_prob_sum = 0;
-                PrivateCards player_card = this.private_cards[player_id][i];
-                long player_long = Card.boardInts2long(new int[] {player_card.card1, player_card.card2});
+            for (int i = 0; i < this.privateCards[playerId].length; i++) {
+                float oppoProbSum = 0;
+                PrivateCards playerCard = this.privateCards[playerId][i];
+                long playerLong = Card.boardInts2long(new int[] {playerCard.card1, playerCard.card2});
 
                 //
-                if (Card.boardsHasIntercept(player_long, initialboard)) {
+                if (Card.boardsHasIntercept(playerLong, initialboard)) {
                     continue;
                 }
 
-                for (int j = 0; j < this.private_cards[oppo].length; j++) {
-                    PrivateCards oppo_card = this.private_cards[oppo][j];
-                    long oppo_long = Card.boardInts2long(new int[] {oppo_card.card1, oppo_card.card2});
-                    if (Card.boardsHasIntercept(oppo_long, this.initialboard)
-                            || Card.boardsHasIntercept(oppo_long, player_long)) {
+                for (int j = 0; j < this.privateCards[oppo].length; j++) {
+                    PrivateCards oppoCard = this.privateCards[oppo][j];
+                    long oppoLong = Card.boardInts2long(new int[] {oppoCard.card1, oppoCard.card2});
+                    if (Card.boardsHasIntercept(oppoLong, this.initialboard)
+                            || Card.boardsHasIntercept(oppoLong, playerLong)) {
                         continue;
                     }
-                    oppo_prob_sum += oppo_card.weight;
+                    oppoProbSum += oppoCard.weight;
                 }
-                player_card.relative_prob = oppo_prob_sum * player_card.weight;
-                player_prob_sum += player_card.relative_prob;
+                playerCard.relativeProb = oppoProbSum * playerCard.weight;
+                playerProbSum += playerCard.relativeProb;
             }
-            for (int i = 0; i < this.private_cards[player_id].length; i++) {
-                PrivateCards player_card = this.private_cards[player_id][i];
-                player_card.relative_prob = player_card.relative_prob / player_prob_sum;
+            for (int i = 0; i < this.privateCards[playerId].length; i++) {
+                PrivateCards playerCard = this.privateCards[playerId][i];
+                playerCard.relativeProb = playerCard.relativeProb / playerProbSum;
             }
         }
     }

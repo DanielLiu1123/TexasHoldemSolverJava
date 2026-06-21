@@ -26,18 +26,18 @@ public class Dic5Compairer extends Compairer {
 
     private final LongIntHashMap cardslong2rank;
 
-    public Dic5Compairer(String dic_dir, int lines) throws IOException {
-        this(dic_dir, lines, true);
+    public Dic5Compairer(String dicDir, int lines) throws IOException {
+        this(dicDir, lines, true);
     }
 
-    public Dic5Compairer(String dic_dir, int lines, boolean verbose) throws IOException {
-        super(dic_dir, lines);
-        this.cardslong2rank = load(dic_dir, lines, verbose);
+    public Dic5Compairer(String dicDir, int lines, boolean verbose) throws IOException {
+        super(dicDir, lines);
+        this.cardslong2rank = load(dicDir, lines, verbose);
     }
 
-    private static LongIntHashMap load(String dic_dir, int lines, boolean verbose) throws IOException {
+    private static LongIntHashMap load(String dicDir, int lines, boolean verbose) throws IOException {
         LongIntHashMap map = new LongIntHashMap(lines);
-        try (BufferedReader reader = Files.newBufferedReader(Paths.get(dic_dir), StandardCharsets.UTF_8);
+        try (BufferedReader reader = Files.newBufferedReader(Paths.get(dicDir), StandardCharsets.UTF_8);
                 ProgressBar pb = verbose ? new ProgressBar("Dic5Compairer load", lines) : null) {
             String line;
             int ind = 0;
@@ -134,11 +134,11 @@ public class Dic5Compairer extends Compairer {
         return former | latter;
     }
 
-    CompairResult compairRanks(int rank_former, int rank_latter) {
-        if (rank_former < rank_latter) {
+    CompairResult compairRanks(int rankFormer, int rankLatter) {
+        if (rankFormer < rankLatter) {
             // rank更小的牌更大，0是同花顺
             return CompairResult.LARGER;
-        } else if (rank_former > rank_latter) {
+        } else if (rankFormer > rankLatter) {
             return CompairResult.SMALLER;
         } else {
             return CompairResult.EQUAL;
@@ -146,41 +146,41 @@ public class Dic5Compairer extends Compairer {
     }
 
     @Override
-    public CompairResult compair(List<Card> private_former, List<Card> private_latter, List<Card> public_board)
+    public CompairResult compair(List<Card> privateFormer, List<Card> privateLatter, List<Card> publicBoard)
             throws CardsNotFoundException {
-        assert (private_former.size() == 2);
-        assert (private_latter.size() == 2);
-        assert (public_board.size() == 5);
-        long board = mask(public_board);
-        int rank_former = bestRank(disjointUnion(mask(private_former), board));
-        int rank_latter = bestRank(disjointUnion(mask(private_latter), board));
-        return compairRanks(rank_former, rank_latter);
+        assert (privateFormer.size() == 2);
+        assert (privateLatter.size() == 2);
+        assert (publicBoard.size() == 5);
+        long board = mask(publicBoard);
+        int rankFormer = bestRank(disjointUnion(mask(privateFormer), board));
+        int rankLatter = bestRank(disjointUnion(mask(privateLatter), board));
+        return compairRanks(rankFormer, rankLatter);
     }
 
     @Override
-    public CompairResult compair(int[] private_former, int[] private_latter, int[] public_board)
+    public CompairResult compair(int[] privateFormer, int[] privateLatter, int[] publicBoard)
             throws CardsNotFoundException {
-        assert (private_former.length == 2);
-        assert (private_latter.length == 2);
-        assert (public_board.length == 5);
-        long board = mask(public_board);
-        int rank_former = bestRank(disjointUnion(mask(private_former), board));
-        int rank_latter = bestRank(disjointUnion(mask(private_latter), board));
-        return compairRanks(rank_former, rank_latter);
+        assert (privateFormer.length == 2);
+        assert (privateLatter.length == 2);
+        assert (publicBoard.length == 5);
+        long board = mask(publicBoard);
+        int rankFormer = bestRank(disjointUnion(mask(privateFormer), board));
+        int rankLatter = bestRank(disjointUnion(mask(privateLatter), board));
+        return compairRanks(rankFormer, rankLatter);
     }
 
     @Override
-    public int get_rank(List<Card> private_hand, List<Card> public_board) {
-        return bestRank(disjointUnion(mask(private_hand), mask(public_board)));
+    public int getRank(List<Card> privateHand, List<Card> publicBoard) {
+        return bestRank(disjointUnion(mask(privateHand), mask(publicBoard)));
     }
 
     @Override
-    public int get_rank(int[] private_hand, int[] public_board) {
-        return bestRank(disjointUnion(mask(private_hand), mask(public_board)));
+    public int getRank(int[] privateHand, int[] publicBoard) {
+        return bestRank(disjointUnion(mask(privateHand), mask(publicBoard)));
     }
 
     @Override
-    public int get_rank(long private_hand, long public_board) {
-        return bestRank(disjointUnion(private_hand, public_board));
+    public int getRank(long privateHand, long publicBoard) {
+        return bestRank(disjointUnion(privateHand, publicBoard));
     }
 }

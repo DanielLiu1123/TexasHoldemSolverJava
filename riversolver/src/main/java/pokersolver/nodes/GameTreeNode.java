@@ -60,7 +60,7 @@ public abstract class GameTreeNode {
     GameTreeNode parent;
 
     public int depth;
-    public int subtree_size;
+    public int subtreeSize;
 
     public static String gameRound2String(GameRound gameRound) {
         if (gameRound == GameRound.PREFLOP) {
@@ -119,30 +119,30 @@ public abstract class GameTreeNode {
 
     public static void printNodeHistory(GameTreeNode node) {
         while (node != null) {
-            GameTreeNode parent_node = node.parent;
-            if (parent_node == null) break;
-            if (parent_node instanceof ActionNode action_node) {
-                for (int i = 0; i < action_node.getActions().size(); i++) {
-                    if (action_node.getChildren().get(i) == node) {
+            GameTreeNode parentNode = node.parent;
+            if (parentNode == null) break;
+            if (parentNode instanceof ActionNode actionNode) {
+                for (int i = 0; i < actionNode.getActions().size(); i++) {
+                    if (actionNode.getChildren().get(i) == node) {
                         System.out.print(String.format(
                                 "<- (player %s %s)",
-                                action_node.getPlayer(),
-                                action_node.getActions().get(i).toString()));
+                                actionNode.getPlayer(),
+                                actionNode.getActions().get(i).toString()));
                     }
                 }
-            } else if (parent_node instanceof ChanceNode chance_node) {
-                for (int i = 0; i < chance_node.getChildren().size(); i++) {
-                    if (chance_node.getChildren().get(i) == node) {
+            } else if (parentNode instanceof ChanceNode chanceNode) {
+                for (int i = 0; i < chanceNode.getChildren().size(); i++) {
+                    if (chanceNode.getChildren().get(i) == node) {
                         System.out.print(String.format(
                                 "<- (deal card %s)",
-                                chance_node.getCards().get(i).toString()));
+                                chanceNode.getCards().get(i).toString()));
                     }
                 }
 
             } else {
                 System.out.print(String.format("<- (%s)", node.toString()));
             }
-            node = parent_node;
+            node = parentNode;
         }
         System.out.println();
     }

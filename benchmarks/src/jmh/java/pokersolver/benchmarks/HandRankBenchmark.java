@@ -60,6 +60,6 @@ public class HandRankBenchmark {
     public int rankLookup() {
         int[] combo = privateCombos[next];
         next = (next + 1) % privateCombos.length;
-        return compairer.get_rank(combo, board);
+        return compairer.getRank(combo, board);
     }
 }

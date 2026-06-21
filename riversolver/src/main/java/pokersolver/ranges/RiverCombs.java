@@ -7,14 +7,14 @@ package pokersolver.ranges;
 public class RiverCombs implements Comparable<RiverCombs> {
     int[] board;
     public int rank;
-    public PrivateCards private_cards;
-    public int reach_prob_index;
+    public PrivateCards privateCards;
+    public int reachProbIndex;
     // public float reachprob;
-    public RiverCombs(int[] board, PrivateCards private_cards, int rank, int reach_prob_index) {
+    public RiverCombs(int[] board, PrivateCards privateCards, int rank, int reachProbIndex) {
         this.board = board;
         this.rank = rank;
-        this.private_cards = private_cards;
-        this.reach_prob_index = reach_prob_index;
+        this.privateCards = privateCards;
+        this.reachProbIndex = reachProbIndex;
     }
 
     @Override

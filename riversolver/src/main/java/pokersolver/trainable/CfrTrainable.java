@@ -10,8 +10,8 @@ import pokersolver.ranges.PrivateCards;
  */
 public class CfrTrainable extends RegretMatchingTrainable {
 
-    public CfrTrainable(ActionNode action_node, PrivateCards[] privateCards) {
-        super(action_node, privateCards);
+    public CfrTrainable(ActionNode actionNode, PrivateCards[] privateCards) {
+        super(actionNode, privateCards);
     }
 
     @Override
@@ -21,18 +21,18 @@ public class CfrTrainable extends RegretMatchingTrainable {
 
     @Override
     public float[] getcurrentStrategy() {
-        if (this.r_plus_sum == null) {
-            Arrays.fill(cachedCurrentStrategy, 1F / this.action_number);
+        if (this.rPlusSum == null) {
+            Arrays.fill(cachedCurrentStrategy, 1F / this.actionNumber);
         } else {
-            for (int action_id = 0; action_id < action_number; action_id++) {
-                for (int private_id = 0; private_id < this.card_number; private_id++) {
-                    int index = action_id * this.card_number + private_id;
-                    if (this.r_plus_sum[private_id] != 0) {
-                        cachedCurrentStrategy[index] = Math.max(this.r_plus[index], 0) / this.r_plus_sum[private_id];
+            for (int actionId = 0; actionId < actionNumber; actionId++) {
+                for (int privateId = 0; privateId < this.cardNumber; privateId++) {
+                    int index = actionId * this.cardNumber + privateId;
+                    if (this.rPlusSum[privateId] != 0) {
+                        cachedCurrentStrategy[index] = Math.max(this.rPlus[index], 0) / this.rPlusSum[privateId];
                     } else {
-                        cachedCurrentStrategy[index] = 1F / this.action_number;
+                        cachedCurrentStrategy[index] = 1F / this.actionNumber;
                     }
-                    if (Float.isNaN(this.r_plus[index])) throw new RuntimeException();
+                    if (Float.isNaN(this.rPlus[index])) throw new RuntimeException();
                 }
             }
         }
@@ -40,29 +40,29 @@ public class CfrTrainable extends RegretMatchingTrainable {
     }
 
     @Override
-    public void updateRegrets(float[] regrets, int iteration_number, float[] reach_probs) {
+    public void updateRegrets(float[] regrets, int iterationNumber, float[] reachProbs) {
         this.regrets = regrets;
-        if (regrets.length != this.action_number * this.card_number) throw new RuntimeException("length not match");
+        if (regrets.length != this.actionNumber * this.cardNumber) throw new RuntimeException("length not match");
 
-        Arrays.fill(this.r_plus_sum, 0);
-        Arrays.fill(this.cum_r_plus_sum, 0);
-        for (int action_id = 0; action_id < action_number; action_id++) {
-            for (int private_id = 0; private_id < this.card_number; private_id++) {
-                int index = action_id * this.card_number + private_id;
-                float one_reg = regrets[index];
+        Arrays.fill(this.rPlusSum, 0);
+        Arrays.fill(this.cumRPlusSum, 0);
+        for (int actionId = 0; actionId < actionNumber; actionId++) {
+            for (int privateId = 0; privateId < this.cardNumber; privateId++) {
+                int index = actionId * this.cardNumber + privateId;
+                float oneReg = regrets[index];
 
                 // 更新 R+
-                this.r_plus[index] = one_reg + this.r_plus[index];
-                this.r_plus_sum[private_id] += Math.max(0, this.r_plus[index]);
+                this.rPlus[index] = oneReg + this.rPlus[index];
+                this.rPlusSum[privateId] += Math.max(0, this.rPlus[index]);
             }
         }
 
-        float[] current_strategy = this.getcurrentStrategy();
-        for (int action_id = 0; action_id < action_number; action_id++) {
-            for (int private_id = 0; private_id < this.card_number; private_id++) {
-                int index = action_id * this.card_number + private_id;
-                this.cum_r_plus[index] += current_strategy[index] * iteration_number * reach_probs[private_id];
-                this.cum_r_plus_sum[private_id] += this.cum_r_plus[index];
+        float[] currentStrategy = this.getcurrentStrategy();
+        for (int actionId = 0; actionId < actionNumber; actionId++) {
+            for (int privateId = 0; privateId < this.cardNumber; privateId++) {
+                int index = actionId * this.cardNumber + privateId;
+                this.cumRPlus[index] += currentStrategy[index] * iterationNumber * reachProbs[privateId];
+                this.cumRPlusSum[privateId] += this.cumRPlus[index];
             }
         }
     }

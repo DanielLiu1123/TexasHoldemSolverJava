@@ -26,36 +26,36 @@ public class Config {
 
     // Compairer configures
     @Nullable
-    String compairer_type;
+    String compairerType;
 
     @Nullable
-    String compairer_dic_dir;
+    String compairerDicDir;
 
-    int compairer_lines;
+    int compairerLines;
 
     // Tree builder configures
-    Boolean tree_builder = false;
+    Boolean treeBuilder = false;
 
     @Nullable
-    String tree_builder_json;
+    String treeBuilderJson;
 
     @Nullable
-    String solver_type;
+    String solverType;
 
     @SuppressWarnings({"unchecked", "NullAway"})
-    public Config(String input_file) throws FileNotFoundException, ClassNotFoundException {
-        Yaml yaml_reader = new Yaml(new SafeConstructor(new LoaderOptions()));
-        File config_file = new File(input_file);
-        FileInputStream fileInputStream = new FileInputStream(config_file);
-        Map map = yaml_reader.load(fileInputStream);
+    public Config(String inputFile) throws FileNotFoundException, ClassNotFoundException {
+        Yaml yamlReader = new Yaml(new SafeConstructor(new LoaderOptions()));
+        File configFile = new File(inputFile);
+        FileInputStream fileInputStream = new FileInputStream(configFile);
+        Map map = yamlReader.load(fileInputStream);
         parseMap(map);
-        resolveRelativePaths(config_file.getParentFile().getAbsolutePath());
+        resolveRelativePaths(configFile.getParentFile().getAbsolutePath());
     }
 
     @SuppressWarnings({"unchecked", "NullAway"})
     public Config(InputStream inputStream, String baseDir) throws ClassNotFoundException {
-        Yaml yaml_reader = new Yaml(new SafeConstructor(new LoaderOptions()));
-        Map map = yaml_reader.load(inputStream);
+        Yaml yamlReader = new Yaml(new SafeConstructor(new LoaderOptions()));
+        Map map = yamlReader.load(inputStream);
         parseMap(map);
         resolveRelativePaths(baseDir);
     }
@@ -73,29 +73,29 @@ public class Config {
                 }
                 case "compairer" -> {
                     Map kwargs = (Map) ((Map) value).get("kwargs");
-                    String dic_dir = (String) kwargs.get("dicfile");
+                    String dicDir = (String) kwargs.get("dicfile");
                     String type = (String) ((Map) value).get("type");
                     int lines = (Integer) kwargs.get("lines");
-                    this.compairer_dic_dir = dic_dir;
-                    this.compairer_type = type;
-                    this.compairer_lines = lines;
+                    this.compairerDicDir = dicDir;
+                    this.compairerType = type;
+                    this.compairerLines = lines;
                 }
                 case "tree_builder" -> {
-                    this.tree_builder = true;
+                    this.treeBuilder = true;
                     Map kwargs = (Map) ((Map) value).get("kwargs");
-                    String json_file = (String) kwargs.get("json_file");
-                    this.tree_builder_json = json_file;
+                    String jsonFile = (String) kwargs.get("json_file");
+                    this.treeBuilderJson = jsonFile;
                 }
                 case "solver" -> {
                     String type = (String) ((Map) value).get("type");
-                    solver_type = type;
+                    solverType = type;
                 }
             }
         }
     }
 
     private void resolveRelativePaths(String baseDir) {
-        compairer_dic_dir = resolveResourcePath(compairer_dic_dir, baseDir);
+        compairerDicDir = resolveResourcePath(compairerDicDir, baseDir);
     }
 
     private @Nullable String resolveResourcePath(@Nullable String path, String baseDir) {

@@ -16,34 +16,34 @@ import pokersolver.ranges.PrivateCards;
  */
 abstract class RegretMatchingTrainable extends AbstractCfrTrainable {
 
-    final float[] r_plus;
-    final float[] r_plus_sum;
-    final float[] cum_r_plus;
-    final float[] cum_r_plus_sum;
+    final float[] rPlus;
+    final float[] rPlusSum;
+    final float[] cumRPlus;
+    final float[] cumRPlusSum;
     float[] regrets;
 
-    protected RegretMatchingTrainable(ActionNode action_node, PrivateCards[] privateCards) {
-        super(action_node, privateCards);
-        this.r_plus = new float[this.action_number * this.card_number];
-        this.r_plus_sum = new float[this.card_number];
-        this.cum_r_plus = new float[this.action_number * this.card_number];
-        this.cum_r_plus_sum = new float[this.card_number];
-        this.regrets = new float[this.action_number * this.card_number];
+    protected RegretMatchingTrainable(ActionNode actionNode, PrivateCards[] privateCards) {
+        super(actionNode, privateCards);
+        this.rPlus = new float[this.actionNumber * this.cardNumber];
+        this.rPlusSum = new float[this.cardNumber];
+        this.cumRPlus = new float[this.actionNumber * this.cardNumber];
+        this.cumRPlusSum = new float[this.cardNumber];
+        this.regrets = new float[this.actionNumber * this.cardNumber];
     }
 
     @Override
     public float[] getAverageStrategy() {
-        float[] retval = new float[this.action_number * this.card_number];
-        if (isAllZeros(this.cum_r_plus_sum)) {
-            Arrays.fill(retval, 1F / this.action_number);
+        float[] retval = new float[this.actionNumber * this.cardNumber];
+        if (isAllZeros(this.cumRPlusSum)) {
+            Arrays.fill(retval, 1F / this.actionNumber);
         } else {
-            for (int action_id = 0; action_id < action_number; action_id++) {
-                for (int private_id = 0; private_id < this.card_number; private_id++) {
-                    int index = action_id * this.card_number + private_id;
-                    if (this.cum_r_plus_sum[private_id] != 0) {
-                        retval[index] = this.cum_r_plus[index] / this.cum_r_plus_sum[private_id];
+            for (int actionId = 0; actionId < actionNumber; actionId++) {
+                for (int privateId = 0; privateId < this.cardNumber; privateId++) {
+                    int index = actionId * this.cardNumber + privateId;
+                    if (this.cumRPlusSum[privateId] != 0) {
+                        retval[index] = this.cumRPlus[index] / this.cumRPlusSum[privateId];
                     } else {
-                        retval[index] = 1F / this.action_number;
+                        retval[index] = 1F / this.actionNumber;
                     }
                 }
             }
