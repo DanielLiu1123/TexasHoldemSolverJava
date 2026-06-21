@@ -85,7 +85,7 @@ subprojects {
             enabled.set(project.findProperty("errorprone.enabled")?.toString()?.toBoolean() != false)
             excludedPaths = ".*/generated/.*"
             check("NullAway", net.ltgt.gradle.errorprone.CheckSeverity.ERROR)
-            option("NullAway:AnnotatedPackages", "icybee.solver")
+            option("NullAway:AnnotatedPackages", "pokersolver")
             option("NullAway:HandleTestAssertionLibraries", "true")
         }
     }

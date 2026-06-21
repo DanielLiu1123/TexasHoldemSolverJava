@@ -14,7 +14,7 @@ dependencies {
 }
 
 application {
-    mainClass = "icybee.solver.runtime.CommandlineSolver"
+    mainClass = "pokersolver.runtime.CommandlineSolver"
     applicationName = "RiverSolver"
     applicationDefaultJvmArgs = listOf("--add-modules=jdk.incubator.vector")
 }

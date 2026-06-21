@@ -28,7 +28,7 @@ tasks.processResources {
 }
 
 application {
-    mainClass = "icybee.solver.api.ApiServer"
+    mainClass = "pokersolver.api.ApiServer"
     applicationName = "solver-api"
     applicationDefaultJvmArgs = listOf("--add-modules=jdk.incubator.vector")
 }
