@@ -41,14 +41,14 @@ public class CfrPlusRiverSolver extends AbstractCfrSolver {
     public void train() throws Exception {
         setTrainable(tree.getRoot());
 
-        PrivateCards[][] playerPrivates = new PrivateCards[this.player_number][];
+        PrivateCards[][] playerPrivates = new PrivateCards[this.playerNumber][];
         playerPrivates[0] = pcm.getPreflopCards(0);
         playerPrivates[1] = pcm.getPreflopCards(1);
 
         BestResponse br = new BestResponse(
-                playerPrivates, this.player_number, this.compairer, this.pcm, this.rrm, this.deck, this.debug);
+                playerPrivates, this.playerNumber, this.compairer, this.pcm, this.rrm, this.deck, this.debug);
 
-        br.printExploitability(tree.getRoot(), 0, (float) tree.getRoot().getPot(), initial_board_long);
+        br.printExploitability(tree.getRoot(), 0, (float) tree.getRoot().getPot(), initialBoardLong);
 
         float[][] reachProbs = this.getReachProbs();
 
@@ -57,30 +57,30 @@ public class CfrPlusRiverSolver extends AbstractCfrSolver {
         try (Writer fileWriter = this.logfile != null
                 ? Files.newBufferedWriter(Paths.get(this.logfile), StandardCharsets.UTF_8)
                 : Writer.nullWriter()) {
-            for (int i = 0; i < this.iteration_number && !this.stopRequested; i++) {
-                for (int playerId = 0; playerId < this.player_number; playerId++) {
+            for (int i = 0; i < this.iterationNumber && !this.stopRequested; i++) {
+                for (int playerId = 0; playerId < this.playerNumber; playerId++) {
                     if (this.debug) {
                         System.out.println(String.format(
                                 "---------------------------------     player %s --------------------------------",
                                 playerId));
                     }
-                    this.round_deal = new int[] {-1, -1, -1, -1};
-                    cfr(playerId, this.tree.getRoot(), reachProbs, i, this.initial_board_long);
+                    this.roundDeal = new int[] {-1, -1, -1, -1};
+                    cfr(playerId, this.tree.getRoot(), reachProbs, i, this.initialBoardLong);
                 }
-                if (i % this.print_interval == 0) {
+                if (i % this.printInterval == 0) {
                     System.out.println("-------------------");
                     endtime = System.currentTimeMillis();
                     float exploitability = br.printExploitability(
-                            tree.getRoot(), i + 1, (float) tree.getRoot().getPot(), initial_board_long);
-                    long time_ms = endtime - begintime;
+                            tree.getRoot(), i + 1, (float) tree.getRoot().getPot(), initialBoardLong);
+                    long timeMs = endtime - begintime;
                     ObjectNode jo = MAPPER.createObjectNode();
                     jo.put("iteration", i);
                     jo.put("exploitability", exploitability);
-                    jo.put("time_ms", time_ms);
+                    jo.put("time_ms", timeMs);
                     fileWriter.write(String.format("%s\n", jo.toString()));
                     begintime = System.currentTimeMillis();
-                    this.progressListener.onProgress(i, exploitability, time_ms);
-                    if (this.stop_exploitability > 0 && exploitability < this.stop_exploitability) break;
+                    this.progressListener.onProgress(i, exploitability, timeMs);
+                    if (this.stopExploitability > 0 && exploitability < this.stopExploitability) break;
                 }
             }
         }

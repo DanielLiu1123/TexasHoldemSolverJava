@@ -17,7 +17,7 @@ public class TerminalNode extends GameTreeNode {
         this.winner = winner;
     }
 
-    public double[] get_payoffs() {
+    public double[] getPayoffs() {
         return payoffs;
     }
 

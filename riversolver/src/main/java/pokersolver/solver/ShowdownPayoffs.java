@@ -41,14 +41,14 @@ final class ShowdownPayoffs {
         for (RiverCombs onePlayerComb : playerCombs) {
             while (j < oppoCombs.length && onePlayerComb.rank < oppoCombs[j].rank) {
                 RiverCombs oneOppoComb = oppoCombs[j];
-                winsum += oppoReach[oneOppoComb.reach_prob_index];
-                cardWinsum[oneOppoComb.private_cards.card1] += oppoReach[oneOppoComb.reach_prob_index];
-                cardWinsum[oneOppoComb.private_cards.card2] += oppoReach[oneOppoComb.reach_prob_index];
+                winsum += oppoReach[oneOppoComb.reachProbIndex];
+                cardWinsum[oneOppoComb.privateCards.card1] += oppoReach[oneOppoComb.reachProbIndex];
+                cardWinsum[oneOppoComb.privateCards.card2] += oppoReach[oneOppoComb.reachProbIndex];
                 j++;
             }
-            payoffs[onePlayerComb.reach_prob_index] = (winsum
-                            - cardWinsum[onePlayerComb.private_cards.card1]
-                            - cardWinsum[onePlayerComb.private_cards.card2])
+            payoffs[onePlayerComb.reachProbIndex] = (winsum
+                            - cardWinsum[onePlayerComb.privateCards.card1]
+                            - cardWinsum[onePlayerComb.privateCards.card2])
                     * winPayoff;
         }
 
@@ -60,14 +60,14 @@ final class ShowdownPayoffs {
             RiverCombs onePlayerComb = playerCombs[i];
             while (j >= 0 && onePlayerComb.rank > oppoCombs[j].rank) {
                 RiverCombs oneOppoComb = oppoCombs[j];
-                losssum += oppoReach[oneOppoComb.reach_prob_index];
-                cardLosssum[oneOppoComb.private_cards.card1] += oppoReach[oneOppoComb.reach_prob_index];
-                cardLosssum[oneOppoComb.private_cards.card2] += oppoReach[oneOppoComb.reach_prob_index];
+                losssum += oppoReach[oneOppoComb.reachProbIndex];
+                cardLosssum[oneOppoComb.privateCards.card1] += oppoReach[oneOppoComb.reachProbIndex];
+                cardLosssum[oneOppoComb.privateCards.card2] += oppoReach[oneOppoComb.reachProbIndex];
                 j--;
             }
-            payoffs[onePlayerComb.reach_prob_index] += (losssum
-                            - cardLosssum[onePlayerComb.private_cards.card1]
-                            - cardLosssum[onePlayerComb.private_cards.card2])
+            payoffs[onePlayerComb.reachProbIndex] += (losssum
+                            - cardLosssum[onePlayerComb.privateCards.card1]
+                            - cardLosssum[onePlayerComb.privateCards.card2])
                     * losePayoff;
         }
         return payoffs;

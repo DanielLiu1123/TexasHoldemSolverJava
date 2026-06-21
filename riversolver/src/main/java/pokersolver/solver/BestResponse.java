@@ -23,34 +23,34 @@ public class BestResponse {
 
     private final Deck deck;
     // player -> preflop combos
-    PrivateCards[][] private_combos;
-    int[] player_hands;
-    int player_number;
+    PrivateCards[][] privateCombos;
+    int[] playerHands;
+    int playerNumber;
     RiverRangeManager rrm;
     PrivateCardsManager pcm;
     boolean debug;
 
     public BestResponse(
-            PrivateCards[][] private_combos,
-            int player_number,
+            PrivateCards[][] privateCombos,
+            int playerNumber,
             Compairer compairer,
             PrivateCardsManager pcm,
             RiverRangeManager rrm,
             Deck deck,
             boolean debug) {
-        this.private_combos = private_combos;
-        this.player_number = player_number;
+        this.privateCombos = privateCombos;
+        this.playerNumber = playerNumber;
         this.rrm = rrm;
         this.pcm = pcm;
         this.debug = debug;
         this.deck = deck;
 
-        if (private_combos.length != player_number)
-            throw new RuntimeException(String.format(
-                    "river combo length NE player nunber: %d -- %d", private_combos.length, player_number));
-        player_hands = new int[player_number];
-        for (int i = 0; i < player_number; i++) {
-            player_hands[i] = private_combos[i].length;
+        if (privateCombos.length != playerNumber)
+            throw new RuntimeException(
+                    String.format("river combo length NE player nunber: %d -- %d", privateCombos.length, playerNumber));
+        playerHands = new int[playerNumber];
+        for (int i = 0; i < playerNumber; i++) {
+            playerHands[i] = privateCombos[i].length;
             /*
             int oppo = (i + 1) % player_number;
             if(river_combos[i].length != river_combos[oppo].length){
@@ -60,56 +60,56 @@ public class BestResponse {
         }
     }
 
-    public float printExploitability(GameTreeNode root, int iterationCount, float initial_pot, long initialBoard)
+    public float printExploitability(GameTreeNode root, int iterationCount, float initialPot, long initialBoard)
             throws BoardNotFoundException {
-        float[][] reach_probs = new float[this.player_number][];
+        float[][] reachProbs = new float[this.playerNumber][];
 
         System.out.printf("Iter: %d%n", iterationCount);
         float exploitible = 0;
         // 构造双方初始reach probs(按照手牌weights)
-        for (int player_id = 0; player_id < this.player_number; player_id++) {
-            float[] reach_prob_player = new float[private_combos[player_id].length];
-            for (int hc = 0; hc < private_combos[player_id].length; hc++)
-                reach_prob_player[hc] = private_combos[player_id][hc].weight;
-            reach_probs[player_id] = reach_prob_player;
+        for (int playerId = 0; playerId < this.playerNumber; playerId++) {
+            float[] reachProbPlayer = new float[privateCombos[playerId].length];
+            for (int hc = 0; hc < privateCombos[playerId].length; hc++)
+                reachProbPlayer[hc] = privateCombos[playerId][hc].weight;
+            reachProbs[playerId] = reachProbPlayer;
         }
 
-        for (int player_id = 0; player_id < this.player_number; player_id++) {
-            float player_exploitability = getBestReponseEv(root, player_id, reach_probs, initialBoard);
-            exploitible += player_exploitability;
-            System.out.printf("player %d exploitability %f%n", player_id, player_exploitability);
+        for (int playerId = 0; playerId < this.playerNumber; playerId++) {
+            float playerExploitability = getBestReponseEv(root, playerId, reachProbs, initialBoard);
+            exploitible += playerExploitability;
+            System.out.printf("player %d exploitability %f%n", playerId, playerExploitability);
         }
-        float total_exploitability = exploitible / this.player_number / initial_pot * 100;
-        System.out.printf("Total exploitability %f precent%n", total_exploitability);
-        return total_exploitability;
+        float totalExploitability = exploitible / this.playerNumber / initialPot * 100;
+        System.out.printf("Total exploitability %f precent%n", totalExploitability);
+        return totalExploitability;
     }
 
-    public float getBestReponseEv(GameTreeNode node, int player, float[][] reach_probs, long initialBoard)
+    public float getBestReponseEv(GameTreeNode node, int player, float[][] reachProbs, long initialBoard)
             throws BoardNotFoundException {
         float ev = 0;
         // 考虑（1）相对的手牌 proability,(2)被场面和对手ban掉的手牌
-        float[] private_cards_evs = bestResponse(node, player, reach_probs, initialBoard);
-        PrivateCards[] player_combo = this.private_combos[player];
-        PrivateCards[] oppo_combo = this.private_combos[1 - player];
+        float[] privateCardsEvs = bestResponse(node, player, reachProbs, initialBoard);
+        PrivateCards[] playerCombo = this.privateCombos[player];
+        PrivateCards[] oppoCombo = this.privateCombos[1 - player];
 
-        for (int player_hand = 0; player_hand < player_combo.length; player_hand++) {
-            float one_payoff = private_cards_evs[player_hand];
-            PrivateCards one_player_hand = player_combo[player_hand];
-            long private_long = one_player_hand.toBoardLong();
-            if (Card.boardsHasIntercept(private_long, initialBoard)) {
+        for (int playerHand = 0; playerHand < playerCombo.length; playerHand++) {
+            float onePayoff = privateCardsEvs[playerHand];
+            PrivateCards onePlayerHand = playerCombo[playerHand];
+            long privateLong = onePlayerHand.toBoardLong();
+            if (Card.boardsHasIntercept(privateLong, initialBoard)) {
                 continue;
             }
-            float oppo_sum = 0;
+            float oppoSum = 0;
 
-            for (PrivateCards one_oppo_hand : oppo_combo) {
-                long private_long_oppo = one_oppo_hand.toBoardLong();
-                if (Card.boardsHasIntercept(private_long, private_long_oppo)
-                        || Card.boardsHasIntercept(private_long_oppo, initialBoard)) {
+            for (PrivateCards oneOppoHand : oppoCombo) {
+                long privateLongOppo = oneOppoHand.toBoardLong();
+                if (Card.boardsHasIntercept(privateLong, privateLongOppo)
+                        || Card.boardsHasIntercept(privateLongOppo, initialBoard)) {
                     continue;
                 }
-                oppo_sum += one_oppo_hand.weight;
+                oppoSum += oneOppoHand.weight;
             }
-            ev += one_payoff * one_player_hand.relative_prob / oppo_sum;
+            ev += onePayoff * onePlayerHand.relativeProb / oppoSum;
         }
 
         return ev;
@@ -121,145 +121,144 @@ public class BestResponse {
     }
     */
 
-    public float[] bestResponse(GameTreeNode node, int player, float[][] reach_probs, long board) {
+    public float[] bestResponse(GameTreeNode node, int player, float[][] reachProbs, long board) {
         if (node == null) throw new RuntimeException("Node type not understood: null");
         return switch (node) {
-            case ActionNode actionNode -> actionBestResponse(actionNode, player, reach_probs, board);
-            case ShowdownNode showdownNode -> showdownBestResponse(showdownNode, player, reach_probs, board);
-            case TerminalNode terminalNode -> terminalBestReponse(terminalNode, player, reach_probs, board);
-            case ChanceNode chanceNode -> chanceBestReponse(chanceNode, player, reach_probs, board);
+            case ActionNode actionNode -> actionBestResponse(actionNode, player, reachProbs, board);
+            case ShowdownNode showdownNode -> showdownBestResponse(showdownNode, player, reachProbs, board);
+            case TerminalNode terminalNode -> terminalBestReponse(terminalNode, player, reachProbs, board);
+            case ChanceNode chanceNode -> chanceBestReponse(chanceNode, player, reachProbs, board);
             default ->
                 throw new RuntimeException(String.format(
                         "Node type not understood %s", node.getClass().getName()));
         };
     }
 
-    private float[] chanceBestReponse(ChanceNode node, int player, float[][] reach_probs, long current_board) {
+    private float[] chanceBestReponse(ChanceNode node, int player, float[][] reachProbs, long currentBoard) {
         List<Card> cards = this.deck.getCards();
         if (cards.size() != node.getChildren().size()) throw new RuntimeException();
         // float[] cardWeights = getCardsWeights(player,reach_probs[1 - player],current_board);
 
         // 可能的发牌情况,2代表每个人的holecard是两张
-        int possible_deals = node.getChildren().size() - Card.long2board(current_board).length - 2;
-        float[] chance_utility = new float[reach_probs[player].length];
+        int possibleDeals = node.getChildren().size() - Card.long2board(currentBoard).length - 2;
+        float[] chanceUtility = new float[reachProbs[player].length];
         // 遍历每一种发牌的可能性
         for (int card = 0; card < node.getCards().size(); card++) {
-            GameTreeNode one_child = node.getChildren().get(card);
-            Card one_card = node.getCards().get(card);
-            long card_long = Card.boardCards2long(new Card[] {one_card});
+            GameTreeNode oneChild = node.getChildren().get(card);
+            Card oneCard = node.getCards().get(card);
+            long cardLong = Card.boardCards2long(new Card[] {oneCard});
 
             // 不可能发出和board重复的牌，对吧
-            if (Card.boardsHasIntercept(card_long, current_board)) continue;
+            if (Card.boardsHasIntercept(cardLong, currentBoard)) continue;
 
-            if (one_child == null || one_card == null) throw new RuntimeException("child is null");
+            if (oneChild == null || oneCard == null) throw new RuntimeException("child is null");
 
             PrivateCards[] playerPrivateCard = this.pcm.getPreflopCards(player); // this.getPlayerPrivateCard(player);
             PrivateCards[] oppoPrivateCards = this.pcm.getPreflopCards(1 - player);
 
-            float[][] new_reach_probs = new float[2][];
+            float[][] newReachProbs = new float[2][];
 
-            if (!(reach_probs[player].length == playerPrivateCard.length))
-                throw new RuntimeException("length mismatch");
+            if (!(reachProbs[player].length == playerPrivateCard.length)) throw new RuntimeException("length mismatch");
 
-            new_reach_probs[player] = new float[playerPrivateCard.length];
-            new_reach_probs[1 - player] = new float[oppoPrivateCards.length];
+            newReachProbs[player] = new float[playerPrivateCard.length];
+            newReachProbs[1 - player] = new float[oppoPrivateCards.length];
 
             // 检查是否双方 hand和reach prob长度符合要求
-            if (playerPrivateCard.length != reach_probs[player].length) throw new RuntimeException("length not match");
-            if (oppoPrivateCards.length != reach_probs[1 - player].length)
+            if (playerPrivateCard.length != reachProbs[player].length) throw new RuntimeException("length not match");
+            if (oppoPrivateCards.length != reachProbs[1 - player].length)
                 throw new RuntimeException("length not match");
 
-            for (int one_player = 0; one_player < 2; one_player++) {
-                int player_hand_len = this.pcm.getPreflopCards(one_player).length;
-                for (int player_hand = 0; player_hand < player_hand_len; player_hand++) {
-                    PrivateCards one_private = this.pcm.getPreflopCards(one_player)[player_hand];
-                    long privateBoardLong = one_private.toBoardLong();
-                    if (Card.boardsHasIntercept(card_long, privateBoardLong)) continue;
-                    new_reach_probs[one_player][player_hand] = reach_probs[one_player][player_hand] / possible_deals;
+            for (int onePlayer = 0; onePlayer < 2; onePlayer++) {
+                int playerHandLen = this.pcm.getPreflopCards(onePlayer).length;
+                for (int playerHand = 0; playerHand < playerHandLen; playerHand++) {
+                    PrivateCards onePrivate = this.pcm.getPreflopCards(onePlayer)[playerHand];
+                    long privateBoardLong = onePrivate.toBoardLong();
+                    if (Card.boardsHasIntercept(cardLong, privateBoardLong)) continue;
+                    newReachProbs[onePlayer][playerHand] = reachProbs[onePlayer][playerHand] / possibleDeals;
                 }
             }
 
-            if (Card.boardsHasIntercept(current_board, card_long))
+            if (Card.boardsHasIntercept(currentBoard, cardLong))
                 throw new RuntimeException("board has intercept with dealt card");
-            long new_board_long = current_board | card_long;
+            long newBoardLong = currentBoard | cardLong;
 
-            float[] child_utility = this.bestResponse(one_child, player, new_reach_probs, new_board_long);
-            if (child_utility.length != chance_utility.length) throw new RuntimeException("length not match");
-            for (int i = 0; i < child_utility.length; i++) chance_utility[i] += child_utility[i];
+            float[] childUtility = this.bestResponse(oneChild, player, newReachProbs, newBoardLong);
+            if (childUtility.length != chanceUtility.length) throw new RuntimeException("length not match");
+            for (int i = 0; i < childUtility.length; i++) chanceUtility[i] += childUtility[i];
         }
 
-        return chance_utility;
+        return chanceUtility;
     }
 
-    public float[] actionBestResponse(ActionNode node, int player, float[][] reach_probs, long board) {
+    public float[] actionBestResponse(ActionNode node, int player, float[][] reachProbs, long board) {
         if (player == node.getPlayer()) {
             // 如果是自己在做决定，那么肯定选对自己的最有利的，反之对于对方来说，这个就是我方expliot了对方,
             // 这里可以当成"player"做决定的时候，action prob是0-1分布，因为需要使用最好的策略去expliot对方，最好的策略一定是ont-hot的
-            float[] my_exploitability = null;
-            for (GameTreeNode one_node : node.getChildren()) {
-                float[] node_ev = this.bestResponse(one_node, player, reach_probs, board);
-                if (my_exploitability == null) {
-                    my_exploitability = node_ev;
+            float[] myExploitability = null;
+            for (GameTreeNode oneNode : node.getChildren()) {
+                float[] nodeEv = this.bestResponse(oneNode, player, reachProbs, board);
+                if (myExploitability == null) {
+                    myExploitability = nodeEv;
                 } else {
-                    for (int i : Range.range(node_ev.length)) {
-                        my_exploitability[i] = Float.max(my_exploitability[i], node_ev[i]);
+                    for (int i : Range.range(nodeEv.length)) {
+                        myExploitability[i] = Float.max(myExploitability[i], nodeEv[i]);
                     }
                 }
             }
-            if (my_exploitability == null) throw new RuntimeException("action node has no children");
+            if (myExploitability == null) throw new RuntimeException("action node has no children");
             if (this.debug) {
                 System.out.println("[action]");
                 node.printHistory();
-                System.out.println(Arrays.toString(my_exploitability));
+                System.out.println(Arrays.toString(myExploitability));
             }
-            return my_exploitability;
+            return myExploitability;
         } else {
             // 如果是别人做决定，那么就按照别人的策略加权算出一个 ev
-            float[] total_payoffs = new float[player_hands[player]];
+            float[] totalPayoffs = new float[playerHands[player]];
 
-            float[] node_strategy = Objects.requireNonNull(node.getTrainable(), "trainable not set")
+            float[] nodeStrategy = Objects.requireNonNull(node.getTrainable(), "trainable not set")
                     .getAverageStrategy();
-            if (node_strategy.length != node.getChildren().size() * reach_probs[node.getPlayer()].length) {
+            if (nodeStrategy.length != node.getChildren().size() * reachProbs[node.getPlayer()].length) {
                 throw new RuntimeException(String.format(
                         "strategy size not match %d - %d",
-                        node_strategy.length, node.getChildren().size() * reach_probs[node.getPlayer()].length));
+                        nodeStrategy.length, node.getChildren().size() * reachProbs[node.getPlayer()].length));
             }
 
             // 构造reach probs矩阵
-            for (int action_ind = 0; action_ind < node.getChildren().size(); action_ind++) {
-                float[][] next_reach_probs = new float[this.player_number][];
-                for (int i = 0; i < this.player_number; i++) {
+            for (int actionInd = 0; actionInd < node.getChildren().size(); actionInd++) {
+                float[][] nextReachProbs = new float[this.playerNumber][];
+                for (int i = 0; i < this.playerNumber; i++) {
                     if (i == node.getPlayer()) {
-                        int private_combo_numbers = reach_probs[i].length;
-                        float[] next_reach_probs_current_player = new float[private_combo_numbers];
-                        for (int j = 0; j < private_combo_numbers; j++) {
-                            next_reach_probs_current_player[j] = reach_probs[node.getPlayer()][j]
-                                    * node_strategy[action_ind * private_combo_numbers + j];
+                        int privateComboNumbers = reachProbs[i].length;
+                        float[] nextReachProbsCurrentPlayer = new float[privateComboNumbers];
+                        for (int j = 0; j < privateComboNumbers; j++) {
+                            nextReachProbsCurrentPlayer[j] =
+                                    reachProbs[node.getPlayer()][j] * nodeStrategy[actionInd * privateComboNumbers + j];
                         }
-                        next_reach_probs[i] = next_reach_probs_current_player;
+                        nextReachProbs[i] = nextReachProbsCurrentPlayer;
                     } else {
-                        next_reach_probs[i] = reach_probs[i];
+                        nextReachProbs[i] = reachProbs[i];
                     }
                 }
 
-                GameTreeNode one_child = node.getChildren().get(action_ind);
-                if (one_child == null) throw new NodeNotFoundException("child node not found");
-                float[] action_payoffs = this.bestResponse(one_child, player, next_reach_probs, board);
-                if (action_payoffs.length != total_payoffs.length)
+                GameTreeNode oneChild = node.getChildren().get(actionInd);
+                if (oneChild == null) throw new NodeNotFoundException("child node not found");
+                float[] actionPayoffs = this.bestResponse(oneChild, player, nextReachProbs, board);
+                if (actionPayoffs.length != totalPayoffs.length)
                     throw new RuntimeException(String.format(
                             "length not match between action payoffs and total payoffs %d -- %d",
-                            action_payoffs.length, total_payoffs.length));
+                            actionPayoffs.length, totalPayoffs.length));
 
-                for (int i = 0; i < total_payoffs.length; i++) {
-                    total_payoffs[i] += action_payoffs[i]; //  * node_strategy[i] 的动作实际上已经在递归的时候做过了，所以这里不需要乘
+                for (int i = 0; i < totalPayoffs.length; i++) {
+                    totalPayoffs[i] += actionPayoffs[i]; //  * node_strategy[i] 的动作实际上已经在递归的时候做过了，所以这里不需要乘
                 }
             }
             if (this.debug) {
                 System.out.println("[action]");
                 node.printHistory();
-                System.out.println(Arrays.toString(total_payoffs));
+                System.out.println(Arrays.toString(totalPayoffs));
             }
-            return total_payoffs;
+            return totalPayoffs;
         }
     }
 
@@ -269,57 +268,57 @@ public class BestResponse {
     }
     */
 
-    public float[] terminalBestReponse(TerminalNode node, int player, float[][] reach_probs, long board) {
+    public float[] terminalBestReponse(TerminalNode node, int player, float[][] reachProbs, long board) {
         int oppo = 1 - player;
-        RiverCombs[] player_combs =
+        RiverCombs[] playerCombs =
                 this.rrm.getRiverCombos(player, this.pcm.getPreflopCards(player), board); // this.river_combos[player];
-        RiverCombs[] oppo_combs = this.rrm.getRiverCombos(
+        RiverCombs[] oppoCombs = this.rrm.getRiverCombos(
                 1 - player, this.pcm.getPreflopCards(1 - player), board); // this.river_combos[player];
 
-        double player_payoff = node.get_payoffs()[player];
-        float[] payoffs = new float[player_hands[player]];
+        double playerPayoff = node.getPayoffs()[player];
+        float[] payoffs = new float[playerHands[player]];
 
-        if (this.player_number != 2) throw new RuntimeException("player NE 2 not supported");
+        if (this.playerNumber != 2) throw new RuntimeException("player NE 2 not supported");
         // 对手的手牌可能需要和其reach prob一样长
         // 这里用了hard code，因为一副牌，不管是长牌还是短牌，最多扑克牌的数量都是52张
-        float[] oppo_card_sum = new float[52];
+        float[] oppoCardSum = new float[52];
 
         // 用于记录对手总共的手牌绝对prob之和
-        float oppo_prob_sum = 0;
+        float oppoProbSum = 0;
 
-        float[] oppo_reach_prob = reach_probs[1 - player];
-        for (RiverCombs one_hc : oppo_combs) {
-            long one_hc_long = Card.boardInts2long(new int[] {one_hc.private_cards.card1, one_hc.private_cards.card2});
+        float[] oppoReachProb = reachProbs[1 - player];
+        for (RiverCombs oneHc : oppoCombs) {
+            long oneHcLong = Card.boardInts2long(new int[] {oneHc.privateCards.card1, oneHc.privateCards.card2});
 
             // 如果对手手牌和public card有重叠，那么这组牌不可能存在
-            if (Card.boardsHasIntercept(one_hc_long, board)) {
+            if (Card.boardsHasIntercept(oneHcLong, board)) {
                 continue;
             }
 
-            oppo_prob_sum += oppo_reach_prob[one_hc.reach_prob_index];
-            oppo_card_sum[one_hc.private_cards.card1] += oppo_reach_prob[one_hc.reach_prob_index];
-            oppo_card_sum[one_hc.private_cards.card2] += oppo_reach_prob[one_hc.reach_prob_index];
+            oppoProbSum += oppoReachProb[oneHc.reachProbIndex];
+            oppoCardSum[oneHc.privateCards.card1] += oppoReachProb[oneHc.reachProbIndex];
+            oppoCardSum[oneHc.privateCards.card2] += oppoReachProb[oneHc.reachProbIndex];
         }
 
-        for (int player_hand = 0; player_hand < player_combs.length; player_hand++) {
-            RiverCombs player_hc = player_combs[player_hand];
-            long player_hc_long =
-                    Card.boardInts2long(new int[] {player_hc.private_cards.card1, player_hc.private_cards.card2});
-            if (Card.boardsHasIntercept(player_hc_long, board)) {
-                payoffs[player_hand] = 0;
+        for (int playerHand = 0; playerHand < playerCombs.length; playerHand++) {
+            RiverCombs playerHc = playerCombs[playerHand];
+            long playerHcLong =
+                    Card.boardInts2long(new int[] {playerHc.privateCards.card1, playerHc.privateCards.card2});
+            if (Card.boardsHasIntercept(playerHcLong, board)) {
+                payoffs[playerHand] = 0;
             } else {
-                Integer oppo_hand = this.pcm.indPlayer2Player(player, oppo, player_hc.reach_prob_index);
-                float add_reach_prob;
-                if (oppo_hand == null) {
-                    add_reach_prob = 0;
+                Integer oppoHand = this.pcm.indPlayer2Player(player, oppo, playerHc.reachProbIndex);
+                float addReachProb;
+                if (oppoHand == null) {
+                    addReachProb = 0;
                 } else {
-                    add_reach_prob = oppo_reach_prob[oppo_hand];
+                    addReachProb = oppoReachProb[oppoHand];
                 }
-                payoffs[player_hc.reach_prob_index] = (oppo_prob_sum
-                                - oppo_card_sum[player_hc.private_cards.card1]
-                                - oppo_card_sum[player_hc.private_cards.card2]
-                                + add_reach_prob)
-                        * (float) player_payoff;
+                payoffs[playerHc.reachProbIndex] = (oppoProbSum
+                                - oppoCardSum[playerHc.privateCards.card1]
+                                - oppoCardSum[playerHc.privateCards.card2]
+                                + addReachProb)
+                        * (float) playerPayoff;
             }
         }
 
@@ -338,21 +337,21 @@ public class BestResponse {
     }
     */
 
-    float[] showdownBestResponse(ShowdownNode node, int player, float[][] reach_probs, long board) {
-        if (this.player_number != 2) throw new RuntimeException("player number is not 2");
+    float[] showdownBestResponse(ShowdownNode node, int player, float[][] reachProbs, long board) {
+        if (this.playerNumber != 2) throw new RuntimeException("player number is not 2");
 
         int oppo = 1 - player;
-        RiverCombs[] player_combs =
+        RiverCombs[] playerCombs =
                 this.rrm.getRiverCombos(player, this.pcm.getPreflopCards(player), board); // this.river_combos[player];
-        RiverCombs[] oppo_combs = this.rrm.getRiverCombos(
+        RiverCombs[] oppoCombs = this.rrm.getRiverCombos(
                 1 - player, this.pcm.getPreflopCards(1 - player), board); // this.river_combos[player];
 
-        float win_payoff = (float) node.get_payoffs(ShowdownNode.ShowDownResult.NOTTIE, player)[player];
+        float winPayoff = (float) node.getPayoffs(ShowdownNode.ShowDownResult.NOTTIE, player)[player];
         // hard code, 假设了player只有两个
-        float lose_payoff = (float) node.get_payoffs(ShowdownNode.ShowDownResult.NOTTIE, 1 - player)[player];
+        float losePayoff = (float) node.getPayoffs(ShowdownNode.ShowDownResult.NOTTIE, 1 - player)[player];
 
         float[] payoffs = ShowdownPayoffs.compute(
-                player_combs, oppo_combs, reach_probs[oppo], win_payoff, lose_payoff, player_hands[player]);
+                playerCombs, oppoCombs, reachProbs[oppo], winPayoff, losePayoff, playerHands[player]);
 
         if (this.debug) {
             System.out.println("[showdown]");

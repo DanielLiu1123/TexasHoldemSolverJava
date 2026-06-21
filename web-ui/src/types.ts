@@ -54,7 +54,7 @@ export interface JobView {
 export type StrategyNode = ActionStrategyNode | ChanceStrategyNode | TerminalStrategyNode;
 
 export interface ActionStrategyNode {
-  node_type: "action_node";
+  nodeType: "action_node";
   /** 0 = in position, 1 = out of position */
   player: 0 | 1;
   actions: string[];
@@ -68,11 +68,11 @@ export interface ActionStrategyNode {
 }
 
 export interface ChanceStrategyNode {
-  node_type: "chance_node";
+  nodeType: "chance_node";
   /** Dealt-card labels (e.g. "Ah"); navigate by appending one to the path. */
   cards: string[];
 }
 
 export interface TerminalStrategyNode {
-  node_type: "terminal";
+  nodeType: "terminal";
 }

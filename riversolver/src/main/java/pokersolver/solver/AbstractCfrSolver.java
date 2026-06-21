@@ -37,57 +37,57 @@ abstract class AbstractCfrSolver extends Solver {
     PrivateCards[][] ranges;
     PrivateCards[] range1;
     PrivateCards[] range2;
-    int[] initial_board;
-    long initial_board_long;
+    int[] initialBoard;
+    long initialBoardLong;
     Compairer compairer;
 
     Deck deck;
     RiverRangeManager rrm;
-    final int player_number = 2;
-    int iteration_number;
+    final int playerNumber = 2;
+    int iterationNumber;
     PrivateCardsManager pcm;
     boolean debug;
-    int print_interval;
+    int printInterval;
 
     @Nullable
     String logfile;
 
     TrainableFactory trainerFactory;
-    int[] round_deal;
+    int[] roundDeal;
     MonteCarloAlg monteCarloAlg;
-    double stop_exploitability;
+    double stopExploitability;
     TrainingProgressListener progressListener;
 
     protected AbstractCfrSolver(SolverConfig config) {
         super(config.tree());
-        this.initial_board = config.initialBoard();
-        this.initial_board_long = Card.boardInts2long(config.initialBoard());
+        this.initialBoard = config.initialBoard();
+        this.initialBoardLong = Card.boardInts2long(config.initialBoard());
         this.logfile = config.logfile();
         this.trainerFactory = config.trainerFactory();
 
-        PrivateCards[] range1 = this.noDuplicateRange(config.range1(), initial_board_long);
-        PrivateCards[] range2 = this.noDuplicateRange(config.range2(), initial_board_long);
+        PrivateCards[] range1 = this.noDuplicateRange(config.range1(), initialBoardLong);
+        PrivateCards[] range2 = this.noDuplicateRange(config.range2(), initialBoardLong);
 
         this.range1 = range1;
         this.range2 = range2;
-        this.ranges = new PrivateCards[this.player_number][];
+        this.ranges = new PrivateCards[this.playerNumber][];
         this.ranges[0] = range1;
         this.ranges[1] = range2;
         this.compairer = config.compairer();
         this.deck = config.deck();
         this.rrm = new RiverRangeManager(config.compairer());
-        this.iteration_number = config.iterationNumber();
+        this.iterationNumber = config.iterationNumber();
 
-        PrivateCards[][] privateCombos = new PrivateCards[this.player_number][];
+        PrivateCards[][] privateCombos = new PrivateCards[this.playerNumber][];
         privateCombos[0] = range1;
         privateCombos[1] = range2;
-        this.pcm = new PrivateCardsManager(privateCombos, this.player_number, Card.boardInts2long(this.initial_board));
+        this.pcm = new PrivateCardsManager(privateCombos, this.playerNumber, Card.boardInts2long(this.initialBoard));
         this.debug = config.debug();
-        this.print_interval = config.printInterval();
+        this.printInterval = config.printInterval();
         this.monteCarloAlg = config.monteCarloAlg();
-        this.stop_exploitability = config.stopExploitability();
+        this.stopExploitability = config.stopExploitability();
         this.progressListener = config.progressListener();
-        this.round_deal = new int[0];
+        this.roundDeal = new int[0];
     }
 
     PrivateCards[] playerHands(int player) {
@@ -101,8 +101,8 @@ abstract class AbstractCfrSolver extends Solver {
     }
 
     float[][] getReachProbs() {
-        float[][] retval = new float[this.player_number][];
-        for (int player = 0; player < this.player_number; player++) {
+        float[][] retval = new float[this.playerNumber][];
+        for (int player = 0; player < this.playerNumber; player++) {
             PrivateCards[] playerCards = this.playerHands(player);
             float[] reachProb = new float[playerCards.length];
             for (int i = 0; i < playerCards.length; i++) {
@@ -184,7 +184,7 @@ abstract class AbstractCfrSolver extends Solver {
                     throw new RuntimeException();
                 }
             }
-            for (int onePlayer = 0; onePlayer < this.player_number; onePlayer++) {
+            for (int onePlayer = 0; onePlayer < this.playerNumber; onePlayer++) {
                 for (float oneProb : reachProbs[onePlayer]) {
                     if (Float.isNaN(oneProb)) throw new RuntimeException();
                 }
@@ -212,7 +212,7 @@ abstract class AbstractCfrSolver extends Solver {
                     reachProbs[nodePlayer],
                     playerNewReach,
                     playerNewReach.length);
-            float[][] newReach = new float[this.player_number][];
+            float[][] newReach = new float[this.playerNumber][];
             newReach[1 - nodePlayer] = reachProbs[1 - nodePlayer];
             newReach[nodePlayer] = playerNewReach;
             childArr[actionId] = children.get(actionId);
@@ -270,11 +270,11 @@ abstract class AbstractCfrSolver extends Solver {
         if (this.monteCarloAlg == MonteCarloAlg.PUBLIC) {
             int roundIdx = GameTreeNode.gameRound2int(node.getRound());
             int randomDeal;
-            if (this.round_deal[roundIdx] == -1) {
+            if (this.roundDeal[roundIdx] == -1) {
                 randomDeal = ThreadLocalRandom.current().nextInt(1, possibleDeals + 1 + 2);
-                this.round_deal[roundIdx] = randomDeal;
+                this.roundDeal[roundIdx] = randomDeal;
             } else {
-                randomDeal = this.round_deal[roundIdx];
+                randomDeal = this.roundDeal[roundIdx];
             }
             int cardcount = 0;
             for (int card = 0; card < cardSlots; card++) {
@@ -347,8 +347,8 @@ abstract class AbstractCfrSolver extends Solver {
 
     float[] showdownUtility(int player, ShowdownNode node, float[][] reachProbs, long currentBoard) {
         int oppo = 1 - player;
-        float winPayoff = (float) node.get_payoffs(ShowdownNode.ShowDownResult.NOTTIE, player)[player];
-        float losePayoff = (float) node.get_payoffs(ShowdownNode.ShowDownResult.NOTTIE, oppo)[player];
+        float winPayoff = (float) node.getPayoffs(ShowdownNode.ShowDownResult.NOTTIE, player)[player];
+        float losePayoff = (float) node.getPayoffs(ShowdownNode.ShowDownResult.NOTTIE, oppo)[player];
         PrivateCards[] playerPrivateCards = this.ranges[player];
         PrivateCards[] oppoPrivateCards = this.ranges[oppo];
 
@@ -361,7 +361,7 @@ abstract class AbstractCfrSolver extends Solver {
             System.out.println(String.format("player1 reach_prob %s", Arrays.toString(reachProbs[1])));
             System.out.print("preflop combos: ");
             for (RiverCombs oneRiverComb : playerCombs) {
-                System.out.print(String.format("%s(%s) ", oneRiverComb.private_cards.toString(), oneRiverComb.rank));
+                System.out.print(String.format("%s(%s) ", oneRiverComb.privateCards.toString(), oneRiverComb.rank));
             }
             System.out.println();
         }
@@ -378,7 +378,7 @@ abstract class AbstractCfrSolver extends Solver {
     }
 
     float[] terminalUtility(int player, TerminalNode node, float[][] reachProb, long currentBoard) {
-        double playerPayoff = node.get_payoffs()[player];
+        double playerPayoff = node.getPayoffs()[player];
 
         int oppo = 1 - player;
         PrivateCards[] playerHand = playerHands(player);

@@ -22,33 +22,33 @@ public class RiverRangeManager {
             throws BoardNotFoundException {
         PrivateCards[] preflopCombos = new PrivateCards[riverCombos.length];
         for (int i = 0; i < riverCombos.length; i++) {
-            preflopCombos[i] = riverCombos[i].private_cards;
+            preflopCombos[i] = riverCombos[i].privateCards;
         }
         return getRiverCombos(player, preflopCombos, board);
     }
 
     public RiverCombs[] getRiverCombos(int player, PrivateCards[] preflopCombos, int[] board)
             throws BoardNotFoundException {
-        long board_long = Card.boardInts2long(board);
-        return this.getRiverCombos(player, preflopCombos, board_long);
+        long boardLong = Card.boardInts2long(board);
+        return this.getRiverCombos(player, preflopCombos, boardLong);
     }
 
-    public RiverCombs[] getRiverCombos(int player, PrivateCards[] preflopCombos, long board_long) {
+    public RiverCombs[] getRiverCombos(int player, PrivateCards[] preflopCombos, long boardLong) {
         Map<Long, RiverCombs[]> riverRanges;
 
         if (player == 0) riverRanges = p1RiverRanges;
         else if (player == 1) riverRanges = p2RiverRanges;
         else throw new RuntimeException("error range  player");
 
-        long key = board_long;
+        long key = boardLong;
 
         if (riverRanges.get(key) != null) return riverRanges.get(key);
 
         int count = 0;
 
         for (int hand = 0; hand < preflopCombos.length; hand++) {
-            PrivateCards one_hand = preflopCombos[hand];
-            if (!Card.boardsHasIntercept(one_hand.toBoardLong(), board_long)) count++;
+            PrivateCards oneHand = preflopCombos[hand];
+            if (!Card.boardsHasIntercept(oneHand.toBoardLong(), boardLong)) count++;
         }
 
         int index = 0;
@@ -57,12 +57,12 @@ public class RiverRangeManager {
         for (int hand = 0; hand < preflopCombos.length; hand++) {
             PrivateCards preflopCombo = preflopCombos[hand];
 
-            if (Card.boardsHasIntercept(preflopCombo.toBoardLong(), board_long)) {
+            if (Card.boardsHasIntercept(preflopCombo.toBoardLong(), boardLong)) {
                 continue;
             }
 
-            int rank = this.handEvaluator.get_rank(preflopCombo.toBoardLong(), board_long);
-            RiverCombs riverCombo = new RiverCombs(Card.long2board(board_long), preflopCombo, rank, hand);
+            int rank = this.handEvaluator.getRank(preflopCombo.toBoardLong(), boardLong);
+            RiverCombs riverCombo = new RiverCombs(Card.long2board(boardLong), preflopCombo, rank, hand);
             riverCombos[index++] = riverCombo;
         }
 

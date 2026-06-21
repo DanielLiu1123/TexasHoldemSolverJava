@@ -68,11 +68,11 @@ export function StrategyExplorer({ solveId, ranks }: Props) {
       {error && <p className="error">加载失败：{error}</p>}
       {!error && !node && <p className="muted">加载中…</p>}
 
-      {node?.node_type === "terminal" && <p className="muted">终局节点 —— 这条线到此结束。</p>}
-      {node?.node_type === "action_node" && (
+      {node?.nodeType === "terminal" && <p className="muted">终局节点 —— 这条线到此结束。</p>}
+      {node?.nodeType === "action_node" && (
         <ActionNodeView node={node} ranks={ranks} onDescend={(label) => setPath([...path, label])} />
       )}
-      {node?.node_type === "chance_node" && (
+      {node?.nodeType === "chance_node" && (
         <div className="chance-view">
           <h3>选择发出的牌</h3>
           <div className="deal-cards">

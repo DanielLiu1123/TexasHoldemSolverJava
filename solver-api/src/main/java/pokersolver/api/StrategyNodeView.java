@@ -61,7 +61,7 @@ final class StrategyNodeView {
     private static ObjectNode dump(GameTreeNode node) {
         ObjectNode json = MAPPER.createObjectNode();
         if (node instanceof ActionNode action) {
-            json.put("node_type", "action_node");
+            json.put("nodeType", "action_node");
             json.put("player", action.getPlayer());
             List<GameActions> actions = action.getActions();
             ArrayNode actionLabels = json.putArray("actions");
@@ -79,11 +79,11 @@ final class StrategyNodeView {
                     Objects.requireNonNull(action.getTrainable(), "trainable not set")
                             .dumps(false));
         } else if (node instanceof ChanceNode chance) {
-            json.put("node_type", "chance_node");
+            json.put("nodeType", "chance_node");
             ArrayNode cards = json.putArray("cards");
             for (Card card : chance.getCards()) cards.add(card.toString());
         } else {
-            json.put("node_type", "terminal");
+            json.put("nodeType", "terminal");
         }
         return json;
     }

@@ -21,8 +21,8 @@ import pokersolver.utils.PrivateRangeConverter;
 
 public class CommandlineSolver {
 
-    static Config loadConfig(String conf_name) {
-        File file = new File(conf_name);
+    static Config loadConfig(String confName) {
+        File file = new File(confName);
 
         Config config;
         try {
@@ -39,17 +39,17 @@ public class CommandlineSolver {
                 .defaultHelp(true)
                 .description("use command line to solve poker cfr");
         parser.addArgument("-c", "--config").help("route to the config file");
-        parser.addArgument("-p1", "--player1_range")
+        parser.addArgument("-p1", "--player1-range")
                 .help("player1 range str,like 'KT,K9,K8,K7,K6,QJ,QT,Q9,Q8,Q7,Q6,JT,J9' ");
-        parser.addArgument("-p2", "--player2_range")
+        parser.addArgument("-p2", "--player2-range")
                 .help("player2 range str,like 'KT,K9,K8,K7,K6,QJ,QT,Q9,Q8,Q7,Q6,JT,J9' ");
-        parser.addArgument("-b", "--initial_board").help("the board card when the game start");
-        parser.addArgument("-n", "--iteration_number").help("iteration number the cfr algorithm would run");
-        parser.addArgument("-i", "--print_interval")
+        parser.addArgument("-b", "--initial-board").help("the board card when the game start");
+        parser.addArgument("-n", "--iteration-number").help("iteration number the cfr algorithm would run");
+        parser.addArgument("-i", "--print-interval")
                 .help("calculate best respond ev every other print_interval iterations of cfr");
         parser.addArgument("-d", "--debug").setDefault(false).help("open debug mode");
         parser.addArgument("-p", "--parallel").setDefault(true).help("whether to use thread pool");
-        parser.addArgument("-o", "--output_strategy_file")
+        parser.addArgument("-o", "--output-strategy-file")
                 .setDefault((Object) null)
                 .help("where to output strategy json");
         parser.addArgument("-l", "--logfile")
@@ -59,21 +59,21 @@ public class CommandlineSolver {
                 .choices("discounted_cfr", "cfr", "cfr_plus", "pcfr_plus")
                 .setDefault("discounted_cfr")
                 .help("cfr algorithm type");
-        parser.addArgument("-m", "--monte_carol")
+        parser.addArgument("-m", "--monte-carlo")
                 .choices("none", "public")
                 .setDefault("none")
-                .help("(experimental)whether to use monte carol algorithm");
+                .help("(experimental)whether to use monte carlo algorithm");
         parser.addArgument("-t", "--threads").setDefault(-1).help("multi thread thread number");
-        parser.addArgument("-fa", "--fork_at_action")
+        parser.addArgument("-fa", "--fork-at-action")
                 .setDefault(1)
                 .help("using multi-thread in each action node with this prob");
-        parser.addArgument("-fc", "--fork_at_chance")
+        parser.addArgument("-fc", "--fork-at-chance")
                 .setDefault(1)
                 .help("using multi-thread in each chance node with this prob");
-        parser.addArgument("-fe", "--fork_every_n_depth")
+        parser.addArgument("-fe", "--fork-every-n-depth")
                 .setDefault(1)
                 .help("fork in between n layer of trees, default 1");
-        parser.addArgument("-fs", "--no_fork_subtree_size").setDefault(0).help("fork minimal subtree size, default 0");
+        parser.addArgument("-fs", "--no-fork-subtree-size").setDefault(0).help("fork minimal subtree size, default 0");
 
         Namespace ns = null;
         try {
@@ -84,70 +84,70 @@ public class CommandlineSolver {
         }
         if (ns == null) return;
 
-        String config_file = ns.getString("config");
-        if (config_file == null) {
+        String configFile = ns.getString("config");
+        if (configFile == null) {
             parser.printHelp();
             System.exit(1);
             return;
         }
-        String player1_range = ns.getString("player1_range");
-        String player2_range = ns.getString("player2_range");
-        String initial_board_str = ns.getString("initial_board");
-        String[] initial_board_arr = initial_board_str.split(",");
-        int[] initial_board = Arrays.stream(initial_board_arr)
+        String player1RangeStr = ns.getString("player1_range");
+        String player2RangeStr = ns.getString("player2_range");
+        String initialBoardStr = ns.getString("initial_board");
+        String[] initialBoardArr = initialBoardStr.split(",");
+        int[] initialBoard = Arrays.stream(initialBoardArr)
                 .map(Card::strCard2int)
                 .mapToInt(i -> i)
                 .toArray();
-        int iteration_number = Integer.parseInt(ns.getString("iteration_number"));
-        int print_interval = Integer.parseInt(ns.getString("print_interval"));
-        float fork_at_action = Float.parseFloat(ns.getString("fork_at_action"));
-        float fork_at_chance = Float.parseFloat(ns.getString("fork_at_chance"));
+        int iterationNumber = Integer.parseInt(ns.getString("iteration_number"));
+        int printInterval = Integer.parseInt(ns.getString("print_interval"));
+        float forkAtAction = Float.parseFloat(ns.getString("fork_at_action"));
+        float forkAtChance = Float.parseFloat(ns.getString("fork_at_chance"));
         boolean debug = Boolean.parseBoolean(ns.getString("debug"));
         boolean parallel = Boolean.parseBoolean(ns.getString("parallel"));
-        String output_strategy_file = ns.getString("output_strategy_file");
+        String outputStrategyFile = ns.getString("output_strategy_file");
         String logfile = ns.getString("logfile");
 
         Algorithm algorithm = Algorithm.fromId(ns.getString("algorithm"));
-        MonteCarloAlg monte_carlo = MonteCarloAlg.fromId(ns.getString("monte_carol"));
+        MonteCarloAlg monteCarlo = MonteCarloAlg.fromId(ns.getString("monte_carlo"));
         int threads = Integer.parseInt(ns.getString("threads"));
-        int fork_every_n_depth = Integer.parseInt(ns.getString("fork_every_n_depth"));
-        int no_fork_subtree_size = Integer.parseInt(ns.getString("no_fork_subtree_size"));
+        int forkEveryNDepth = Integer.parseInt(ns.getString("fork_every_n_depth"));
+        int noForkSubtreeSize = Integer.parseInt(ns.getString("no_fork_subtree_size"));
 
-        Config config = loadConfig(config_file);
+        Config config = loadConfig(configFile);
         Deck deck = SolverEnvironment.deckFromConfig(config);
         Compairer compairer = SolverEnvironment.compairerFromConfig(config);
-        GameTree game_tree = SolverEnvironment.gameTreeFromConfig(config, deck);
+        GameTree gameTree = SolverEnvironment.gameTreeFromConfig(config, deck);
 
-        PrivateCards[] player1Range = PrivateRangeConverter.rangeStr2Cards(player1_range, initial_board);
-        PrivateCards[] player2Range = PrivateRangeConverter.rangeStr2Cards(player2_range, initial_board);
+        PrivateCards[] player1Range = PrivateRangeConverter.rangeStr2Cards(player1RangeStr, initialBoard);
+        PrivateCards[] player2Range = PrivateRangeConverter.rangeStr2Cards(player2RangeStr, initialBoard);
 
         SolverConfig solverConfig = SolverConfig.builder()
-                .tree(game_tree)
+                .tree(gameTree)
                 .range1(player1Range)
                 .range2(player2Range)
-                .initialBoard(initial_board)
+                .initialBoard(initialBoard)
                 .compairer(compairer)
                 .deck(deck)
-                .iterationNumber(iteration_number)
+                .iterationNumber(iterationNumber)
                 .debug(debug)
-                .printInterval(print_interval)
+                .printInterval(printInterval)
                 .logfile(logfile)
                 .algorithm(algorithm)
-                .monteCarloAlg(monte_carlo)
+                .monteCarloAlg(monteCarlo)
                 .build();
         Solver solver;
         if (parallel) {
             solver = new ParallelCfrPlusSolver(
-                    solverConfig, threads, fork_at_action, fork_at_chance, fork_every_n_depth, no_fork_subtree_size);
+                    solverConfig, threads, forkAtAction, forkAtChance, forkEveryNDepth, noForkSubtreeSize);
         } else {
             solver = new CfrPlusRiverSolver(solverConfig);
         }
         solver.train();
 
-        String strategy_json = solver.getTree().dumps(false).toString();
-        File output_file = new File(output_strategy_file);
-        FileWriter writer = new FileWriter(output_file, StandardCharsets.UTF_8);
-        writer.write(strategy_json);
+        String strategyJson = solver.getTree().dumps(false).toString();
+        File outputFile = new File(outputStrategyFile);
+        FileWriter writer = new FileWriter(outputFile, StandardCharsets.UTF_8);
+        writer.write(strategyJson);
         writer.flush();
         writer.close();
     }

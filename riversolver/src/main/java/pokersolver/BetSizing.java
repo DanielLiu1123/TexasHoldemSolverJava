@@ -58,11 +58,11 @@ final class BetSizing {
         ArrayList<Double> betsRatios = new ArrayList<>();
         boolean allIn = streetSetting.allin;
         float[] betsFromRule;
-        if (betType == BetType.BET) betsFromRule = streetSetting.bet_sizes;
+        if (betType == BetType.BET) betsFromRule = streetSetting.betSizes;
         else if (betType == BetType.DONK) {
-            betsFromRule = streetSetting.donk_sizes;
+            betsFromRule = streetSetting.donkSizes;
             allIn = false;
-        } else if (betType == BetType.RAISE) betsFromRule = streetSetting.raise_sizes;
+        } else if (betType == BetType.RAISE) betsFromRule = streetSetting.raiseSizes;
         else throw new RuntimeException("bet type unknown");
         if (betsFromRule == null) return new ArrayList<>();
         for (float oneBet : betsFromRule) {

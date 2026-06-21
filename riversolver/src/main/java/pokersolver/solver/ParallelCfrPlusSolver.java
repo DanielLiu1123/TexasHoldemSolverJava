@@ -22,10 +22,10 @@ public class ParallelCfrPlusSolver extends AbstractCfrSolver {
 
     ForkJoinPool forkJoinPool;
     int nthreads;
-    double forkprob_action;
-    double forkprob_chance;
-    int fork_every_n_depth;
-    int no_fork_subtree_size;
+    double forkprobAction;
+    double forkprobChance;
+    int forkEveryNDepth;
+    int noForkSubtreeSize;
 
     public ParallelCfrPlusSolver(
             SolverConfig config,
@@ -47,13 +47,13 @@ public class ParallelCfrPlusSolver extends AbstractCfrSolver {
             throw new RuntimeException(String.format("forkprob action not between [0,1] : %s", forkprobAction));
         if (forkprobChance > 1 || forkprobChance < 0)
             throw new RuntimeException(String.format("forkprob chance not between [0,1] : %s", forkprobChance));
-        this.forkprob_action = forkprobAction;
-        this.forkprob_chance = forkprobChance;
-        this.fork_every_n_depth = forkBetween;
+        this.forkprobAction = forkprobAction;
+        this.forkprobChance = forkprobChance;
+        this.forkEveryNDepth = forkBetween;
         // Forking at every action node measures fastest: each task does O(actions × hands) float
         // work, well above ForkJoin's per-task overhead, and full forking gives the best load
         // balance. A subtree-size cutoff (e.g. 64) measured ~6x slower on river trees.
-        this.no_fork_subtree_size = noForkSubtreeSize;
+        this.noForkSubtreeSize = noForkSubtreeSize;
         System.out.println(String.format("Using %s threads", this.nthreads));
     }
 
@@ -61,14 +61,14 @@ public class ParallelCfrPlusSolver extends AbstractCfrSolver {
     public void train() throws Exception {
         setTrainable(tree.getRoot());
 
-        PrivateCards[][] playerPrivates = new PrivateCards[this.player_number][];
+        PrivateCards[][] playerPrivates = new PrivateCards[this.playerNumber][];
         playerPrivates[0] = pcm.getPreflopCards(0);
         playerPrivates[1] = pcm.getPreflopCards(1);
 
         BestResponse br = new BestResponse(
-                playerPrivates, this.player_number, this.compairer, this.pcm, this.rrm, this.deck, this.debug);
+                playerPrivates, this.playerNumber, this.compairer, this.pcm, this.rrm, this.deck, this.debug);
 
-        br.printExploitability(tree.getRoot(), 0, (float) tree.getRoot().getPot(), initial_board_long);
+        br.printExploitability(tree.getRoot(), 0, (float) tree.getRoot().getPot(), initialBoardLong);
 
         float[][] reachProbs = this.getReachProbs();
 
@@ -78,31 +78,31 @@ public class ParallelCfrPlusSolver extends AbstractCfrSolver {
         try (Writer fileWriter = this.logfile != null
                 ? Files.newBufferedWriter(Paths.get(this.logfile), StandardCharsets.UTF_8)
                 : Writer.nullWriter()) {
-            for (int i = 0; i < this.iteration_number && !this.stopRequested; i++) {
-                for (int playerId = 0; playerId < this.player_number; playerId++) {
+            for (int i = 0; i < this.iterationNumber && !this.stopRequested; i++) {
+                for (int playerId = 0; playerId < this.playerNumber; playerId++) {
                     if (this.debug) {
                         System.out.println(String.format(
                                 "---------------------------------     player %s --------------------------------",
                                 playerId));
                     }
-                    this.round_deal = new int[] {-1, -1, -1, -1};
+                    this.roundDeal = new int[] {-1, -1, -1, -1};
                     forkJoinPool.invoke(
-                            new CfrTask(playerId, this.tree.getRoot(), reachProbs, i, this.initial_board_long));
+                            new CfrTask(playerId, this.tree.getRoot(), reachProbs, i, this.initialBoardLong));
                 }
-                if (i % this.print_interval == 0) {
+                if (i % this.printInterval == 0) {
                     endtime = System.currentTimeMillis();
                     long timeMs = endtime - begintime;
                     System.out.println(String.format("time used: %.2fs", (float) timeMs / 1000));
                     System.out.println("-------------------");
                     float exploitability = br.printExploitability(
-                            tree.getRoot(), i + 1, (float) tree.getRoot().getPot(), initial_board_long);
+                            tree.getRoot(), i + 1, (float) tree.getRoot().getPot(), initialBoardLong);
                     ObjectNode jo = MAPPER.createObjectNode();
                     jo.put("iteration", i);
                     jo.put("exploitability", exploitability);
                     jo.put("time_ms", timeMs);
                     fileWriter.write(String.format("%s\n", jo.toString()));
                     this.progressListener.onProgress(i, exploitability, timeMs);
-                    if (this.stop_exploitability > 0 && exploitability < this.stop_exploitability) break;
+                    if (this.stopExploitability > 0 && exploitability < this.stopExploitability) break;
                 }
             }
         }
@@ -115,7 +115,7 @@ public class ParallelCfrPlusSolver extends AbstractCfrSolver {
 
     /** Whether to fork this node's children, mirroring the per-node-type fork probability. */
     private boolean shouldFork(GameTreeNode node) {
-        double forkprob = (node instanceof ActionNode) ? this.forkprob_action : this.forkprob_chance;
+        double forkprob = (node instanceof ActionNode) ? this.forkprobAction : this.forkprobChance;
         boolean forkAt;
         if (forkprob == 1) {
             forkAt = true;
@@ -124,7 +124,7 @@ public class ParallelCfrPlusSolver extends AbstractCfrSolver {
         } else {
             forkAt = Math.random() < forkprob;
         }
-        if (node.depth % this.fork_every_n_depth != 0 || node.subtree_size <= this.no_fork_subtree_size) {
+        if (node.depth % this.forkEveryNDepth != 0 || node.subtreeSize <= this.noForkSubtreeSize) {
             forkAt = false;
         }
         return forkAt;

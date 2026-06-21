@@ -9,7 +9,7 @@ import pokersolver.Card;
  * Abstract class Compairer
  */
 public abstract class Compairer {
-    String dic_dir;
+    String dicDir;
     int lines;
 
     public enum CompairResult {
@@ -18,20 +18,19 @@ public abstract class Compairer {
         SMALLER
     }
 
-    public Compairer(String dic_dir, int lines) throws FileNotFoundException {
-        this.dic_dir = dic_dir;
+    public Compairer(String dicDir, int lines) throws FileNotFoundException {
+        this.dicDir = dicDir;
         this.lines = lines;
     }
 
-    public abstract CompairResult compair(List<Card> private_former, List<Card> private_latter, List<Card> public_board)
+    public abstract CompairResult compair(List<Card> privateFormer, List<Card> privateLatter, List<Card> publicBoard)
             throws Exception;
 
-    public abstract CompairResult compair(int[] private_former, int[] private_latter, int[] public_board)
-            throws Exception;
+    public abstract CompairResult compair(int[] privateFormer, int[] privateLatter, int[] publicBoard) throws Exception;
 
-    public abstract int get_rank(List<Card> private_hand, List<Card> public_board);
+    public abstract int getRank(List<Card> privateHand, List<Card> publicBoard);
 
-    public abstract int get_rank(int[] private_hand, int[] public_board);
+    public abstract int getRank(int[] privateHand, int[] publicBoard);
 
-    public abstract int get_rank(long private_hand, long public_board);
+    public abstract int getRank(long privateHand, long publicBoard);
 }

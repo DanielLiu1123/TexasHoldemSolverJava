@@ -8,112 +8,112 @@ import pokersolver.Card;
 import pokersolver.ranges.PrivateCards;
 
 public class PrivateRangeConverter {
-    public static PrivateCards[] rangeStr2Cards(String range_str, int[] initial_boards) {
-        String[] range_list = range_str.split(",", -1);
-        List<PrivateCards> private_cards = new ArrayList<PrivateCards>();
+    public static PrivateCards[] rangeStr2Cards(String rangeStr, int[] initialBoards) {
+        String[] rangeList = rangeStr.split(",", -1);
+        List<PrivateCards> privateCards = new ArrayList<PrivateCards>();
 
-        for (String one_range : range_list) {
-            PrivateCards this_card;
-            List<String> cardstr_arr = Arrays.asList(one_range.split(":"));
-            if (cardstr_arr.size() > 2 || cardstr_arr.isEmpty()) {
+        for (String oneRange : rangeList) {
+            PrivateCards thisCard;
+            List<String> cardstrArr = Arrays.asList(oneRange.split(":"));
+            if (cardstrArr.size() > 2 || cardstrArr.isEmpty()) {
                 throw new RuntimeException("':' number exceeded 2");
             }
             float weight = 1;
 
-            one_range = cardstr_arr.get(0);
-            if (cardstr_arr.size() == 2) {
-                weight = Float.parseFloat(cardstr_arr.get(1));
+            oneRange = cardstrArr.get(0);
+            if (cardstrArr.size() == 2) {
+                weight = Float.parseFloat(cardstrArr.get(1));
             }
             if (weight == 0) continue;
 
-            int range_len = one_range.length();
-            if (range_len == 3) {
-                if (one_range.charAt(2) == 's') {
-                    char rank1 = one_range.charAt(0);
-                    char rank2 = one_range.charAt(1);
+            int rangeLen = oneRange.length();
+            if (rangeLen == 3) {
+                if (oneRange.charAt(2) == 's') {
+                    char rank1 = oneRange.charAt(0);
+                    char rank2 = oneRange.charAt(1);
                     if (rank1 == rank2)
                         throw new RuntimeException(String.format("%s%ss is not a valid card desc", rank1, rank2));
-                    for (String one_suit : Card.getSuits()) {
-                        int card1 = Card.strCard2int(rank1 + one_suit);
-                        int card2 = Card.strCard2int(rank2 + one_suit);
-                        this_card = new PrivateCards(card1, card2, weight);
-                        private_cards.add(this_card);
+                    for (String oneSuit : Card.getSuits()) {
+                        int card1 = Card.strCard2int(rank1 + oneSuit);
+                        int card2 = Card.strCard2int(rank2 + oneSuit);
+                        thisCard = new PrivateCards(card1, card2, weight);
+                        privateCards.add(thisCard);
                     }
 
-                } else if (one_range.charAt(2) == 'o') {
-                    char rank1 = one_range.charAt(0);
-                    char rank2 = one_range.charAt(1);
+                } else if (oneRange.charAt(2) == 'o') {
+                    char rank1 = oneRange.charAt(0);
+                    char rank2 = oneRange.charAt(1);
 
                     String[] suits = Card.getSuits();
                     for (int i = 0; i < suits.length; i++) {
-                        String one_suit = suits[i];
-                        int begin_index = rank1 == rank2 ? i : 0;
-                        for (int j = begin_index; j < suits.length; j++) {
-                            String another_suit = suits[j];
-                            if (Objects.equals(one_suit, another_suit)) {
+                        String oneSuit = suits[i];
+                        int beginIndex = rank1 == rank2 ? i : 0;
+                        for (int j = beginIndex; j < suits.length; j++) {
+                            String anotherSuit = suits[j];
+                            if (Objects.equals(oneSuit, anotherSuit)) {
                                 continue;
                             }
-                            int card1 = Card.strCard2int(rank1 + one_suit);
-                            int card2 = Card.strCard2int(rank2 + another_suit);
+                            int card1 = Card.strCard2int(rank1 + oneSuit);
+                            int card2 = Card.strCard2int(rank2 + anotherSuit);
                             if (Card.boardsHasIntercept(
                                     Card.boardInts2long(new int[] {card1, card2}),
-                                    Card.boardInts2long(initial_boards))) {
+                                    Card.boardInts2long(initialBoards))) {
                                 continue;
                             }
-                            this_card = new PrivateCards(card1, card2, weight);
-                            private_cards.add(this_card);
+                            thisCard = new PrivateCards(card1, card2, weight);
+                            privateCards.add(thisCard);
                         }
                     }
                 } else {
                     throw new RuntimeException("format not recognize");
                 }
-            } else if (range_len == 2) {
-                char rank1 = one_range.charAt(0);
-                char rank2 = one_range.charAt(1);
+            } else if (rangeLen == 2) {
+                char rank1 = oneRange.charAt(0);
+                char rank2 = oneRange.charAt(1);
                 String[] suits = Card.getSuits();
                 for (int i = 0; i < suits.length; i++) {
-                    String one_suit = suits[i];
-                    int begin_index = rank1 == rank2 ? i : 0;
-                    for (int j = begin_index; j < suits.length; j++) {
-                        String another_suit = suits[j];
-                        if (Objects.equals(one_suit, another_suit) && rank1 == rank2) {
+                    String oneSuit = suits[i];
+                    int beginIndex = rank1 == rank2 ? i : 0;
+                    for (int j = beginIndex; j < suits.length; j++) {
+                        String anotherSuit = suits[j];
+                        if (Objects.equals(oneSuit, anotherSuit) && rank1 == rank2) {
                             continue;
                         }
-                        int card1 = Card.strCard2int(rank1 + one_suit);
-                        int card2 = Card.strCard2int(rank2 + another_suit);
+                        int card1 = Card.strCard2int(rank1 + oneSuit);
+                        int card2 = Card.strCard2int(rank2 + anotherSuit);
                         if (Card.boardsHasIntercept(
-                                Card.boardInts2long(new int[] {card1, card2}), Card.boardInts2long(initial_boards))) {
+                                Card.boardInts2long(new int[] {card1, card2}), Card.boardInts2long(initialBoards))) {
                             continue;
                         }
-                        this_card = new PrivateCards(card1, card2, weight);
-                        private_cards.add(this_card);
+                        thisCard = new PrivateCards(card1, card2, weight);
+                        privateCards.add(thisCard);
                     }
                 }
 
-            } else throw new RuntimeException(String.format(" range str %s len not valid ", one_range));
+            } else throw new RuntimeException(String.format(" range str %s len not valid ", oneRange));
         }
 
         // 排除初试range中重复的情况
-        for (int i = 0; i < private_cards.size(); i++) {
-            for (int j = i + 1; j < private_cards.size(); j++) {
-                PrivateCards one_cards = private_cards.get(i);
-                PrivateCards another_cards = private_cards.get(j);
-                if (one_cards.card1 == another_cards.card1 && one_cards.card2 == another_cards.card2) {
+        for (int i = 0; i < privateCards.size(); i++) {
+            for (int j = i + 1; j < privateCards.size(); j++) {
+                PrivateCards oneCards = privateCards.get(i);
+                PrivateCards anotherCards = privateCards.get(j);
+                if (oneCards.card1 == anotherCards.card1 && oneCards.card2 == anotherCards.card2) {
                     throw new RuntimeException(String.format(
                             "card %s %s duplicate",
-                            Card.intCard2Str(one_cards.card1), Card.intCard2Str(one_cards.card2)));
+                            Card.intCard2Str(oneCards.card1), Card.intCard2Str(oneCards.card2)));
                 }
-                if (one_cards.card1 == another_cards.card2 && one_cards.card2 == another_cards.card1) {
+                if (oneCards.card1 == anotherCards.card2 && oneCards.card2 == anotherCards.card1) {
                     throw new RuntimeException(String.format(
                             "card %s %s duplicate",
-                            Card.intCard2Str(one_cards.card1), Card.intCard2Str(one_cards.card2)));
+                            Card.intCard2Str(oneCards.card1), Card.intCard2Str(oneCards.card2)));
                 }
             }
         }
 
-        PrivateCards[] private_cards_list = new PrivateCards[private_cards.size()];
-        for (int i = 0; i < private_cards.size(); i++) {
-            private_cards_list[i] = private_cards.get(i);
+        PrivateCards[] privateCardsList = new PrivateCards[privateCards.size()];
+        for (int i = 0; i < privateCards.size(); i++) {
+            privateCardsList[i] = privateCards.get(i);
             // System.out.print(String.format("[%s-%s]",Card.intCard2Str(private_cards_list[i].card1),Card.intCard2Str(private_cards_list[i].card2)));
         }
         /*
@@ -123,6 +123,6 @@ public class PrivateRangeConverter {
         System.out.println(private_cards.size());
         System.out.println();
          */
-        return private_cards_list;
+        return privateCardsList;
     }
 }
