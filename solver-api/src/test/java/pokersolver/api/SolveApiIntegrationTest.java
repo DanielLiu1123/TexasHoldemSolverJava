@@ -80,7 +80,7 @@ class SolveApiIntegrationTest {
                 HttpResponse.BodyHandlers.ofString());
         assertThat(strategy.statusCode()).isEqualTo(200);
         JsonNode root = JsonUtil.MAPPER.readTree(strategy.body());
-        assertThat(root.get("node_type").asString()).isEqualTo("action_node");
+        assertThat(root.get("nodeType").asString()).isEqualTo("action_node");
         assertThat(root.get("strategy").has("strategy")).isTrue();
         assertThat(root.get("childActions").size()).isGreaterThan(0);
 
@@ -93,7 +93,7 @@ class SolveApiIntegrationTest {
                         .build(),
                 HttpResponse.BodyHandlers.ofString());
         assertThat(childNode.statusCode()).isEqualTo(200);
-        assertThat(JsonUtil.MAPPER.readTree(childNode.body()).has("node_type")).isTrue();
+        assertThat(JsonUtil.MAPPER.readTree(childNode.body()).has("nodeType")).isTrue();
     }
 
     @Test
