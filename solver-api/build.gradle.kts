@@ -15,8 +15,6 @@ dependencies {
     implementation("tools.jackson.core:jackson-databind:${providers.gradleProperty("jacksonVersion").get()}")
     runtimeOnly("org.slf4j:slf4j-simple:${providers.gradleProperty("slf4jVersion").get()}")
 
-    testImplementation("org.slf4j:slf4j-simple:${providers.gradleProperty("slf4jVersion").get()}")
-
     webDist(project(path = ":web-ui", configuration = "webDist"))
 }
 

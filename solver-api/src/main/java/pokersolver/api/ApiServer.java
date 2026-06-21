@@ -122,8 +122,8 @@ public final class ApiServer implements AutoCloseable {
             }
         }
         ApiServer server = new ApiServer(resources).start(port);
-        System.out.println(String.format(
-                "solver-api listening on http://localhost:%d (resources: %s)",
-                server.port(), resources.toAbsolutePath().normalize()));
+        System.out.printf(
+                "solver-api listening on http://localhost:%d (resources: %s)%n",
+                server.port(), resources.toAbsolutePath().normalize());
     }
 }
