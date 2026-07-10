@@ -10,7 +10,7 @@ val webDist by configurations.creating {
 }
 
 dependencies {
-    implementation(project(":riversolver"))
+    implementation(project(":solver-core"))
     implementation("io.javalin:javalin:${providers.gradleProperty("javalinVersion").get()}")
     implementation("tools.jackson.core:jackson-databind:${providers.gradleProperty("jacksonVersion").get()}")
     runtimeOnly("org.slf4j:slf4j-simple:${providers.gradleProperty("slf4jVersion").get()}")
@@ -35,9 +35,4 @@ application {
 // against the repository root instead, matching the README invocation.
 tasks.named<JavaExec>("run") {
     workingDir = rootDir
-}
-
-tasks.withType<Test>().configureEach {
-    // Integration tests load the compairer dictionaries from riversolver's test resources.
-    systemProperty("solver.testResources", rootDir.resolve("riversolver/src/test/resources").toString())
 }

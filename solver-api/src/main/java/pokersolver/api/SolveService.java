@@ -12,11 +12,12 @@ import org.slf4j.LoggerFactory;
 import pokersolver.Card;
 import pokersolver.GameTree;
 import pokersolver.SolverEnvironment;
+import pokersolver.nodes.GameRound;
 import pokersolver.ranges.PrivateCards;
 import pokersolver.solver.Algorithm;
 import pokersolver.solver.GameTreeBuildingSettings;
 import pokersolver.solver.MonteCarloAlg;
-import pokersolver.solver.ParallelCfrPlusSolver;
+import pokersolver.solver.ParallelCfrSolver;
 import pokersolver.solver.SolverConfig;
 import pokersolver.utils.PrivateRangeConverter;
 
@@ -27,21 +28,9 @@ public final class SolveService implements AutoCloseable {
 
     private static final float SMALL_BLIND = 0.5f;
     private static final float BIG_BLIND = 1.0f;
-    private static final int ROUND_FLOP = 2;
-    private static final int ROUND_TURN = 3;
-    private static final int ROUND_RIVER = 4;
 
-    private final GameResources resources;
     private final ConcurrentHashMap<String, SolveJob> jobs = new ConcurrentHashMap<>();
     private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
-
-    public SolveService(GameResources resources) {
-        this.resources = resources;
-    }
-
-    public GameResources resources() {
-        return resources;
-    }
 
     public SolveJob create(SolveRequest request) {
         validate(request);
@@ -67,7 +56,6 @@ public final class SolveService implements AutoCloseable {
         if (request.progressInterval() != null) require(request.progressInterval() > 0, "progressInterval must be > 0");
         if (request.algorithm() != null) Algorithm.fromId(request.algorithm());
         if (request.monteCarlo() != null) MonteCarloAlg.fromId(request.monteCarlo());
-        if (request.game() != null) GameType.fromId(request.game());
     }
 
     private static void require(boolean condition, String message) {
@@ -76,18 +64,15 @@ public final class SolveService implements AutoCloseable {
 
     private void run(SolveJob job, SolveRequest request) {
         try {
-            GameType game = GameType.fromId(Objects.requireNonNullElse(request.game(), GameType.HOLDEM.id()));
-            GameResources.Loaded loaded = resources.get(game);
-
             int[] board = Arrays.stream(Objects.requireNonNull(request.board()).split(","))
                     .map(String::trim)
                     .mapToInt(Card::strCard2int)
                     .toArray();
-            int round =
+            GameRound round =
                     switch (board.length) {
-                        case 3 -> ROUND_FLOP;
-                        case 4 -> ROUND_TURN;
-                        default -> ROUND_RIVER;
+                        case 3 -> GameRound.FLOP;
+                        case 4 -> GameRound.TURN;
+                        default -> GameRound.RIVER;
                     };
 
             PrivateCards[] rangeIp =
@@ -98,25 +83,21 @@ public final class SolveService implements AutoCloseable {
             float pot = Objects.requireNonNull(request.pot());
             float effectiveStack = Objects.requireNonNull(request.effectiveStack());
             GameTree tree = SolverEnvironment.gameTreeFromParams(
-                    loaded.deck(),
                     pot / 2,
                     pot / 2,
-                    round,
+                    round.number(),
                     Objects.requireNonNullElse(request.raiseLimit(), 5),
                     SMALL_BLIND,
                     BIG_BLIND,
                     effectiveStack + pot / 2,
                     buildSettings(request));
 
-            int iterations = Objects.requireNonNullElse(request.iterations(), 100);
             SolverConfig config = SolverConfig.builder()
                     .tree(tree)
                     .range1(rangeIp)
                     .range2(rangeOop)
                     .initialBoard(board)
-                    .compairer(loaded.compairer())
-                    .deck(loaded.deck())
-                    .iterationNumber(iterations)
+                    .iterationNumber(Objects.requireNonNullElse(request.iterations(), 100))
                     .printInterval(Objects.requireNonNullElse(request.progressInterval(), 10))
                     .algorithm(Algorithm.fromId(
                             Objects.requireNonNullElse(request.algorithm(), Algorithm.DISCOUNTED_CFR.id())))
@@ -126,8 +107,8 @@ public final class SolveService implements AutoCloseable {
                             job.publish(ProgressEvent.progress(iteration, exploitability, elapsedMs)))
                     .build();
 
-            ParallelCfrPlusSolver solver = new ParallelCfrPlusSolver(
-                    config, Objects.requireNonNullElse(request.threads(), -1), 1.0, 0.0, 1, 0);
+            ParallelCfrSolver solver =
+                    new ParallelCfrSolver(config, Objects.requireNonNullElse(request.threads(), -1), 1.0, 0.0, 1, 0);
             job.attachSolver(solver);
             solver.train();
 

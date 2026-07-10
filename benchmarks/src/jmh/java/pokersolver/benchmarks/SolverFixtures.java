@@ -1,23 +1,16 @@
 package pokersolver.benchmarks;
 
-import java.io.IOException;
-import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
 import pokersolver.Card;
-import pokersolver.Deck;
 import pokersolver.GameTree;
 import pokersolver.SolverEnvironment;
-import pokersolver.compairer.Compairer;
 import pokersolver.solver.GameTreeBuildingSettings;
 
 /**
  * Shared scenario fixtures for all benchmarks.
  *
- * <p>The solve scenario mirrors {@code benchmarks/benchmark_river.txt} / {@code
- * benchmark_turn.txt} (the historical piosolver comparison runs): pot 180, effective stacks 910,
- * 50%-pot bets and raises, all-in enabled on turn and river.
+ * <p>A deep, realistic spot: pot 180, effective stacks 910, 50%-pot bets and raises, all-in enabled
+ * on turn and river.
  */
 final class SolverFixtures {
 
@@ -44,26 +37,6 @@ final class SolverFixtures {
 
     static final int ROUND_RIVER = 4;
 
-    static final int HOLDEM_DICT_LINES = 2598961;
-
-    static Path testResources() {
-        String dir = Objects.requireNonNull(
-                System.getProperty("solver.testResources"),
-                "system property solver.testResources not set; run through Gradle's jmh task");
-        return Path.of(dir);
-    }
-
-    static Deck holdemDeck() {
-        List<String> ranks = Arrays.asList("A", "K", "Q", "J", "T", "9", "8", "7", "6", "5", "4", "3", "2");
-        List<String> suits = Arrays.asList("h", "s", "d", "c");
-        return new Deck(ranks, suits);
-    }
-
-    static Compairer holdemCompairer() throws IOException {
-        Path dict = testResources().resolve("compairer/card5_dic_sorted.txt");
-        return SolverEnvironment.compairerFromFile("Dic5Compairer", dict.toString(), HOLDEM_DICT_LINES);
-    }
-
     static int[] boardInts(String board) {
         return Arrays.stream(board.split(",")).mapToInt(Card::strCard2int).toArray();
     }
@@ -72,7 +45,7 @@ final class SolverFixtures {
      * Builds a fresh game tree for the scenario. A new tree is needed per solve because training
      * mutates the trainables attached to its action nodes.
      */
-    static GameTree buildTree(Deck deck, int round) {
+    static GameTree buildTree(int round) {
         GameTreeBuildingSettings.StreetSetting noAllin =
                 new GameTreeBuildingSettings.StreetSetting(new float[] {50.0f}, new float[] {50.0f}, null, false);
         GameTreeBuildingSettings.StreetSetting withAllin =
@@ -80,6 +53,6 @@ final class SolverFixtures {
         GameTreeBuildingSettings settings =
                 new GameTreeBuildingSettings(noAllin, withAllin, withAllin, noAllin, withAllin, withAllin);
         return SolverEnvironment.gameTreeFromParams(
-                deck, POT / 2, POT / 2, round, 5, 0.5f, 1.0f, EFFECTIVE_STACK + POT / 2, settings);
+                POT / 2, POT / 2, round, 5, 0.5f, 1.0f, EFFECTIVE_STACK + POT / 2, settings);
     }
 }
