@@ -3,7 +3,7 @@
 /** The thirteen hold'em ranks, high first. The grid, the board picker and the deck all order by it. */
 export const RANKS = ["A", "K", "Q", "J", "T", "9", "8", "7", "6", "5", "4", "3", "2"];
 
-export const SUITS = ["h", "s", "d", "c"];
+export const SUITS = ["s", "h", "d", "c"];
 
 /**
  * Grid cell label for row i / column j:
@@ -91,4 +91,6 @@ export function deckCards(): string[] {
 }
 
 export const SUIT_SYMBOL: Record<string, string> = { h: "♥", s: "♠", d: "♦", c: "♣" };
-export const SUIT_COLOR: Record<string, string> = { h: "#e74c3c", s: "#ecf0f1", d: "#3498db", c: "#2ecc71" };
+
+/** Four-colour deck, muted for a paper ground: spades ink, hearts red, diamonds blue, clubs green. */
+export const SUIT_COLOR: Record<string, string> = { s: "#16181d", h: "#b8342a", d: "#2b5cd9", c: "#1f7a4c" };

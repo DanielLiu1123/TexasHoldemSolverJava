@@ -1,41 +1,26 @@
-import { useId, useState } from "react";
+import { useId } from "react";
 import type { ReactNode } from "react";
 
-/** A numbered step section with a plain-language title and one-line hint. */
-export function Section({
-  step,
-  title,
-  hint,
-  done,
-  children,
-}: {
-  step: number;
-  title: string;
-  hint?: ReactNode;
-  done?: boolean;
-  children: ReactNode;
-}) {
+/**
+ * A titled block, separated from its neighbours by a rule. The label sits in a fixed gutter so every
+ * section aligns on the same vertical line; the optional note earns its place only where the control
+ * below it is not self-explanatory.
+ */
+export function Section({ label, note, children }: { label: string; note?: ReactNode; children: ReactNode }) {
   return (
-    <section className={`step${done ? " step-done" : ""}`}>
-      <div className="step-head">
-        <span className="step-num" aria-hidden>
-          {done ? "✓" : step}
-        </span>
-        <div>
-          <h2 className="step-title">{title}</h2>
-          {hint && <p className="step-hint">{hint}</p>}
-        </div>
+    <section className="section">
+      <div className="section-head">
+        <h2>{label}</h2>
+        {note && <p>{note}</p>}
       </div>
-      <div className="step-body">{children}</div>
+      {children}
     </section>
   );
 }
 
-
-/** A labeled numeric field with a short hint underneath. */
+/** A labelled numeric input. */
 export function Field({
   label,
-  hint,
   value,
   onChange,
   step,
@@ -43,7 +28,6 @@ export function Field({
   suffix,
 }: {
   label: string;
-  hint?: string;
   value: number;
   onChange: (value: number) => void;
   step?: number;
@@ -52,7 +36,7 @@ export function Field({
 }) {
   const id = useId();
   return (
-    <div className="field">
+    <div>
       <label htmlFor={id} className="field-label">
         {label}
       </label>
@@ -67,48 +51,16 @@ export function Field({
         />
         {suffix && <span className="field-suffix">{suffix}</span>}
       </div>
-      {hint && <p className="field-hint">{hint}</p>}
     </div>
   );
 }
 
-/** A disclosure block — collapsed by default unless `defaultOpen`. */
-export function Collapsible({
-  title,
-  subtitle,
-  defaultOpen = false,
-  children,
-}: {
-  title: string;
-  subtitle?: string;
-  defaultOpen?: boolean;
-  children: ReactNode;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
+/** A labelled readout. The label is small and quiet; the number is the point. */
+export function Stat({ label, value, tone }: { label: string; value: ReactNode; tone?: string }) {
   return (
-    <div className={`disclosure${open ? " disclosure-open" : ""}`}>
-      <button type="button" className="disclosure-head" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
-        <span className="disclosure-caret" aria-hidden>
-          ▸
-        </span>
-        <span className="disclosure-title">{title}</span>
-        {subtitle && <span className="disclosure-sub">{subtitle}</span>}
-      </button>
-      {open && <div className="disclosure-body">{children}</div>}
+    <div>
+      <span className="stat-label">{label}</span>
+      <span className={tone ? `stat-value ${tone}` : "stat-value"}>{value}</span>
     </div>
-  );
-}
-
-/** A small "?" affordance that reveals an explanation on hover/focus. */
-export function InfoTip({ children }: { children: ReactNode }) {
-  return (
-    <span className="infotip" tabIndex={0}>
-      <span className="infotip-mark" aria-hidden>
-        ?
-      </span>
-      <span className="infotip-body" role="tooltip">
-        {children}
-      </span>
-    </span>
   );
 }
