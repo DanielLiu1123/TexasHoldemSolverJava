@@ -1,112 +1,101 @@
 package pokersolver;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.SafeConstructor;
 
 /**
- * Created by huangxuefeng on 2019/10/6.
- * Config parser
+ * A solve scenario read from YAML: which deck to play with, and which game-tree file to solve.
+ *
+ * <p>Older configuration files also name a {@code compairer} dictionary. That key is ignored — hand
+ * ranks are now derived from the deck rather than loaded from a file (see {@link
+ * pokersolver.eval.HandEvaluator}) — so those files still load.
  */
-public class Config {
-    @Nullable
-    List<String> ranks;
+public final class Config {
+
+    private final List<String> ranks;
+    private final List<String> suits;
 
     @Nullable
-    List<String> suits;
+    private final String treeBuilderJson;
 
-    // Compairer configures
-    @Nullable
-    String compairerType;
-
-    @Nullable
-    String compairerDicDir;
-
-    int compairerLines;
-
-    // Tree builder configures
-    Boolean treeBuilder = false;
-
-    @Nullable
-    String treeBuilderJson;
-
-    @Nullable
-    String solverType;
-
-    @SuppressWarnings({"unchecked", "NullAway"})
-    public Config(String inputFile) throws FileNotFoundException, ClassNotFoundException {
-        Yaml yamlReader = new Yaml(new SafeConstructor(new LoaderOptions()));
-        File configFile = new File(inputFile);
-        FileInputStream fileInputStream = new FileInputStream(configFile);
-        Map map = yamlReader.load(fileInputStream);
-        parseMap(map);
-        resolveRelativePaths(configFile.getParentFile().getAbsolutePath());
+    public Config(String inputFile) {
+        this(read(Path.of(inputFile)), Path.of(inputFile).toAbsolutePath().getParent());
     }
 
-    @SuppressWarnings({"unchecked", "NullAway"})
-    public Config(InputStream inputStream, String baseDir) throws ClassNotFoundException {
-        Yaml yamlReader = new Yaml(new SafeConstructor(new LoaderOptions()));
-        Map map = yamlReader.load(inputStream);
-        parseMap(map);
-        resolveRelativePaths(baseDir);
+    public Config(InputStream inputStream, String baseDir) {
+        this(read(inputStream), Path.of(baseDir));
     }
 
-    @SuppressWarnings({"unchecked", "NullAway"})
-    private void parseMap(Map map) {
-        for (Object name : map.keySet()) {
-            String key = name.toString();
-            Object value = map.get(key);
-            switch (key) {
-                case "deck" -> {
-                    Map deckdic = (Map) value;
-                    ranks = (List<String>) ((Map) deckdic.get("kwargs")).get("rank");
-                    suits = (List<String>) ((Map) deckdic.get("kwargs")).get("suit");
-                }
-                case "compairer" -> {
-                    Map kwargs = (Map) ((Map) value).get("kwargs");
-                    String dicDir = (String) kwargs.get("dicfile");
-                    String type = (String) ((Map) value).get("type");
-                    int lines = (Integer) kwargs.get("lines");
-                    this.compairerDicDir = dicDir;
-                    this.compairerType = type;
-                    this.compairerLines = lines;
-                }
-                case "tree_builder" -> {
-                    this.treeBuilder = true;
-                    Map kwargs = (Map) ((Map) value).get("kwargs");
-                    String jsonFile = (String) kwargs.get("json_file");
-                    this.treeBuilderJson = jsonFile;
-                }
-                case "solver" -> {
-                    String type = (String) ((Map) value).get("type");
-                    solverType = type;
-                }
-            }
+    @SuppressWarnings("unchecked")
+    private Config(Map<String, Object> yaml, @Nullable Path baseDir) {
+        Map<String, Object> deck = (Map<String, Object>) kwargs(yaml, "deck");
+        this.ranks = (List<String>) Objects.requireNonNull(deck.get("rank"), "deck.kwargs.rank");
+        this.suits = (List<String>) Objects.requireNonNull(deck.get("suit"), "deck.kwargs.suit");
+
+        Object treeBuilder = yaml.get("tree_builder");
+        if (treeBuilder == null) {
+            this.treeBuilderJson = null;
+        } else {
+            Map<String, Object> kwargs = (Map<String, Object>) kwargs(yaml, "tree_builder");
+            String jsonFile = (String) Objects.requireNonNull(kwargs.get("json_file"), "tree_builder.kwargs.json_file");
+            this.treeBuilderJson = resolve(jsonFile, baseDir);
         }
     }
 
-    private void resolveRelativePaths(String baseDir) {
-        compairerDicDir = resolveResourcePath(compairerDicDir, baseDir);
+    @SuppressWarnings("unchecked")
+    private static Object kwargs(Map<String, Object> yaml, String section) {
+        Map<String, Object> node =
+                (Map<String, Object>) Objects.requireNonNull(yaml.get(section), () -> "missing section: " + section);
+        return Objects.requireNonNull(node.get("kwargs"), () -> section + ".kwargs");
     }
 
-    private @Nullable String resolveResourcePath(@Nullable String path, String baseDir) {
-        if (path == null || Paths.get(path).isAbsolute()) return path;
-        // Try relative to baseDir directly (production distribution layout)
-        Path resolved = Paths.get(baseDir).resolve(path).normalize();
-        if (resolved.toFile().exists()) return resolved.toString();
-        // Fallback: try src/test/resources/<path> relative to baseDir (IDE development layout)
-        Path testFallback =
-                Paths.get(baseDir).resolve("src/test/resources").resolve(path).normalize();
-        if (testFallback.toFile().exists()) return testFallback.toString();
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> read(Path path) {
+        try (InputStream in = Files.newInputStream(path)) {
+            return read(in);
+        } catch (IOException e) {
+            throw new UncheckedIOException("cannot read config: " + path, e);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> read(InputStream in) {
+        return (Map<String, Object>) new Yaml(new SafeConstructor(new LoaderOptions())).load(in);
+    }
+
+    /** Resolves a path relative to the config file, then relative to that file's {@code src/test/resources}. */
+    private static String resolve(String path, @Nullable Path baseDir) {
+        Path candidate = Path.of(path);
+        if (candidate.isAbsolute() || baseDir == null) return path;
+
+        Path direct = baseDir.resolve(path).normalize();
+        if (Files.exists(direct)) return direct.toString();
+
+        Path testResources = baseDir.resolve("src/test/resources").resolve(path).normalize();
+        if (Files.exists(testResources)) return testResources.toString();
+
         return path;
+    }
+
+    public List<String> ranks() {
+        return ranks;
+    }
+
+    public List<String> suits() {
+        return suits;
+    }
+
+    public @Nullable String treeBuilderJson() {
+        return treeBuilderJson;
     }
 }

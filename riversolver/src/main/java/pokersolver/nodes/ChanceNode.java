@@ -1,51 +1,41 @@
 package pokersolver.nodes;
 
-import java.util.ArrayList;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 import pokersolver.Card;
-import pokersolver.trainable.Trainable;
 
 /**
- * Created by huangxuefeng on 2019/10/7.
- * This file contians action node implementation
+ * A node where the next community card is dealt: one child per card in the deck, including the cards
+ * the running board has already used. The traversal skips those children rather than pruning them,
+ * so a chance node's children stay index-aligned with {@link pokersolver.Deck#getCards()}.
+ *
+ * <p>A chance node whose round is {@code RIVER} deals the river card — it sits <em>between</em> the
+ * turn and the river, not on it.
+ *
+ * @see #isDonk()
  */
-public class ChanceNode extends GameTreeNode {
-    // 如果一个chance node的game round是river，那么实际上它是一个介于turn和river之间的发牌节点
-    List<GameTreeNode> children;
+public final class ChanceNode extends GameTreeNode {
 
-    @Nullable
-    Trainable trainable;
-
-    int player;
-
-    List<Card> cards;
-
-    boolean donk;
+    private final List<Card> cards;
+    private final boolean donk;
+    private List<GameTreeNode> children;
 
     public ChanceNode(
-            @Nullable List<GameTreeNode> children,
+            List<GameTreeNode> children,
             GameRound round,
             double pot,
             @Nullable GameTreeNode parent,
             List<Card> cards,
             boolean donk) {
         super(round, pot, parent);
-        this.children = children != null ? children : new ArrayList<>();
+        this.children = children;
         this.cards = cards;
         this.donk = donk;
     }
 
     public ChanceNode(
-            @Nullable List<GameTreeNode> children,
-            GameRound round,
-            double pot,
-            @Nullable GameTreeNode parent,
-            List<Card> cards) {
-        super(round, pot, parent);
-        this.children = children != null ? children : new ArrayList<>();
-        this.cards = cards;
-        this.donk = false;
+            List<GameTreeNode> children, GameRound round, double pot, @Nullable GameTreeNode parent, List<Card> cards) {
+        this(children, round, pot, parent, cards, false);
     }
 
     public List<Card> getCards() {
@@ -56,27 +46,14 @@ public class ChanceNode extends GameTreeNode {
         return children;
     }
 
-    public int getPlayer() {
-        return player;
-    }
-
-    public @Nullable Trainable getTrainable() {
-        return trainable;
-    }
-
-    public void setTrainable(Trainable trainable) {
-        this.trainable = trainable;
-    }
-
     public void setChildren(List<GameTreeNode> children) {
         this.children = children;
     }
 
-    @Override
-    public GameTreeNodeType getType() {
-        return GameTreeNodeType.CHANCE;
-    }
-
+    /**
+     * Whether the out-of-position player closed the previous round by calling, which lets them lead
+     * ("donk bet") into the next one with their own bet sizes.
+     */
     public boolean isDonk() {
         return donk;
     }

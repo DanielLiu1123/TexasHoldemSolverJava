@@ -2,17 +2,15 @@ package pokersolver.solver;
 
 import pokersolver.GameTree;
 
-/**
- * Created by huangxuefeng on 2019/10/9.
- * contains an abstract class Solver for cfr or other things.
- */
+/** Trains a strategy on a game tree until it converges or runs out of iterations. */
 public abstract class Solver {
 
-    GameTree tree;
+    private final GameTree tree;
 
+    /** Set from any thread; observed by {@code train()} at each iteration boundary. */
     protected volatile boolean stopRequested;
 
-    public Solver(GameTree tree) {
+    protected Solver(GameTree tree) {
         this.tree = tree;
     }
 
@@ -22,7 +20,7 @@ public abstract class Solver {
 
     /**
      * Requests training to stop at the next iteration boundary. Safe to call from any thread;
-     * {@code train()} returns normally after the current iteration completes.
+     * {@link #train()} returns normally once the current iteration completes.
      */
     public void requestStop() {
         this.stopRequested = true;

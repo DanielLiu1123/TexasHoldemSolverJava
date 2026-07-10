@@ -21,14 +21,14 @@ comparison across commits).
 
 | Class | Measures |
 | --- | --- |
-| `HandRankBenchmark` | `Dic5Compairer.get_rank` lookup — the inner loop of showdown evaluation |
+| `HandRankBenchmark` | `HandEvaluator.rank` — the inner loop of showdown evaluation |
 | `TreeBuildingBenchmark` | Full game-tree construction (turn and river trees) |
 | `RiverSolveBenchmark` | Fixed 20-iteration river solve, single-threaded vs parallel CFR+ |
 | `TurnSolveBenchmark` | Fixed 10-iteration parallel turn solve (chance-node fan-out) |
 
-The compairer dictionary is loaded from `riversolver/src/test/resources` via the
-`solver.testResources` system property, wired in `build.gradle.kts` — run the benchmarks
-through Gradle, not a bare JMH jar.
+`AlgorithmBakeoff` (in `riversolver`'s test sources, `@Disabled`) is the companion measurement
+for the CFR variants: it prints exploitability per variant per scenario, and is what
+[ADR 0003](../docs/adr/0003-discounted-cfr-remains-the-default.md) is based on.
 
 The legacy `benchmark_*.txt` files are the original piosolver comparison scenario exports;
 they are kept as documentation of the scenario parameters.

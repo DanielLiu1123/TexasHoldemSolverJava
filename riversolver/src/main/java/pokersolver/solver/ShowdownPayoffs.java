@@ -1,74 +1,90 @@
 package pokersolver.solver;
 
-import pokersolver.ranges.RiverCombs;
+import pokersolver.ranges.RiverRange;
 
 /**
- * The showdown payoff kernel: given both players' river combos sorted by hand strength, computes
- * each of the player's hands' expected payoff against the opponent's reach-weighted range.
+ * The showdown payoff kernel: given both players' ranges on a complete board, computes each of the
+ * player's hands' expected payoff against the opponent's reach-weighted range.
  *
- * <p>Two ascending/descending sweeps over the rank-sorted combos accumulate the opponent mass the
- * player beats (win) and loses to (lose), subtracting the card-blocking contribution of the
- * player's own two cards. This is the inner loop shared by the CFR traversal ({@link
- * AbstractCfrSolver#showdownUtility}) and the best-response evaluator ({@link
- * BestResponse#showdownBestResponse}); it was previously copy-pasted, byte for byte, in both.
+ * <p>Both ranges arrive sorted weakest-first, which lets two linear sweeps replace the quadratic
+ * hand-versus-hand comparison. Sweeping up, a running total accumulates the opponent mass every
+ * player hand beats; sweeping down, the mass it loses to. Ties fall in the gap between the two
+ * sweeps and contribute nothing, which is what a chopped pot pays.
+ *
+ * <p>Card removal is folded into the same sweeps: {@code cardWinsum[c]} tracks how much of the
+ * accumulated opponent mass holds card {@code c}, so subtracting the player's two cards removes
+ * exactly the opponent combos that its own hole cards make impossible.
+ *
+ * <p>This is the inner loop shared by the CFR traversal ({@link AbstractCfrSolver#showdownUtility})
+ * and the best-response evaluator ({@link BestResponse#showdownBestResponse}).
  */
 final class ShowdownPayoffs {
+
+    private static final int DECK_SIZE = 52;
 
     private ShowdownPayoffs() {}
 
     /**
-     * @param playerCombs the player's river combos, ascending by rank
-     * @param oppoCombs the opponent's river combos, ascending by rank
-     * @param oppoReach opponent reach probabilities, indexed by {@link RiverCombs#reach_prob_index}
-     * @param winPayoff the player's payoff when winning the showdown
-     * @param losePayoff the player's payoff when losing the showdown
-     * @param payoffsLength the size of the returned array (the player's hand count)
-     * @return payoffs indexed by {@link RiverCombs#reach_prob_index}
+     * Computes each of the player's hands' expected payoff against the opponent's weighted range.
+     *
+     * @param player the player's range on this board, weakest hand first
+     * @param opponent the opponent's range on this board, weakest hand first
+     * @param opponentReach opponent reach probabilities, indexed by {@link RiverRange#reachIndex()}
+     * @param winPayoff the player's payoff when it wins the showdown
+     * @param losePayoff the player's payoff when it loses (negative)
+     * @param payoffsLength the size of the returned array — the player's unfiltered hand count
+     * @return payoffs indexed by {@link RiverRange#reachIndex()}
      */
     static float[] compute(
-            RiverCombs[] playerCombs,
-            RiverCombs[] oppoCombs,
-            float[] oppoReach,
+            RiverRange player,
+            RiverRange opponent,
+            float[] opponentReach,
             float winPayoff,
             float losePayoff,
             int payoffsLength) {
         float[] payoffs = new float[payoffsLength];
+        int[] playerRanks = player.ranks();
+        int[] playerCard1 = player.card1();
+        int[] playerCard2 = player.card2();
+        int[] playerIndex = player.reachIndex();
+        int[] oppoRanks = opponent.ranks();
+        int[] oppoCard1 = opponent.card1();
+        int[] oppoCard2 = opponent.card2();
+        int[] oppoIndex = opponent.reachIndex();
+        int oppoSize = oppoRanks.length;
 
-        // Hands the player beats: sweep opponents weaker than each player hand (ascending rank).
-        float winsum = 0;
-        float[] cardWinsum = new float[52];
+        // Hands the player beats. Both ranges run weakest-first, so as the player hand strengthens
+        // (rank falls) the opponent cursor only ever moves forward.
+        float winSum = 0;
+        float[] cardWinSum = new float[DECK_SIZE];
         int j = 0;
-        for (RiverCombs onePlayerComb : playerCombs) {
-            while (j < oppoCombs.length && onePlayerComb.rank < oppoCombs[j].rank) {
-                RiverCombs oneOppoComb = oppoCombs[j];
-                winsum += oppoReach[oneOppoComb.reachProbIndex];
-                cardWinsum[oneOppoComb.privateCards.card1] += oppoReach[oneOppoComb.reachProbIndex];
-                cardWinsum[oneOppoComb.privateCards.card2] += oppoReach[oneOppoComb.reachProbIndex];
+        for (int i = 0; i < playerRanks.length; i++) {
+            int rank = playerRanks[i];
+            while (j < oppoSize && rank < oppoRanks[j]) {
+                float reach = opponentReach[oppoIndex[j]];
+                winSum += reach;
+                cardWinSum[oppoCard1[j]] += reach;
+                cardWinSum[oppoCard2[j]] += reach;
                 j++;
             }
-            payoffs[onePlayerComb.reachProbIndex] = (winsum
-                            - cardWinsum[onePlayerComb.privateCards.card1]
-                            - cardWinsum[onePlayerComb.privateCards.card2])
-                    * winPayoff;
+            payoffs[playerIndex[i]] = (winSum - cardWinSum[playerCard1[i]] - cardWinSum[playerCard2[i]]) * winPayoff;
         }
 
-        // Hands the player loses to: sweep opponents stronger than each player hand (descending).
-        float losssum = 0;
-        float[] cardLosssum = new float[52];
-        j = oppoCombs.length - 1;
-        for (int i = playerCombs.length - 1; i >= 0; i--) {
-            RiverCombs onePlayerComb = playerCombs[i];
-            while (j >= 0 && onePlayerComb.rank > oppoCombs[j].rank) {
-                RiverCombs oneOppoComb = oppoCombs[j];
-                losssum += oppoReach[oneOppoComb.reachProbIndex];
-                cardLosssum[oneOppoComb.privateCards.card1] += oppoReach[oneOppoComb.reachProbIndex];
-                cardLosssum[oneOppoComb.privateCards.card2] += oppoReach[oneOppoComb.reachProbIndex];
+        // Hands the player loses to: the mirror sweep, from the strongest hand down.
+        float lossSum = 0;
+        float[] cardLossSum = new float[DECK_SIZE];
+        j = oppoSize - 1;
+        for (int i = playerRanks.length - 1; i >= 0; i--) {
+            int rank = playerRanks[i];
+            while (j >= 0 && rank > oppoRanks[j]) {
+                float reach = opponentReach[oppoIndex[j]];
+                lossSum += reach;
+                cardLossSum[oppoCard1[j]] += reach;
+                cardLossSum[oppoCard2[j]] += reach;
                 j--;
             }
-            payoffs[onePlayerComb.reachProbIndex] += (losssum
-                            - cardLosssum[onePlayerComb.privateCards.card1]
-                            - cardLosssum[onePlayerComb.privateCards.card2])
-                    * losePayoff;
+            payoffs[playerIndex[i]] +=
+                    (lossSum - cardLossSum[playerCard1[i]] - cardLossSum[playerCard2[i]]) * losePayoff;
         }
         return payoffs;
     }

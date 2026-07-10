@@ -1,105 +1,40 @@
 package pokersolver.nodes;
 
+import java.util.List;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Created by huangxuefeng on 2019/10/7.
- * This class contains code of the game tree's node
+ * A node of the post-flop game tree.
+ *
+ * <p>The hierarchy is sealed, so every traversal is a {@code switch} the compiler checks for
+ * exhaustiveness — no node-type tag, no downcast, and no unreachable {@code default} branch that
+ * would silently swallow a fifth kind of node if one were ever added:
+ *
+ * <pre>{@code
+ * float[] utility = switch (node) {
+ *     case ActionNode action -> actionUtility(action, ...);
+ *     case ChanceNode chance -> chanceUtility(chance, ...);
+ *     case ShowdownNode showdown -> showdownUtility(showdown, ...);
+ *     case TerminalNode terminal -> terminalUtility(terminal, ...);
+ * };
+ * }</pre>
  */
-public abstract class GameTreeNode {
-    public enum PokerActions {
-        BEGIN,
-        ROUNDBEGIN,
-        BET,
-        RAISE,
-        CHECK,
-        FOLD,
-        CALL
-    }
+public abstract sealed class GameTreeNode permits ActionNode, ChanceNode, ShowdownNode, TerminalNode {
 
-    public enum GameTreeNodeType {
-        ACTION,
-        SHOWDOWN,
-        TERMINAL,
-        CHANCE
-    }
-
-    public enum GameRound {
-        PREFLOP,
-        FLOP,
-        TURN,
-        RIVER;
-
-        public static GameRound fromInt(int round) {
-            return switch (round) {
-                case 1 -> PREFLOP;
-                case 2 -> FLOP;
-                case 3 -> TURN;
-                case 4 -> RIVER;
-                default ->
-                    throw new pokersolver.exceptions.RoundNotFoundException(String.format("round %s not found", round));
-            };
-        }
-
-        public static GameRound fromString(String round) {
-            return switch (round) {
-                case "preflop" -> PREFLOP;
-                case "flop" -> FLOP;
-                case "turn" -> TURN;
-                case "river" -> RIVER;
-                default ->
-                    throw new pokersolver.exceptions.RoundNotFoundException(String.format("round %s not found", round));
-            };
-        }
-    }
-
-    GameRound round;
-    double pot;
+    private final GameRound round;
+    private final double pot;
 
     @Nullable
-    GameTreeNode parent;
+    private GameTreeNode parent;
 
+    /** Distance from the root; filled in by {@code GameTree} once the tree is built. */
     public int depth;
+
+    /** Number of nodes in this node's subtree, including itself; filled in by {@code GameTree}. */
     public int subtreeSize;
 
-    public static String gameRound2String(GameRound gameRound) {
-        if (gameRound == GameRound.PREFLOP) {
-            return "preflop";
-        } else if (gameRound == GameRound.FLOP) {
-            return "flop";
-        } else if (gameRound == GameRound.TURN) {
-            return "turn";
-        } else if (gameRound == GameRound.RIVER) {
-            return "river";
-        }
-        throw new RuntimeException("round not found");
-    }
-
-    public static int gameRound2int(GameRound gameRound) {
-        if (gameRound == GameRound.PREFLOP) {
-            return 0;
-        } else if (gameRound == GameRound.FLOP) {
-            return 1;
-        } else if (gameRound == GameRound.TURN) {
-            return 2;
-        } else if (gameRound == GameRound.RIVER) {
-            return 3;
-        }
-        throw new RuntimeException("round not found");
-    }
-
-    public @Nullable GameTreeNode getParent() {
-        return parent;
-    }
-
-    public void setParent(@Nullable GameTreeNode parent) {
-        this.parent = parent;
-    }
-
-    public GameTreeNode(GameRound round, double pot, @Nullable GameTreeNode parent) {
-        if (round == null) {
-            throw new RuntimeException("round is null in GameTreeNode");
-        }
+    protected GameTreeNode(GameRound round, double pot, @Nullable GameTreeNode parent) {
+        if (round == null) throw new IllegalArgumentException("round is null");
         this.round = round;
         this.pot = pot;
         this.parent = parent;
@@ -113,39 +48,47 @@ public abstract class GameTreeNode {
         return pot;
     }
 
-    public void printHistory() {
-        GameTreeNode.printNodeHistory(this);
+    public @Nullable GameTreeNode getParent() {
+        return parent;
     }
 
-    public static void printNodeHistory(GameTreeNode node) {
-        while (node != null) {
-            GameTreeNode parentNode = node.parent;
-            if (parentNode == null) break;
-            if (parentNode instanceof ActionNode actionNode) {
-                for (int i = 0; i < actionNode.getActions().size(); i++) {
-                    if (actionNode.getChildren().get(i) == node) {
-                        System.out.print(String.format(
-                                "<- (player %s %s)",
-                                actionNode.getPlayer(),
-                                actionNode.getActions().get(i).toString()));
-                    }
-                }
-            } else if (parentNode instanceof ChanceNode chanceNode) {
-                for (int i = 0; i < chanceNode.getChildren().size(); i++) {
-                    if (chanceNode.getChildren().get(i) == node) {
-                        System.out.print(String.format(
-                                "<- (deal card %s)",
-                                chanceNode.getCards().get(i).toString()));
-                    }
-                }
+    public void setParent(@Nullable GameTreeNode parent) {
+        this.parent = parent;
+    }
 
-            } else {
-                System.out.print(String.format("<- (%s)", node.toString()));
-            }
-            node = parentNode;
+    /** The path from the root to this node, as the edge labels taken to reach it. */
+    public String history() {
+        StringBuilder path = new StringBuilder();
+        for (GameTreeNode node = this; node.parent != null; node = node.parent) {
+            path.insert(0, " <- " + edgeLabel(node.parent, node));
         }
-        System.out.println();
+        return path.isEmpty() ? "(root)" : path.substring(4);
     }
 
-    public abstract GameTreeNodeType getType();
+    private static String edgeLabel(GameTreeNode parent, GameTreeNode child) {
+        return switch (parent) {
+            case ActionNode action -> {
+                int index = indexOfIdentical(action.getChildren(), child);
+                yield index < 0
+                        ? "?"
+                        : "player %d %s"
+                                .formatted(
+                                        action.getPlayer(),
+                                        action.getActions().get(index).label());
+            }
+            case ChanceNode chance -> {
+                int index = indexOfIdentical(chance.getChildren(), child);
+                yield index < 0 ? "?" : "deal " + chance.getCards().get(index);
+            }
+            case ShowdownNode ignored -> "showdown";
+            case TerminalNode ignored -> "terminal";
+        };
+    }
+
+    private static int indexOfIdentical(List<GameTreeNode> children, GameTreeNode child) {
+        for (int i = 0; i < children.size(); i++) {
+            if (children.get(i) == child) return i;
+        }
+        return -1;
+    }
 }

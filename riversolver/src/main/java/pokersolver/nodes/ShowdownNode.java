@@ -2,43 +2,31 @@ package pokersolver.nodes;
 
 import org.jspecify.annotations.Nullable;
 
-/**
- * Created by huangxuefeng on 2019/10/7.
- * This file contains implemtation for showdown node, Where each remaining player show thrir holecard, winner take all.
- */
-public class ShowdownNode extends GameTreeNode {
+/** A terminal node where both players are still in and turn their cards over. */
+public final class ShowdownNode extends GameTreeNode {
 
-    double[] tiePayoffs;
-    double[][] playerPayoffs;
+    private final double[] tiePayoffs;
+    private final double[][] winnerPayoffs;
 
     public ShowdownNode(
-            double[] tiePayoffs, double[][] playerPayoffs, GameRound round, double pot, @Nullable GameTreeNode parent) {
+            double[] tiePayoffs, double[][] winnerPayoffs, GameRound round, double pot, @Nullable GameTreeNode parent) {
         super(round, pot, parent);
         this.tiePayoffs = tiePayoffs;
-        this.playerPayoffs = playerPayoffs;
+        this.winnerPayoffs = winnerPayoffs;
     }
 
-    public enum ShowDownResult {
-        NOTTIE,
-        TIE
+    /** Both players' payoffs when {@code winner} takes the pot. */
+    public double[] payoffsIfWins(int winner) {
+        return winnerPayoffs[winner];
     }
 
-    public double[] getPayoffs(ShowDownResult result, @Nullable Integer winner) {
-        if (result == ShowDownResult.NOTTIE) {
-            if (winner == null) throw new RuntimeException("winner must not be null for NOTTIE");
-            double[] retval = playerPayoffs[winner];
-            assert (retval != null);
-            return retval;
-        } else {
-            // (result == ShowDownResult.TIE)
-            assert (winner == null);
-            assert (tiePayoffs != null);
-            return tiePayoffs;
-        }
+    /** Both players' payoffs when the pot is chopped. */
+    public double[] tiePayoffs() {
+        return tiePayoffs;
     }
 
-    @Override
-    public GameTreeNodeType getType() {
-        return GameTreeNodeType.SHOWDOWN;
+    /** How many players this node pays out. */
+    public int playerCount() {
+        return tiePayoffs.length;
     }
 }

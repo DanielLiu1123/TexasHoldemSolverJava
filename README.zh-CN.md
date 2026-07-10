@@ -50,7 +50,7 @@ README [English](README.md) | [中文](README.zh-CN.md)
 启动内嵌服务（同时提供 HTTP API 和打包好的 Web UI），用浏览器打开 <http://localhost:8080>：
 
 ```bash
-./gradlew :solver-api:run --args="--port 8080 --resources riversolver/src/test/resources"
+./gradlew :solver-api:run --args="--port 8080"
 ```
 
 界面提供 range 编辑器、牌面选择器、实时收敛曲线和策略浏览器。

@@ -2,27 +2,25 @@ package pokersolver.nodes;
 
 import org.jspecify.annotations.Nullable;
 
-/**
- * Created by huangxuefeng on 2019/10/7.
- * This file contains implemtation for terminal node, Where all player(s) folds except one player take all.
- */
-public class TerminalNode extends GameTreeNode {
-    double[] payoffs;
-    Integer winner;
+/** A terminal node reached by a fold: the player who did not fold takes the pot uncontested. */
+public final class TerminalNode extends GameTreeNode {
 
-    public TerminalNode(
-            double[] payoffs, Integer winner, GameTreeNode.GameRound round, double pot, @Nullable GameTreeNode parent) {
+    private final double[] payoffs;
+    private final int winner;
+
+    public TerminalNode(double[] payoffs, int winner, GameRound round, double pot, @Nullable GameTreeNode parent) {
         super(round, pot, parent);
         this.payoffs = payoffs;
         this.winner = winner;
     }
 
+    /** Both players' payoffs. */
     public double[] getPayoffs() {
         return payoffs;
     }
 
-    @Override
-    public GameTreeNodeType getType() {
-        return GameTreeNodeType.TERMINAL;
+    /** The player who did not fold. */
+    public int winner() {
+        return winner;
     }
 }

@@ -1,62 +1,83 @@
 package pokersolver.solver;
 
-import java.util.Arrays;
+import static pokersolver.utils.JsonUtil.MAPPER;
+
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pokersolver.Card;
 import pokersolver.Deck;
 import pokersolver.RiverRangeManager;
-import pokersolver.compairer.Compairer;
+import pokersolver.nodes.Action;
 import pokersolver.nodes.ActionNode;
 import pokersolver.nodes.ChanceNode;
-import pokersolver.nodes.GameActions;
+import pokersolver.nodes.GameRound;
 import pokersolver.nodes.GameTreeNode;
 import pokersolver.nodes.ShowdownNode;
 import pokersolver.nodes.TerminalNode;
 import pokersolver.ranges.PrivateCards;
 import pokersolver.ranges.PrivateCardsManager;
-import pokersolver.ranges.RiverCombs;
 import pokersolver.trainable.Trainable;
 import pokersolver.trainable.TrainableFactory;
 import pokersolver.utils.SimdOps;
+import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Common state and the full CFR game-tree traversal shared by all CFR-family solvers.
  *
- * <p>The recursion over {@link ActionNode}/{@link ChanceNode}/{@link ShowdownNode}/{@link
- * TerminalNode} — the showdown win/lose sweep, the terminal card-removal payoff, the chance-node
+ * <p>The recursion — the showdown win/lose sweep, the terminal card-removal payoff, the chance-node
  * reach-probability split, and the action-node regret accumulation — lives here exactly once.
- * Subclasses supply only <em>how</em> a node's children are evaluated via {@link
- * #evaluateChildren}: the single-threaded solver walks them in order, the parallel solver schedules
- * them on a {@link java.util.concurrent.ForkJoinPool}.
+ * Subclasses supply only <em>how</em> a node's children are evaluated via {@link #evaluateChildren}:
+ * the single-threaded solver walks them in order, the parallel solver schedules them on a {@link
+ * java.util.concurrent.ForkJoinPool}.
+ *
+ * <p>Everything reachable from the traversal is either immutable or owned by exactly one node, which
+ * is what lets the parallel solver fork children without locking. The one exception is each action
+ * node's {@link Trainable}, written only by the worker that reached that node with the acting player
+ * as its target — and each node is reached once per player per iteration.
  */
 abstract class AbstractCfrSolver extends Solver {
 
-    PrivateCards[][] ranges;
-    PrivateCards[] range1;
-    PrivateCards[] range2;
-    int[] initialBoard;
-    long initialBoardLong;
-    Compairer compairer;
+    private static final Logger log = LoggerFactory.getLogger(AbstractCfrSolver.class);
 
-    Deck deck;
-    RiverRangeManager rrm;
-    final int playerNumber = 2;
-    int iterationNumber;
-    PrivateCardsManager pcm;
-    boolean debug;
-    int printInterval;
+    static final int PLAYER_COUNT = 2;
+
+    /** Passed down the recursion when every chance node deals every card. */
+    static final double[] NO_SAMPLING = new double[0];
+
+    final PrivateCards[][] ranges;
+    final int[] initialBoard;
+    final long initialBoardLong;
+    final Deck deck;
+    final RiverRangeManager riverRanges;
+    final PrivateCardsManager privateCards;
+    final int iterationNumber;
+    final int printInterval;
+    final MonteCarloAlg monteCarloAlg;
+    final double stopExploitability;
+    final TrainingProgressListener progressListener;
+    final TrainableFactory trainerFactory;
 
     @Nullable
-    String logfile;
+    final String logfile;
 
-    TrainableFactory trainerFactory;
-    int[] roundDeal;
-    MonteCarloAlg monteCarloAlg;
-    double stopExploitability;
-    TrainingProgressListener progressListener;
+    /**
+     * {@code [player][card] -> indices of that player's hands holding the card}. The chance node
+     * zeroes exactly these entries when the card is dealt, instead of testing every hand's mask
+     * against it — a hand holds two of 52 cards, so this touches ~4% of the range per card.
+     */
+    private final int[][][] handsHoldingCard;
 
     protected AbstractCfrSolver(SolverConfig config) {
         super(config.tree());
@@ -64,354 +85,362 @@ abstract class AbstractCfrSolver extends Solver {
         this.initialBoardLong = Card.boardInts2long(config.initialBoard());
         this.logfile = config.logfile();
         this.trainerFactory = config.trainerFactory();
-
-        PrivateCards[] range1 = this.noDuplicateRange(config.range1(), initialBoardLong);
-        PrivateCards[] range2 = this.noDuplicateRange(config.range2(), initialBoardLong);
-
-        this.range1 = range1;
-        this.range2 = range2;
-        this.ranges = new PrivateCards[this.playerNumber][];
-        this.ranges[0] = range1;
-        this.ranges[1] = range2;
-        this.compairer = config.compairer();
         this.deck = config.deck();
-        this.rrm = new RiverRangeManager(config.compairer());
-        this.iterationNumber = config.iterationNumber();
 
-        PrivateCards[][] privateCombos = new PrivateCards[this.playerNumber][];
-        privateCombos[0] = range1;
-        privateCombos[1] = range2;
-        this.pcm = new PrivateCardsManager(privateCombos, this.playerNumber, Card.boardInts2long(this.initialBoard));
-        this.debug = config.debug();
+        this.ranges = new PrivateCards[PLAYER_COUNT][];
+        this.ranges[0] = playableHands(config.range1(), initialBoardLong);
+        this.ranges[1] = playableHands(config.range2(), initialBoardLong);
+
+        this.riverRanges = new RiverRangeManager(config.deck().evaluator());
+        this.iterationNumber = config.iterationNumber();
+        this.privateCards = new PrivateCardsManager(ranges, PLAYER_COUNT, initialBoardLong);
         this.printInterval = config.printInterval();
         this.monteCarloAlg = config.monteCarloAlg();
         this.stopExploitability = config.stopExploitability();
         this.progressListener = config.progressListener();
-        this.roundDeal = new int[0];
+        this.handsHoldingCard = indexHandsByCard(ranges);
     }
 
-    PrivateCards[] playerHands(int player) {
-        if (player == 0) {
-            return range1;
-        } else if (player == 1) {
-            return range2;
-        } else {
-            throw new RuntimeException("player not found");
-        }
-    }
-
-    float[][] getReachProbs() {
-        float[][] retval = new float[this.playerNumber][];
-        for (int player = 0; player < this.playerNumber; player++) {
-            PrivateCards[] playerCards = this.playerHands(player);
-            float[] reachProb = new float[playerCards.length];
-            for (int i = 0; i < playerCards.length; i++) {
-                reachProb[i] = playerCards[i].weight;
+    /** The hands of {@code range} the initial board does not block. Duplicates are a caller bug. */
+    private static PrivateCards[] playableHands(PrivateCards[] range, long boardLong) {
+        Set<PrivateCards> seen = new LinkedHashSet<>(range.length * 2);
+        List<PrivateCards> playable = new ArrayList<>(range.length);
+        for (PrivateCards hand : range) {
+            if (!seen.add(Objects.requireNonNull(hand, "null hand in range"))) {
+                throw new IllegalArgumentException("duplicate hand in range: " + hand);
             }
-            retval[player] = reachProb;
+            if (!Card.boardsHasIntercept(hand.mask(), boardLong)) playable.add(hand);
         }
-        return retval;
+        return playable.toArray(new PrivateCards[0]);
     }
 
-    public PrivateCards[] noDuplicateRange(PrivateCards[] privateRange, long boardLong) {
-        java.util.List<PrivateCards> rangeArray = new java.util.ArrayList<>();
-        java.util.Map<Integer, Boolean> rangeKv = new java.util.HashMap<>();
-        for (PrivateCards oneRange : privateRange) {
-            if (oneRange == null) throw new RuntimeException();
-            if (rangeKv.get(oneRange.hashCode()) != null)
-                throw new RuntimeException(String.format("duplicated key %s", oneRange.toString()));
-            rangeKv.put(oneRange.hashCode(), Boolean.TRUE);
-            long handLong = Card.boardInts2long(new int[] {oneRange.card1, oneRange.card2});
-            if (!Card.boardsHasIntercept(handLong, boardLong)) {
-                rangeArray.add(oneRange);
+    private static int[][][] indexHandsByCard(PrivateCards[][] ranges) {
+        int[][][] index = new int[ranges.length][52][];
+        for (int player = 0; player < ranges.length; player++) {
+            List<List<Integer>> byCard = new ArrayList<>(52);
+            for (int card = 0; card < 52; card++) byCard.add(new ArrayList<>());
+            PrivateCards[] range = ranges[player];
+            for (int hand = 0; hand < range.length; hand++) {
+                byCard.get(range[hand].card1).add(hand);
+                byCard.get(range[hand].card2).add(hand);
+            }
+            for (int card = 0; card < 52; card++) {
+                index[player][card] =
+                        byCard.get(card).stream().mapToInt(Integer::intValue).toArray();
             }
         }
-        PrivateCards[] ret = new PrivateCards[rangeArray.size()];
-        rangeArray.toArray(ret);
-        return ret;
+        return index;
     }
 
-    void setTrainable(GameTreeNode root) {
-        if (root instanceof ActionNode actionNode) {
-            int player = actionNode.getPlayer();
-            PrivateCards[] playerPrivates = this.ranges[player];
-            actionNode.setTrainable(this.trainerFactory.create(actionNode, playerPrivates));
-            List<GameTreeNode> children = actionNode.getChildren();
-            for (GameTreeNode oneChild : children) setTrainable(oneChild);
-        } else if (root instanceof ChanceNode chanceNode) {
-            List<GameTreeNode> children = chanceNode.getChildren();
-            for (GameTreeNode oneChild : children) setTrainable(oneChild);
+    final PrivateCards[] playerHands(int player) {
+        return ranges[player];
+    }
+
+    final float[][] getReachProbs() {
+        float[][] reachProbs = new float[PLAYER_COUNT][];
+        for (int player = 0; player < PLAYER_COUNT; player++) {
+            PrivateCards[] hands = ranges[player];
+            float[] reach = new float[hands.length];
+            for (int i = 0; i < hands.length; i++) reach[i] = hands[i].weight;
+            reachProbs[player] = reach;
         }
+        return reachProbs;
+    }
+
+    final void setTrainable(GameTreeNode node) {
+        switch (node) {
+            case ActionNode action -> {
+                action.setTrainable(trainerFactory.create(action, ranges[action.getPlayer()]));
+                for (GameTreeNode child : action.getChildren()) setTrainable(child);
+            }
+            case ChanceNode chance -> {
+                for (GameTreeNode child : chance.getChildren()) setTrainable(child);
+            }
+            case ShowdownNode ignored -> {}
+            case TerminalNode ignored -> {}
+        }
+    }
+
+    /**
+     * Draws one card per betting round for this iteration, as fractions in {@code [0, 1)}.
+     *
+     * <p>Under {@link MonteCarloAlg#PUBLIC} a chance node deals a single sampled card rather than
+     * all of them, and every chance node in the same round must deal the same one. Sampling up front
+     * and passing the draw down the recursion keeps that agreement without a field the forked
+     * workers would race on.
+     */
+    final double[] sampleRoundDeals() {
+        if (monteCarloAlg != MonteCarloAlg.PUBLIC) return NO_SAMPLING;
+        double[] samples = new double[GameRound.values().length];
+        for (int i = 0; i < samples.length; i++)
+            samples[i] = ThreadLocalRandom.current().nextDouble();
+        return samples;
     }
 
     /**
      * Evaluates each non-null {@code children[k]} under {@code childReachProbs[k]} on board {@code
      * childBoards[k]}, returning the per-index utility arrays (null where the child is null). The
-     * scheduling discipline — sequential or work-stealing — is the subclass's only degree of
-     * freedom over the shared traversal.
+     * scheduling discipline — sequential or work-stealing — is the subclass's only degree of freedom
+     * over the shared traversal.
      */
     protected abstract float[][] evaluateChildren(
             int player,
-            int iter,
+            int iteration,
             GameTreeNode parent,
             GameTreeNode[] children,
             float[][][] childReachProbs,
-            long[] childBoards);
+            long[] childBoards,
+            double[] roundDeals);
 
-    float[] cfr(int player, GameTreeNode node, float[][] reachProbs, int iter, long currentBoard) {
-        return switch (node.getType()) {
-            case ACTION -> actionUtility(player, (ActionNode) node, reachProbs, iter, currentBoard);
-            case SHOWDOWN -> showdownUtility(player, (ShowdownNode) node, reachProbs, currentBoard);
-            case TERMINAL -> terminalUtility(player, (TerminalNode) node, reachProbs, currentBoard);
-            case CHANCE -> chanceUtility(player, (ChanceNode) node, reachProbs, iter, currentBoard);
-            default -> throw new RuntimeException("node type unknown");
+    /** Runs one player's pass over the whole tree, however the subclass schedules it. */
+    protected abstract float[] traverse(
+            int player, GameTreeNode root, float[][] reachProbs, int iteration, long board, double[] roundDeals);
+
+    /** Called once when training finishes, whether by convergence, exhaustion, or cancellation. */
+    protected void onTrainingFinished() {}
+
+    /**
+     * Alternating-update CFR: each iteration walks the tree once per player, updating only that
+     * player's regrets, then measures exploitability every {@code printInterval} iterations and
+     * stops early once it falls below {@code stopExploitability}.
+     */
+    @Override
+    public final void train() throws IOException {
+        setTrainable(getTree().getRoot());
+        GameTreeNode root = getTree().getRoot();
+        BestResponse bestResponse = new BestResponse(ranges, PLAYER_COUNT, privateCards, riverRanges);
+        float[][] reachProbs = getReachProbs();
+        float pot = (float) root.getPot();
+
+        log.info("iteration 0: exploitability {}% of pot", format(exploitability(bestResponse, root, pot)));
+
+        try (Writer trace = logfile != null
+                ? Files.newBufferedWriter(Path.of(logfile), StandardCharsets.UTF_8)
+                : Writer.nullWriter()) {
+            long since = System.nanoTime();
+            for (int iteration = 0; iteration < iterationNumber && !stopRequested; iteration++) {
+                for (int player = 0; player < PLAYER_COUNT; player++) {
+                    traverse(player, root, reachProbs, iteration, initialBoardLong, sampleRoundDeals());
+                }
+                if (iteration % printInterval != 0) continue;
+
+                long elapsedMs = (System.nanoTime() - since) / 1_000_000;
+                float exploitability = exploitability(bestResponse, root, pot);
+                log.info(
+                        "iteration {}: exploitability {}% of pot ({} ms)",
+                        iteration + 1, format(exploitability), elapsedMs);
+
+                ObjectNode entry = MAPPER.createObjectNode();
+                entry.put("iteration", iteration);
+                entry.put("exploitability", exploitability);
+                entry.put("timeMs", elapsedMs);
+                trace.write(entry + "\n");
+
+                progressListener.onProgress(iteration, exploitability, elapsedMs);
+                since = System.nanoTime();
+                if (stopExploitability > 0 && exploitability < stopExploitability) break;
+            }
+        } finally {
+            onTrainingFinished();
+        }
+    }
+
+    private float exploitability(BestResponse bestResponse, GameTreeNode root, float pot) {
+        return bestResponse.exploitability(root, pot, initialBoardLong);
+    }
+
+    private static String format(float exploitability) {
+        return String.format("%.6f", exploitability);
+    }
+
+    final float[] cfr(int player, GameTreeNode node, float[][] reachProbs, int iteration, long board, double[] deals) {
+        return switch (node) {
+            case ActionNode action -> actionUtility(player, action, reachProbs, iteration, board, deals);
+            case ChanceNode chance -> chanceUtility(player, chance, reachProbs, iteration, board, deals);
+            case ShowdownNode showdown -> showdownUtility(player, showdown, reachProbs, board);
+            case TerminalNode terminal -> terminalUtility(player, terminal, reachProbs, board);
         };
     }
 
-    float[] actionUtility(int player, ActionNode node, float[][] reachProbs, int iter, long currentBoard) {
-        int nodePlayer = node.getPlayer();
-        PrivateCards[] nodePlayerPrivateCards = this.ranges[nodePlayer];
+    private float[] actionUtility(
+            int player, ActionNode node, float[][] reachProbs, int iteration, long board, double[] deals) {
+        int actor = node.getPlayer();
+        int actorHands = ranges[actor].length;
         Trainable trainable = Objects.requireNonNull(node.getTrainable(), "trainable not set");
 
         List<GameTreeNode> children = node.getChildren();
-        List<GameActions> actions = node.getActions();
-        float[] currentStrategy = trainable.getcurrentStrategy();
-
-        if (this.debug) {
-            for (float oneStrategy : currentStrategy) {
-                if (Float.isNaN(oneStrategy)) {
-                    System.out.println(Arrays.toString(currentStrategy));
-                    throw new RuntimeException();
-                }
-            }
-            for (int onePlayer = 0; onePlayer < this.playerNumber; onePlayer++) {
-                for (float oneProb : reachProbs[onePlayer]) {
-                    if (Float.isNaN(oneProb)) throw new RuntimeException();
-                }
-            }
-        }
-        if (currentStrategy.length != actions.size() * nodePlayerPrivateCards.length) {
-            node.printHistory();
-            throw new RuntimeException(String.format(
-                    "length not match %s - %s \n action size %s private_card size %s",
-                    currentStrategy.length,
-                    actions.size() * nodePlayerPrivateCards.length,
-                    actions.size(),
-                    nodePlayerPrivateCards.length));
-        }
-
+        List<Action> actions = node.getActions();
         int actionCount = actions.size();
-        GameTreeNode[] childArr = new GameTreeNode[actionCount];
+        float[] strategy = trainable.currentStrategy();
+        assert strategy.length == actionCount * actorHands
+                : "strategy has %d cells, node has %d actions x %d hands"
+                        .formatted(strategy.length, actionCount, actorHands);
+        assert noNaNs(strategy) : "NaN in strategy at " + node.history();
+
+        // Each action scales the acting player's reach by the probability of taking it; the
+        // opponent's reach is unchanged and can be shared rather than copied.
+        GameTreeNode[] childArray = new GameTreeNode[actionCount];
         float[][][] childReach = new float[actionCount][][];
         long[] childBoards = new long[actionCount];
-        for (int actionId = 0; actionId < actionCount; actionId++) {
-            float[] playerNewReach = new float[reachProbs[nodePlayer].length];
-            SimdOps.mul(
-                    currentStrategy,
-                    actionId * nodePlayerPrivateCards.length,
-                    reachProbs[nodePlayer],
-                    playerNewReach,
-                    playerNewReach.length);
-            float[][] newReach = new float[this.playerNumber][];
-            newReach[1 - nodePlayer] = reachProbs[1 - nodePlayer];
-            newReach[nodePlayer] = playerNewReach;
-            childArr[actionId] = children.get(actionId);
-            childReach[actionId] = newReach;
-            childBoards[actionId] = currentBoard;
+        for (int action = 0; action < actionCount; action++) {
+            float[] actorReach = new float[actorHands];
+            SimdOps.mul(strategy, action * actorHands, reachProbs[actor], actorReach, actorHands);
+            float[][] reach = new float[PLAYER_COUNT][];
+            reach[actor] = actorReach;
+            reach[1 - actor] = reachProbs[1 - actor];
+            childArray[action] = children.get(action);
+            childReach[action] = reach;
+            childBoards[action] = board;
         }
 
-        float[][] allActionUtility = evaluateChildren(player, iter, node, childArr, childReach, childBoards);
+        float[][] actionUtilities =
+                evaluateChildren(player, iteration, node, childArray, childReach, childBoards, deals);
 
-        float[] payoffs = new float[this.ranges[player].length];
-        for (int actionId = 0; actionId < actionCount; actionId++) {
-            float[] actionUtilities = allActionUtility[actionId];
-            if (actionUtilities.length != payoffs.length) {
-                node.printHistory();
-                throw new RuntimeException(String.format(
-                        "action and payoff length not match %s - %s", actionUtilities.length, payoffs.length));
-            }
-            if (player == nodePlayer) {
-                SimdOps.fma(
-                        currentStrategy,
-                        actionId * nodePlayerPrivateCards.length,
-                        actionUtilities,
-                        payoffs,
-                        actionUtilities.length);
+        // The node's utility is the strategy-weighted mean over actions for the acting player, and
+        // the plain sum for the opponent — whose reach the recursion already folded in.
+        float[] payoffs = new float[ranges[player].length];
+        for (int action = 0; action < actionCount; action++) {
+            float[] utility = actionUtilities[action];
+            if (player == actor) {
+                SimdOps.fma(strategy, action * actorHands, utility, payoffs, utility.length);
             } else {
-                SimdOps.add(actionUtilities, payoffs, actionUtilities.length);
+                SimdOps.add(utility, payoffs, utility.length);
             }
         }
 
-        if (player == nodePlayer) {
-            float[] regrets = new float[actionCount * nodePlayerPrivateCards.length];
-            for (int actionId = 0; actionId < actionCount; actionId++) {
-                SimdOps.sub(
-                        allActionUtility[actionId],
-                        payoffs,
-                        regrets,
-                        actionId * nodePlayerPrivateCards.length,
-                        nodePlayerPrivateCards.length);
+        if (player == actor) {
+            float[] regrets = new float[actionCount * actorHands];
+            for (int action = 0; action < actionCount; action++) {
+                SimdOps.sub(actionUtilities[action], payoffs, regrets, action * actorHands, actorHands);
             }
-            trainable.updateRegrets(regrets, iter + 1, reachProbs[player]);
+            trainable.update(regrets, iteration + 1, reachProbs[player]);
         }
-
         return payoffs;
     }
 
-    float[] chanceUtility(int player, ChanceNode node, float[][] reachProbs, int iter, long currentBoard) {
-        List<Card> cards = this.deck.getCards();
-        if (cards.size() != node.getChildren().size()) throw new RuntimeException();
-
-        int possibleDeals = node.getChildren().size() - Card.long2board(currentBoard).length - 2;
+    private float[] chanceUtility(
+            int player, ChanceNode node, float[][] reachProbs, int iteration, long board, double[] deals) {
         List<GameTreeNode> children = node.getChildren();
-        List<Card> nodeCards = node.getCards();
-        int cardSlots = nodeCards.size();
+        List<Card> cards = node.getCards();
+        int cardSlots = cards.size();
+        int availableCards = cardSlots - Card.cardCount(board);
+        // Two of the remaining cards are in the opponent's hand, so they cannot be dealt.
+        int possibleDeals = availableCards - 2;
 
-        if (this.monteCarloAlg == MonteCarloAlg.PUBLIC) {
-            int roundIdx = GameTreeNode.gameRound2int(node.getRound());
-            int randomDeal;
-            if (this.roundDeal[roundIdx] == -1) {
-                randomDeal = ThreadLocalRandom.current().nextInt(1, possibleDeals + 1 + 2);
-                this.roundDeal[roundIdx] = randomDeal;
-            } else {
-                randomDeal = this.roundDeal[roundIdx];
-            }
-            int cardcount = 0;
-            for (int card = 0; card < cardSlots; card++) {
-                Card oneCard = nodeCards.get(card);
-                long cardLong = Card.boardCards2long(new Card[] {oneCard});
-                if (Card.boardsHasIntercept(cardLong, currentBoard)) continue;
-                cardcount += 1;
-                if (cardcount == randomDeal) {
-                    float[][] newReachProbs = new float[2][];
-                    newReachProbs[player] = new float[reachProbs[player].length];
-                    newReachProbs[1 - player] = new float[reachProbs[1 - player].length];
-                    for (int onePlayer = 0; onePlayer < 2; onePlayer++) {
-                        int handLen = this.ranges[onePlayer].length;
-                        for (int hand = 0; hand < handLen; hand++) {
-                            PrivateCards onePrivate = this.ranges[onePlayer][hand];
-                            if (Card.boardsHasIntercept(cardLong, onePrivate.toBoardLong())) continue;
-                            newReachProbs[onePlayer][hand] = reachProbs[onePlayer][hand];
-                        }
-                    }
-                    return cfr(player, children.get(card), newReachProbs, iter, currentBoard | cardLong);
-                }
-            }
-            throw new RuntimeException("not possible");
+        if (monteCarloAlg == MonteCarloAlg.PUBLIC) {
+            return sampledChanceUtility(player, node, reachProbs, iteration, board, deals, availableCards);
         }
 
-        GameTreeNode[] childArr = new GameTreeNode[cardSlots];
+        GameTreeNode[] childArray = new GameTreeNode[cardSlots];
         float[][][] childReach = new float[cardSlots][][];
         long[] childBoards = new long[cardSlots];
-        for (int card = 0; card < cardSlots; card++) {
-            GameTreeNode oneChild = children.get(card);
-            Card oneCard = nodeCards.get(card);
-            long cardLong = Card.boardCards2long(new Card[] {oneCard});
-
-            if (Card.boardsHasIntercept(cardLong, currentBoard)) continue;
-            if (oneChild == null || oneCard == null) throw new RuntimeException("child is null");
-
-            PrivateCards[] playerPrivateCard = this.ranges[player];
-            PrivateCards[] oppoPrivateCards = this.ranges[1 - player];
-            if (playerPrivateCard.length != reachProbs[player].length) throw new RuntimeException("length not match");
-            if (oppoPrivateCards.length != reachProbs[1 - player].length)
-                throw new RuntimeException("length not match");
-
-            float[][] newReachProbs = new float[2][];
-            newReachProbs[player] = new float[playerPrivateCard.length];
-            newReachProbs[1 - player] = new float[oppoPrivateCards.length];
-            for (int onePlayer = 0; onePlayer < 2; onePlayer++) {
-                int handLen = this.ranges[onePlayer].length;
-                for (int hand = 0; hand < handLen; hand++) {
-                    PrivateCards onePrivate = this.ranges[onePlayer][hand];
-                    if (Card.boardsHasIntercept(cardLong, onePrivate.toBoardLong())) continue;
-                    newReachProbs[onePlayer][hand] = reachProbs[onePlayer][hand] / possibleDeals;
-                }
-            }
-            childArr[card] = oneChild;
-            childReach[card] = newReachProbs;
-            childBoards[card] = currentBoard | cardLong;
+        float share = 1f / possibleDeals;
+        for (int slot = 0; slot < cardSlots; slot++) {
+            Card card = cards.get(slot);
+            if (Card.boardsHasIntercept(card.mask(), board)) continue;
+            childArray[slot] = children.get(slot);
+            childReach[slot] = splitReach(reachProbs, card.getCardInt(), share);
+            childBoards[slot] = board | card.mask();
         }
 
-        float[][] childUtilities = evaluateChildren(player, iter, node, childArr, childReach, childBoards);
+        float[][] childUtilities =
+                evaluateChildren(player, iteration, node, childArray, childReach, childBoards, deals);
 
-        float[] chanceUtility = new float[reachProbs[player].length];
-        for (int card = 0; card < cardSlots; card++) {
-            float[] childUtility = childUtilities[card];
-            if (childUtility == null) continue;
-            if (childUtility.length != chanceUtility.length) throw new RuntimeException("length not match");
-            for (int i = 0; i < childUtility.length; i++) chanceUtility[i] += childUtility[i];
+        float[] utility = new float[reachProbs[player].length];
+        for (int slot = 0; slot < cardSlots; slot++) {
+            if (childUtilities[slot] != null) SimdOps.add(childUtilities[slot], utility, utility.length);
         }
-        return chanceUtility;
+        return utility;
     }
 
-    float[] showdownUtility(int player, ShowdownNode node, float[][] reachProbs, long currentBoard) {
-        int oppo = 1 - player;
-        float winPayoff = (float) node.getPayoffs(ShowdownNode.ShowDownResult.NOTTIE, player)[player];
-        float losePayoff = (float) node.getPayoffs(ShowdownNode.ShowDownResult.NOTTIE, oppo)[player];
-        PrivateCards[] playerPrivateCards = this.ranges[player];
-        PrivateCards[] oppoPrivateCards = this.ranges[oppo];
-
-        RiverCombs[] playerCombs = this.rrm.getRiverCombos(player, playerPrivateCards, currentBoard);
-        RiverCombs[] oppoCombs = this.rrm.getRiverCombos(oppo, oppoPrivateCards, currentBoard);
-
-        if (this.debug) {
-            System.out.println("[PRESHOWDOWN]=======================");
-            System.out.println(String.format("player0 reach_prob %s", Arrays.toString(reachProbs[0])));
-            System.out.println(String.format("player1 reach_prob %s", Arrays.toString(reachProbs[1])));
-            System.out.print("preflop combos: ");
-            for (RiverCombs oneRiverComb : playerCombs) {
-                System.out.print(String.format("%s(%s) ", oneRiverComb.privateCards.toString(), oneRiverComb.rank));
+    /** Deals the one card this round sampled, and recurses into it alone. */
+    private float[] sampledChanceUtility(
+            int player,
+            ChanceNode node,
+            float[][] reachProbs,
+            int iteration,
+            long board,
+            double[] deals,
+            int availableCards) {
+        List<Card> cards = node.getCards();
+        int target = 1 + (int) (deals[node.getRound().number() - 1] * availableCards);
+        int seen = 0;
+        for (int slot = 0; slot < cards.size(); slot++) {
+            Card card = cards.get(slot);
+            if (Card.boardsHasIntercept(card.mask(), board)) continue;
+            if (++seen == target) {
+                float[][] reach = splitReach(reachProbs, card.getCardInt(), 1f);
+                return cfr(player, node.getChildren().get(slot), reach, iteration, board | card.mask(), deals);
             }
-            System.out.println();
+        }
+        throw new IllegalStateException(
+                "sampled deal %d of %d available cards was not reached".formatted(target, availableCards));
+    }
+
+    /**
+     * Both players' reach after {@code card} is dealt: scaled by {@code share}, and zeroed for the
+     * hands that hold the card and so can no longer be held.
+     */
+    private float[][] splitReach(float[][] reachProbs, int card, float share) {
+        float[][] split = new float[PLAYER_COUNT][];
+        for (int player = 0; player < PLAYER_COUNT; player++) {
+            float[] reach = reachProbs[player];
+            float[] scaled = new float[reach.length];
+            SimdOps.scale(reach, share, scaled, reach.length);
+            for (int hand : handsHoldingCard[player][card]) scaled[hand] = 0;
+            split[player] = scaled;
+        }
+        return split;
+    }
+
+    final float[] showdownUtility(int player, ShowdownNode node, float[][] reachProbs, long board) {
+        int opponent = 1 - player;
+        float winPayoff = (float) node.payoffsIfWins(player)[player];
+        float losePayoff = (float) node.payoffsIfWins(opponent)[player];
+
+        return ShowdownPayoffs.compute(
+                riverRanges.getRiverRange(player, ranges[player], board),
+                riverRanges.getRiverRange(opponent, ranges[opponent], board),
+                reachProbs[opponent],
+                winPayoff,
+                losePayoff,
+                ranges[player].length);
+    }
+
+    final float[] terminalUtility(int player, TerminalNode node, float[][] reachProbs, long board) {
+        int opponent = 1 - player;
+        float payoff = (float) node.getPayoffs()[player];
+        PrivateCards[] playerHands = ranges[player];
+        PrivateCards[] opponentHands = ranges[opponent];
+        float[] opponentReach = reachProbs[opponent];
+
+        // Card removal, in linear time: the opponent's total reach, minus the reach of every combo
+        // sharing a card with the player's hand. The two cards' totals double-count the one combo
+        // that is exactly the player's hand, so it goes back in.
+        float opponentTotal = 0;
+        float[] reachHoldingCard = new float[52];
+        for (int i = 0; i < opponentHands.length; i++) {
+            reachHoldingCard[opponentHands[i].card1] += opponentReach[i];
+            reachHoldingCard[opponentHands[i].card2] += opponentReach[i];
+            opponentTotal += opponentReach[i];
         }
 
-        float[] payoffs = ShowdownPayoffs.compute(
-                playerCombs, oppoCombs, reachProbs[oppo], winPayoff, losePayoff, playerPrivateCards.length);
-
-        if (this.debug) {
-            System.out.println("[SHOWDOWN]============");
-            node.printHistory();
-            System.out.println(String.format("loss payoffs: %s", losePayoff));
+        float[] payoffs = new float[playerHands.length];
+        for (int i = 0; i < playerHands.length; i++) {
+            PrivateCards hand = playerHands[i];
+            if (Card.boardsHasIntercept(board, hand.mask())) continue;
+            int mirror = privateCards.indexInOtherRange(player, opponent, i);
+            float sameHandReach = mirror == PrivateCardsManager.NOT_IN_RANGE ? 0 : opponentReach[mirror];
+            payoffs[i] = payoff
+                    * (opponentTotal - reachHoldingCard[hand.card1] - reachHoldingCard[hand.card2] + sameHandReach);
         }
         return payoffs;
     }
 
-    float[] terminalUtility(int player, TerminalNode node, float[][] reachProb, long currentBoard) {
-        double playerPayoff = node.getPayoffs()[player];
-
-        int oppo = 1 - player;
-        PrivateCards[] playerHand = playerHands(player);
-        PrivateCards[] oppoHand = playerHands(oppo);
-
-        float[] payoffs = new float[this.playerHands(player).length];
-
-        float oppoSum = 0;
-        float[] oppoCardSum = new float[52];
-
-        for (int i = 0; i < oppoHand.length; i++) {
-            oppoCardSum[oppoHand[i].card1] += reachProb[oppo][i];
-            oppoCardSum[oppoHand[i].card2] += reachProb[oppo][i];
-            oppoSum += reachProb[oppo][i];
+    private static boolean noNaNs(float[] values) {
+        for (float value : values) {
+            if (Float.isNaN(value)) return false;
         }
-
-        for (int i = 0; i < playerHand.length; i++) {
-            PrivateCards onePlayerHand = playerHand[i];
-            if (Card.boardsHasIntercept(
-                    currentBoard, Card.boardInts2long(new int[] {onePlayerHand.card1, onePlayerHand.card2}))) {
-                continue;
-            }
-            Integer oppoSameCardInd = this.pcm.indPlayer2Player(player, oppo, i);
-            float plusReachProb = oppoSameCardInd == null ? 0 : reachProb[oppo][oppoSameCardInd];
-            payoffs[i] = (float) playerPayoff
-                    * (oppoSum - oppoCardSum[onePlayerHand.card1] - oppoCardSum[onePlayerHand.card2] + plusReachProb);
-        }
-
-        if (this.debug) {
-            System.out.println("[TERMINAL]============");
-            node.printHistory();
-            System.out.println(String.format("PPPayoffs: %s", playerPayoff));
-        }
-        return payoffs;
+        return true;
     }
 }

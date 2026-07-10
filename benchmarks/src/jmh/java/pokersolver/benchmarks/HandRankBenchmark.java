@@ -1,8 +1,5 @@
 package pokersolver.benchmarks;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -15,11 +12,16 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
-import pokersolver.compairer.Compairer;
+import pokersolver.eval.HandEvaluator;
+import pokersolver.eval.PokerVariant;
 
 /**
- * Measures {@link Compairer#get_rank} lookup cost — the inner loop of every showdown evaluation
- * during CFR training.
+ * Measures {@link HandEvaluator#rank} — the inner loop of every showdown evaluation during CFR
+ * training, and of every board a solve's range cache projects a range onto.
+ *
+ * <p>The seven-card lookup this replaced took the best of 21 five-card probes into a 2.6M-entry hash
+ * map, each one a likely cache miss. This one is four bit-gathers, a popcount, and two array reads
+ * into ~150 KB of tables.
  */
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
@@ -30,36 +32,60 @@ import pokersolver.compairer.Compairer;
 @SuppressWarnings("NullAway.Init") // JMH state fields are initialized in @Setup
 public class HandRankBenchmark {
 
-    Compairer compairer;
-    int[] board;
-    int[][] privateCombos;
+    HandEvaluator holdem;
+    HandEvaluator shortDeck;
+
+    /** Every hole-card pair the river board leaves free, as a seven-card mask: C(47, 2) = 1081. */
+    long[] holdemSevenCard;
+
+    long[] shortDeckSevenCard;
+    long fiveCardBoard;
     int next;
 
     @Setup(Level.Trial)
-    public void setup() throws IOException {
-        compairer = SolverFixtures.holdemCompairer();
-        board = SolverFixtures.boardInts(SolverFixtures.RIVER_BOARD);
+    public void setup() {
+        holdem = HandEvaluator.forVariant(PokerVariant.HOLDEM);
+        shortDeck = HandEvaluator.forVariant(PokerVariant.SHORT_DECK);
 
-        // All hole-card combos not blocked by the board: C(47, 2) = 1081.
-        // Card ints are (rank-2)*4+suit, contiguous in [0, 52) for the standard deck.
-        boolean[] blocked = new boolean[52];
-        for (int card : board) blocked[card] = true;
-        List<int[]> combos = new ArrayList<>();
-        for (int a = 0; a < 52; a++) {
-            if (blocked[a]) continue;
+        long board = 0;
+        for (int card : SolverFixtures.boardInts(SolverFixtures.RIVER_BOARD)) board |= 1L << card;
+        fiveCardBoard = board;
+        holdemSevenCard = sevenCardHands(board, 0);
+
+        // Short-deck cards start at the six: rank index 4, card id 16.
+        long shortBoard = 0;
+        for (int card : SolverFixtures.boardInts("Kd,Jd,Td,7s,8s")) shortBoard |= 1L << card;
+        shortDeckSevenCard = sevenCardHands(shortBoard, 16);
+    }
+
+    /** The board plus every unblocked hole-card pair drawn from cards {@code >= lowestCard}. */
+    private static long[] sevenCardHands(long board, int lowestCard) {
+        long[] hands = new long[1081];
+        int size = 0;
+        for (int a = lowestCard; a < 52; a++) {
+            if ((board & (1L << a)) != 0) continue;
             for (int b = a + 1; b < 52; b++) {
-                if (blocked[b]) continue;
-                combos.add(new int[] {a, b});
+                if ((board & (1L << b)) != 0) continue;
+                hands[size++] = board | (1L << a) | (1L << b);
             }
         }
-        privateCombos = combos.toArray(new int[0][]);
-        next = 0;
+        return java.util.Arrays.copyOf(hands, size);
     }
 
     @Benchmark
-    public int rankLookup() {
-        int[] combo = privateCombos[next];
-        next = (next + 1) % privateCombos.length;
-        return compairer.getRank(combo, board);
+    public int sevenCardRank() {
+        next = (next + 1) % holdemSevenCard.length;
+        return holdem.rank(holdemSevenCard[next]);
+    }
+
+    @Benchmark
+    public int fiveCardRank() {
+        return holdem.rank(fiveCardBoard);
+    }
+
+    @Benchmark
+    public int shortDeckSevenCardRank() {
+        next = (next + 1) % shortDeckSevenCard.length;
+        return shortDeck.rank(shortDeckSevenCard[next]);
     }
 }

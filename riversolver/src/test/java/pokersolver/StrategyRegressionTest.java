@@ -3,179 +3,135 @@ package pokersolver;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
-import java.io.File;
-import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import pokersolver.compairer.Compairer;
-import pokersolver.ranges.PrivateCards;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import pokersolver.solver.Algorithm;
 import pokersolver.solver.CfrPlusRiverSolver;
 import pokersolver.solver.MonteCarloAlg;
 import pokersolver.solver.Solver;
-import pokersolver.solver.SolverConfig;
-import pokersolver.utils.PrivateRangeConverter;
 import tools.jackson.databind.JsonNode;
 
 /**
- * Locks the solved strategy of each CFR variant on a fixed shortdeck river scenario.
- * Single-thread {@link CfrPlusRiverSolver} with {@link MonteCarloAlg#NONE} is deterministic, so
- * the root node's average strategy is reproducible — this guards the SIMD kernels and the
- * algorithm code against silent regressions, and is the safety net for the planned tree-builder
- * overhaul.
+ * Pins each CFR variant's solved strategy on a fixed short-deck river spot.
  *
- * <p>Golden values were captured from a known-good run (see {@link #printGoldenForCapture()}); a
- * deliberate strategy change must regenerate them. The root is OOP's (player 1) check/bet
- * decision; each hand's strategy is {@code [P(check), P(bet)]}.
+ * <p>The single-threaded solver under {@link MonteCarloAlg#NONE} is deterministic, so the root
+ * node's average strategy is reproducible to the bit — which makes it a tripwire for silent changes
+ * in the SIMD kernels, the hand evaluator, and the tree builder. It is not a correctness proof:
+ * {@link SolverConvergenceTest} owns that, by checking exploitability actually falls.
+ *
+ * <p>The root is the out-of-position player's check/bet decision; each hand's strategy is {@code
+ * [P(check), P(bet)]}. A deliberate strategy change must regenerate these values with {@link
+ * #printGoldenForCapture()} — but only after {@code SolverConvergenceTest} says the change is an
+ * improvement.
  */
-public class StrategyRegressionTest {
+class StrategyRegressionTest {
 
-    static final String RANGE = "AA,KK,QQ,JJ,TT,99,AK,AQ,KQ,JT";
-    static final int ITERATIONS = 120;
-    static final float TOL = 5e-3f;
-    static final int[] BOARD = new int[] {
-        Card.strCard2int("Kd"), Card.strCard2int("Jd"),
-        Card.strCard2int("Td"), Card.strCard2int("7s"),
-        Card.strCard2int("8s")
+    private static final int ITERATIONS = 120;
+    private static final float TOLERANCE = 5e-3f;
+
+    private static final String[] HANDS = {
+        "AsAh", "KsKh", "QsQh", "JsJh", "TsTh", "9s9h", "AsKs", "AsQs", "KsQs", "JsTs"
     };
 
-    /** Representative hands -> golden [P(check), P(bet)] at the root, per algorithm. */
-    static final Map<Algorithm, Map<String, float[]>> GOLDEN = new EnumMap<>(Algorithm.class);
-    /** Final-ish exploitability ceiling per algorithm (% of the pot). */
-    static final Map<Algorithm, Float> EXPLOITABILITY_CEILING = new EnumMap<>(Algorithm.class);
+    /** Representative hands -> golden P(check) at the root, per algorithm. P(bet) is the complement. */
+    private static final Map<Algorithm, Map<String, Float>> GOLDEN = new LinkedHashMap<>();
 
     static {
-        GOLDEN.put(Algorithm.CFR, golden(new Object[][] {
-            {"AsAh", 1.0000f}, {"KsKh", 0.0000f}, {"QsQh", 0.0000f}, {"JsJh", 1.0000f}, {"TsTh", 1.0000f},
-            {"9s9h", 0.4699f}, {"AsKs", 1.0000f}, {"AsQs", 0.0000f}, {"KsQs", 1.0000f}, {"JsTs", 0.1323f}
-        }));
-        GOLDEN.put(Algorithm.CFR_PLUS, golden(new Object[][] {
-            {"AsAh", 1.0000f}, {"KsKh", 0.0000f}, {"QsQh", 0.0000f}, {"JsJh", 1.0000f}, {"TsTh", 1.0000f},
-            {"9s9h", 0.6750f}, {"AsKs", 0.9746f}, {"AsQs", 0.0000f}, {"KsQs", 0.9801f}, {"JsTs", 0.6158f}
-        }));
-        GOLDEN.put(Algorithm.DISCOUNTED_CFR, golden(new Object[][] {
-            {"AsAh", 1.0000f}, {"KsKh", 0.0000f}, {"QsQh", 0.0000f}, {"JsJh", 1.0000f}, {"TsTh", 1.0000f},
-            {"9s9h", 0.6716f}, {"AsKs", 0.9742f}, {"AsQs", 0.0000f}, {"KsQs", 0.9857f}, {"JsTs", 0.6094f}
-        }));
-        GOLDEN.put(Algorithm.PCFR_PLUS, golden(new Object[][] {
-            {"AsAh", 0.9995f}, {"KsKh", 0.0028f}, {"QsQh", 0.0004f}, {"JsJh", 0.9881f}, {"TsTh", 0.9917f},
-            {"9s9h", 0.6147f}, {"AsKs", 0.9734f}, {"AsQs", 0.0194f}, {"KsQs", 0.9870f}, {"JsTs", 0.6225f}
-        }));
-
-        EXPLOITABILITY_CEILING.put(Algorithm.CFR, 0.6f);
-        EXPLOITABILITY_CEILING.put(Algorithm.CFR_PLUS, 0.05f);
-        EXPLOITABILITY_CEILING.put(Algorithm.DISCOUNTED_CFR, 0.02f);
-        EXPLOITABILITY_CEILING.put(Algorithm.PCFR_PLUS, 0.05f);
+        // Regenerated after the trainable fixes. PCFR+ is unchanged from the pre-refactor
+        // baseline, bit for bit — it is the one variant whose semantics this work did not touch,
+        // which is what pins the hand evaluator, the range layout, and the SIMD kernels as exactly
+        // equivalent. The other five moved because their bugs were fixed (see Algorithm's table).
+        GOLDEN.put(
+                Algorithm.CFR,
+                golden(0.9315f, 0.0001f, 0.0098f, 0.9335f, 0.9486f, 0.5897f, 0.9991f, 0.0535f, 0.9863f, 0.5949f));
+        GOLDEN.put(
+                Algorithm.CFR_PLUS,
+                golden(0.9969f, 0.0022f, 0.0020f, 0.9585f, 0.9666f, 0.6343f, 0.9704f, 0.0174f, 0.9870f, 0.6360f));
+        GOLDEN.put(
+                Algorithm.PCFR_PLUS,
+                golden(0.9995f, 0.0028f, 0.0004f, 0.9881f, 0.9917f, 0.6147f, 0.9734f, 0.0194f, 0.9870f, 0.6225f));
+        GOLDEN.put(
+                Algorithm.PDCFR_PLUS,
+                golden(0.9999f, 0.0029f, 0.0013f, 0.9983f, 0.9986f, 0.5719f, 0.9727f, 0.0360f, 0.9880f, 0.6263f));
+        GOLDEN.put(
+                Algorithm.PDCFR,
+                golden(0.9997f, 0.0032f, 0.0014f, 0.9985f, 0.9987f, 0.6204f, 0.9749f, 0.0179f, 0.9867f, 0.6180f));
+        GOLDEN.put(
+                Algorithm.DISCOUNTED_CFR,
+                golden(0.9992f, 0.0009f, 0.0008f, 0.9992f, 0.9993f, 0.6518f, 0.9745f, 0.0064f, 0.9856f, 0.6141f));
     }
 
-    /** Builds a hand -> [P(check), P(bet)] map from {hand, P(check)} rows (bet = 1 - check). */
-    private static Map<String, float[]> golden(Object[][] rows) {
-        Map<String, float[]> map = new LinkedHashMap<>();
-        for (Object[] row : rows) {
-            float check = (float) row[1];
-            map.put((String) row[0], new float[] {check, 1f - check});
-        }
+    private static Map<String, Float> golden(float... pCheck) {
+        Map<String, Float> map = new LinkedHashMap<>();
+        for (int i = 0; i < HANDS.length; i++) map.put(HANDS[i], pCheck[i]);
         return map;
     }
 
-    static Config config;
-    static Compairer compairer;
-    static Deck deck;
-
-    @BeforeAll
-    static void loadEnvironments() throws Exception {
-        ClassLoader cl = StrategyRegressionTest.class.getClassLoader();
-        config = new Config(
-                new File(cl.getResource("yamls/rule_shortdeck_simple.yaml").getFile()).getAbsolutePath());
-        compairer = SolverEnvironment.compairerFromConfig(config);
-        deck = SolverEnvironment.deckFromConfig(config);
-    }
-
-    record Solved(float exploitability, JsonNode rootStrategy) {}
-
     /** Solves single-threaded and returns the root action node's average strategy by hand. */
-    private static Solved solve(Algorithm algorithm) throws Exception {
-        PrivateCards[] range1 = PrivateRangeConverter.rangeStr2Cards(RANGE, BOARD);
-        PrivateCards[] range2 = PrivateRangeConverter.rangeStr2Cards(RANGE, BOARD);
-        float[] last = {Float.NaN};
-        Solver solver = new CfrPlusRiverSolver(SolverConfig.builder()
-                .tree(SolverEnvironment.gameTreeFromConfig(config, deck))
-                .range1(range1)
-                .range2(range2)
-                .initialBoard(BOARD)
-                .compairer(compairer)
-                .deck(deck)
-                .iterationNumber(ITERATIONS)
-                .printInterval(10) // evaluate periodically; the last callback ~ final convergence
-                .algorithm(algorithm)
-                .monteCarloAlg(MonteCarloAlg.NONE)
-                .progressListener((iteration, exploitability, elapsedMs) -> last[0] = exploitability)
+    private static Map<String, float[]> solve(Algorithm algorithm) throws Exception {
+        Solver solver = new CfrPlusRiverSolver(SolverFixture.builder(
+                        SolverFixture.shortDeckRiver(),
+                        SolverFixture.RIVER_BOARD,
+                        SolverFixture.SHORT_DECK_RANGE,
+                        algorithm,
+                        ITERATIONS)
                 .build());
         solver.train();
-        JsonNode root = solver.getTree().dumps(false);
-        return new Solved(last[0], root.get("strategy").get("strategy"));
-    }
 
-    /** Strategy probabilities for each hand, keyed by hand label. */
-    private static Map<String, float[]> handStrategy(Solved solved) {
+        JsonNode strategy = solver.getTree().dumps().get("strategy").get("strategy");
         Map<String, float[]> byHand = new LinkedHashMap<>();
-        JsonNode strat = solved.rootStrategy;
-        strat.propertyNames().forEach(hand -> {
-            JsonNode probs = strat.get(hand);
-            float[] arr = new float[probs.size()];
-            for (int i = 0; i < arr.length; i++) arr[i] = (float) probs.get(i).asDouble();
-            byHand.put(hand, arr);
+        strategy.propertyNames().forEach(hand -> {
+            JsonNode probabilities = strategy.get(hand);
+            float[] values = new float[probabilities.size()];
+            for (int i = 0; i < values.length; i++)
+                values[i] = (float) probabilities.get(i).asDouble();
+            byHand.put(hand, values);
         });
         return byHand;
     }
 
-    @Test
-    public void eachAlgorithmConvergesAndMatchesGolden() throws Exception {
-        for (Algorithm algorithm : Algorithm.values()) {
-            Solved solved = solve(algorithm);
-            assertThat(solved.exploitability)
-                    .as("%s exploitability (%% pot)", algorithm.id())
-                    .isLessThan(Objects.requireNonNull(EXPLOITABILITY_CEILING.get(algorithm)));
-
-            Map<String, float[]> actual = handStrategy(solved);
-            Objects.requireNonNull(GOLDEN.get(algorithm)).forEach((hand, expected) -> {
-                float[] got = Objects.requireNonNull(actual.get(hand), () -> hand + " missing from strategy");
-                assertThat(got)
-                        .as("%s root strategy for %s", algorithm.id(), hand)
-                        .hasSameSizeAs(expected);
-                for (int i = 0; i < expected.length; i++) {
-                    assertThat(got[i])
-                            .as("%s root strategy for %s action %s", algorithm.id(), hand, i)
-                            .isCloseTo(expected[i], within(TOL));
-                }
-            });
-        }
+    @ParameterizedTest(name = "{0} reproduces its golden root strategy")
+    @EnumSource(Algorithm.class)
+    void eachAlgorithmMatchesItsGoldenStrategy(Algorithm algorithm) throws Exception {
+        Map<String, float[]> actual = solve(algorithm);
+        Objects.requireNonNull(GOLDEN.get(algorithm)).forEach((hand, expectedCheck) -> {
+            float[] got = Objects.requireNonNull(actual.get(hand), () -> hand + " missing from the solved strategy");
+            assertThat(got).as("%s should be a check/bet decision", hand).hasSize(2);
+            assertThat(got[0])
+                    .as("%s: P(check | %s)", algorithm.id(), hand)
+                    .isCloseTo(expectedCheck, within(TOLERANCE));
+            assertThat(got[1])
+                    .as("%s: P(bet | %s)", algorithm.id(), hand)
+                    .isCloseTo(1 - expectedCheck, within(TOLERANCE));
+        });
     }
 
     @Test
-    public void singleThreadSolveIsDeterministic() throws Exception {
-        Solved a = solve(Algorithm.DISCOUNTED_CFR);
-        Solved b = solve(Algorithm.DISCOUNTED_CFR);
-        assertThat(b.exploitability).isEqualTo(a.exploitability);
-        assertThat(b.rootStrategy.toString()).isEqualTo(a.rootStrategy.toString());
+    void everyHandsStrategyIsAProbabilityDistribution() throws Exception {
+        solve(Algorithm.DISCOUNTED_CFR).forEach((hand, probabilities) -> {
+            float sum = 0;
+            for (float p : probabilities) {
+                assertThat(p).as("P(action | %s)", hand).isBetween(0f, 1f);
+                sum += p;
+            }
+            assertThat(sum).as("strategy for %s sums to one", hand).isCloseTo(1f, within(1e-4f));
+        });
     }
 
-    /** Regenerates the golden table above; run manually after a deliberate strategy change. */
+    /** Regenerates the golden table above. Run manually after a deliberate strategy change. */
     @Disabled("manual: prints golden values for capture")
     @Test
-    public void printGoldenForCapture() throws Exception {
+    void printGoldenForCapture() throws Exception {
         for (Algorithm algorithm : Algorithm.values()) {
-            Solved s = solve(algorithm);
-            System.out.printf("%n=== %s (exploitability %.6f%% pot) ===%n", algorithm.id(), s.exploitability);
-            handStrategy(s).forEach((hand, probs) -> {
-                StringBuilder sb = new StringBuilder();
-                for (float p : probs) sb.append(String.format("%.4f ", p));
-                System.out.printf("  %s -> %s%n", hand, sb.toString().trim());
-            });
+            Map<String, float[]> strategy = solve(algorithm);
+            StringBuilder row = new StringBuilder();
+            for (String hand : HANDS) row.append("%.4ff, ".formatted(Objects.requireNonNull(strategy.get(hand))[0]));
+            System.out.printf("GOLDEN.put(Algorithm.%s, golden(%s));%n", algorithm.name(), row);
         }
     }
 }

@@ -1,53 +1,57 @@
 package pokersolver.trainable;
 
-import java.util.Arrays;
 import pokersolver.nodes.ActionNode;
 import pokersolver.ranges.PrivateCards;
 
 /**
- * Shared storage for the regret-matching variants whose average strategy is a weight-accumulated
- * sum (CFR, CFR+, Discounted CFR). They keep the cumulative clipped regret {@code r_plus} and its
- * per-hand sum, plus a strategy accumulator {@code cum_r_plus} and its per-hand sum; the average
- * strategy normalizes the latter. Only the regret-update rule and the current-strategy derivation
- * differ between them, so those stay abstract.
+ * The regret-matching skeleton shared by CFR, CFR+, and Discounted CFR.
  *
- * <p>Predictive CFR+ uses a different accumulator shape and therefore extends
- * {@link AbstractCfrTrainable} directly rather than this class.
+ * <p>All three keep one cumulative regret per (action, hand) and play proportionally to its positive
+ * part. They differ only in how history is folded into that accumulator — unclipped, clipped at
+ * zero, or clipped and discounted — and in how the strategies they play are weighted into the
+ * average.
+ *
+ * <p>The iteration's order matters and is fixed here: the strategy that <em>produced</em> this
+ * iteration's regrets is the one accumulated into the average, before the regrets that it produced
+ * change the accumulator underneath it. Deriving the strategy first and averaging it afterwards
+ * would average σ^{t+1} against the reach probabilities of iteration t.
  */
 abstract class RegretMatchingTrainable extends AbstractCfrTrainable {
 
-    final float[] rPlus;
-    final float[] rPlusSum;
-    final float[] cumRPlus;
-    final float[] cumRPlusSum;
-    float[] regrets;
+    /** Cumulative counterfactual regret R^t, per (action, hand). */
+    final float[] regrets;
 
-    protected RegretMatchingTrainable(ActionNode actionNode, PrivateCards[] privateCards) {
+    /** Per-hand Σ_a max(0, R^t(a, h)) — the normalizer of the current strategy. */
+    final float[] positiveSums;
+
+    RegretMatchingTrainable(ActionNode actionNode, PrivateCards[] privateCards) {
         super(actionNode, privateCards);
-        this.rPlus = new float[this.actionNumber * this.cardNumber];
-        this.rPlusSum = new float[this.cardNumber];
-        this.cumRPlus = new float[this.actionNumber * this.cardNumber];
-        this.cumRPlusSum = new float[this.cardNumber];
-        this.regrets = new float[this.actionNumber * this.cardNumber];
+        this.regrets = new float[actionCount * handCount];
+        this.positiveSums = new float[handCount];
     }
 
     @Override
-    public float[] getAverageStrategy() {
-        float[] retval = new float[this.actionNumber * this.cardNumber];
-        if (isAllZeros(this.cumRPlusSum)) {
-            Arrays.fill(retval, 1F / this.actionNumber);
-        } else {
-            for (int actionId = 0; actionId < actionNumber; actionId++) {
-                for (int privateId = 0; privateId < this.cardNumber; privateId++) {
-                    int index = actionId * this.cardNumber + privateId;
-                    if (this.cumRPlusSum[privateId] != 0) {
-                        retval[index] = this.cumRPlus[index] / this.cumRPlusSum[privateId];
-                    } else {
-                        retval[index] = 1F / this.actionNumber;
-                    }
-                }
-            }
-        }
-        return retval;
+    public final float[] currentStrategy() {
+        normalize(regrets, positiveSums, cachedCurrentStrategy, true);
+        return cachedCurrentStrategy;
+    }
+
+    @Override
+    public final void update(float[] instantRegrets, int iteration, float[] reachProbs) {
+        checkShape(instantRegrets);
+        accumulateStrategy(currentStrategy(), strategyWeight(iteration), strategyDecay(iteration), reachProbs);
+        accumulateRegrets(instantRegrets, iteration);
+        columnSums(regrets, actionCount, handCount, positiveSums, true);
+    }
+
+    /** Folds {@code instantRegrets} into {@link #regrets} under this variant's discounting rule. */
+    abstract void accumulateRegrets(float[] instantRegrets, int iteration);
+
+    /** The weight this variant gives iteration {@code t}'s strategy in the average. */
+    abstract float strategyWeight(int iteration);
+
+    /** How much this variant decays the accumulated average before adding iteration {@code t}. */
+    float strategyDecay(int iteration) {
+        return 1f;
     }
 }

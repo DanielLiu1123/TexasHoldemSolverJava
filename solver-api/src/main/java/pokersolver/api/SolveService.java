@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import pokersolver.Card;
 import pokersolver.GameTree;
 import pokersolver.SolverEnvironment;
+import pokersolver.nodes.GameRound;
 import pokersolver.ranges.PrivateCards;
 import pokersolver.solver.Algorithm;
 import pokersolver.solver.GameTreeBuildingSettings;
@@ -27,21 +28,9 @@ public final class SolveService implements AutoCloseable {
 
     private static final float SMALL_BLIND = 0.5f;
     private static final float BIG_BLIND = 1.0f;
-    private static final int ROUND_FLOP = 2;
-    private static final int ROUND_TURN = 3;
-    private static final int ROUND_RIVER = 4;
 
-    private final GameResources resources;
     private final ConcurrentHashMap<String, SolveJob> jobs = new ConcurrentHashMap<>();
     private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
-
-    public SolveService(GameResources resources) {
-        this.resources = resources;
-    }
-
-    public GameResources resources() {
-        return resources;
-    }
 
     public SolveJob create(SolveRequest request) {
         validate(request);
@@ -77,17 +66,16 @@ public final class SolveService implements AutoCloseable {
     private void run(SolveJob job, SolveRequest request) {
         try {
             GameType game = GameType.fromId(Objects.requireNonNullElse(request.game(), GameType.HOLDEM.id()));
-            GameResources.Loaded loaded = resources.get(game);
 
             int[] board = Arrays.stream(Objects.requireNonNull(request.board()).split(","))
                     .map(String::trim)
                     .mapToInt(Card::strCard2int)
                     .toArray();
-            int round =
+            GameRound round =
                     switch (board.length) {
-                        case 3 -> ROUND_FLOP;
-                        case 4 -> ROUND_TURN;
-                        default -> ROUND_RIVER;
+                        case 3 -> GameRound.FLOP;
+                        case 4 -> GameRound.TURN;
+                        default -> GameRound.RIVER;
                     };
 
             PrivateCards[] rangeIp =
@@ -98,25 +86,23 @@ public final class SolveService implements AutoCloseable {
             float pot = Objects.requireNonNull(request.pot());
             float effectiveStack = Objects.requireNonNull(request.effectiveStack());
             GameTree tree = SolverEnvironment.gameTreeFromParams(
-                    loaded.deck(),
+                    game.deck(),
                     pot / 2,
                     pot / 2,
-                    round,
+                    round.number(),
                     Objects.requireNonNullElse(request.raiseLimit(), 5),
                     SMALL_BLIND,
                     BIG_BLIND,
                     effectiveStack + pot / 2,
                     buildSettings(request));
 
-            int iterations = Objects.requireNonNullElse(request.iterations(), 100);
             SolverConfig config = SolverConfig.builder()
                     .tree(tree)
                     .range1(rangeIp)
                     .range2(rangeOop)
                     .initialBoard(board)
-                    .compairer(loaded.compairer())
-                    .deck(loaded.deck())
-                    .iterationNumber(iterations)
+                    .deck(game.deck())
+                    .iterationNumber(Objects.requireNonNullElse(request.iterations(), 100))
                     .printInterval(Objects.requireNonNullElse(request.progressInterval(), 10))
                     .algorithm(Algorithm.fromId(
                             Objects.requireNonNullElse(request.algorithm(), Algorithm.DISCOUNTED_CFR.id())))

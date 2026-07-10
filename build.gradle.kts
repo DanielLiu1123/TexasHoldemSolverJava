@@ -51,10 +51,12 @@ subprojects {
 
     tasks.withType<Test>().configureEach {
         useJUnitPlatform()
-        jvmArgs("-XX:+EnableDynamicAgentLoading", "--add-modules=jdk.incubator.vector")
-        // The holdem compairer dictionary (2.6M boxed map entries) alone exceeds
-        // Gradle's default 512m test-worker heap.
-        maxHeapSize = "2g"
+        jvmArgs(
+            "-XX:+EnableDynamicAgentLoading",
+            "--add-modules=jdk.incubator.vector",
+            // JEP 519: two-word object headers, a product feature in JDK 25.
+            "-XX:+UseCompactObjectHeaders",
+        )
     }
 
     plugins.apply("com.diffplug.spotless")
@@ -85,6 +87,13 @@ subprojects {
             enabled.set(project.findProperty("errorprone.enabled")?.toString()?.toBoolean() != false)
             excludedPaths = ".*/generated/.*"
             check("NullAway", net.ltgt.gradle.errorprone.CheckSeverity.ERROR)
+            // The solver's hot paths pass primitive arrays by reference on purpose: copying a
+            // 1300-element float[] per node per iteration is exactly what these records exist to
+            // avoid. Their callers treat them as read-only.
+            check("ArrayRecordComponent", net.ltgt.gradle.errorprone.CheckSeverity.OFF)
+            // Enum fields hold deeply immutable values (decks, category orders, factory lambdas)
+            // that Error Prone cannot prove immutable without annotating third-party types.
+            check("ImmutableEnumChecker", net.ltgt.gradle.errorprone.CheckSeverity.OFF)
             option("NullAway:AnnotatedPackages", "pokersolver")
             option("NullAway:HandleTestAssertionLibraries", "true")
         }

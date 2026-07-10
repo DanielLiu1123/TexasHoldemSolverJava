@@ -1,15 +1,19 @@
 package pokersolver.runtime;
 
-import java.io.File;
-import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
-import pokersolver.*;
-import pokersolver.compairer.Compairer;
+import pokersolver.Card;
+import pokersolver.Config;
+import pokersolver.Deck;
+import pokersolver.GameTree;
+import pokersolver.SolverEnvironment;
 import pokersolver.ranges.PrivateCards;
 import pokersolver.solver.Algorithm;
 import pokersolver.solver.CfrPlusRiverSolver;
@@ -19,136 +23,98 @@ import pokersolver.solver.Solver;
 import pokersolver.solver.SolverConfig;
 import pokersolver.utils.PrivateRangeConverter;
 
-public class CommandlineSolver {
+/** Solves one scenario from the command line and writes the strategy to a JSON file. */
+public final class CommandlineSolver {
 
-    static Config loadConfig(String confName) {
-        File file = new File(confName);
-
-        Config config;
-        try {
-            config = new Config(file.getAbsolutePath());
-        } catch (Exception e) {
-            throw new RuntimeException();
-        }
-        return config;
-    }
+    private CommandlineSolver() {}
 
     public static void main(String[] args) throws Exception {
         ArgumentParser parser = ArgumentParsers.newFor("CommandlineSolver")
                 .build()
                 .defaultHelp(true)
-                .description("use command line to solve poker cfr");
-        parser.addArgument("-c", "--config").help("route to the config file");
-        parser.addArgument("-p1", "--player1-range")
-                .help("player1 range str,like 'KT,K9,K8,K7,K6,QJ,QT,Q9,Q8,Q7,Q6,JT,J9' ");
-        parser.addArgument("-p2", "--player2-range")
-                .help("player2 range str,like 'KT,K9,K8,K7,K6,QJ,QT,Q9,Q8,Q7,Q6,JT,J9' ");
-        parser.addArgument("-b", "--initial-board").help("the board card when the game start");
-        parser.addArgument("-n", "--iteration-number").help("iteration number the cfr algorithm would run");
+                .description("solve a post-flop poker spot with counterfactual regret minimization");
+        parser.addArgument("-c", "--config").required(true).help("path to the YAML config file");
+        parser.addArgument("-p1", "--player1-range").required(true).help("in-position range, e.g. 'AA,KK,AKs,KQs:0.5'");
+        parser.addArgument("-p2", "--player2-range").required(true).help("out-of-position range");
+        parser.addArgument("-b", "--initial-board").required(true).help("community cards, e.g. 'Qs,Jh,2h'");
+        parser.addArgument("-n", "--iteration-number").type(Integer.class).setDefault(100);
         parser.addArgument("-i", "--print-interval")
-                .help("calculate best respond ev every other print_interval iterations of cfr");
-        parser.addArgument("-d", "--debug").setDefault(false).help("open debug mode");
-        parser.addArgument("-p", "--parallel").setDefault(true).help("whether to use thread pool");
-        parser.addArgument("-o", "--output-strategy-file")
-                .setDefault((Object) null)
-                .help("where to output strategy json");
+                .type(Integer.class)
+                .setDefault(10)
+                .help("evaluate exploitability every N iterations");
+        parser.addArgument("-o", "--output-strategy-file").required(true).help("where to write the strategy JSON");
         parser.addArgument("-l", "--logfile")
                 .setDefault((Object) null)
-                .help("calculate best respond ev every other print_interval iterations of cfr");
+                .help("where to append a JSON convergence trace");
         parser.addArgument("-a", "--algorithm")
-                .choices("discounted_cfr", "cfr", "cfr_plus", "pcfr_plus")
+                .choices("discounted_cfr", "pdcfr", "pdcfr_plus", "pcfr_plus", "cfr_plus", "cfr")
                 .setDefault("discounted_cfr")
-                .help("cfr algorithm type");
+                .help("CFR variant");
         parser.addArgument("-m", "--monte-carlo")
                 .choices("none", "public")
                 .setDefault("none")
-                .help("(experimental)whether to use monte carlo algorithm");
-        parser.addArgument("-t", "--threads").setDefault(-1).help("multi thread thread number");
-        parser.addArgument("-fa", "--fork-at-action")
-                .setDefault(1)
-                .help("using multi-thread in each action node with this prob");
-        parser.addArgument("-fc", "--fork-at-chance")
-                .setDefault(1)
-                .help("using multi-thread in each chance node with this prob");
-        parser.addArgument("-fe", "--fork-every-n-depth")
-                .setDefault(1)
-                .help("fork in between n layer of trees, default 1");
-        parser.addArgument("-fs", "--no-fork-subtree-size").setDefault(0).help("fork minimal subtree size, default 0");
+                .help("(experimental) sample one card per chance node instead of dealing all of them");
+        parser.addArgument("-e", "--stop-exploitability")
+                .type(Double.class)
+                .setDefault(0.0)
+                .help("stop once exploitability falls below this percentage of the pot; 0 disables");
+        parser.addArgument("-p", "--parallel").type(Boolean.class).setDefault(true);
+        parser.addArgument("-t", "--threads").type(Integer.class).setDefault(-1).help("-1 for one per core");
+        parser.addArgument("-fa", "--fork-at-action").type(Double.class).setDefault(1.0);
+        parser.addArgument("-fc", "--fork-at-chance").type(Double.class).setDefault(1.0);
+        parser.addArgument("-fe", "--fork-every-n-depth").type(Integer.class).setDefault(1);
+        parser.addArgument("-fs", "--no-fork-subtree-size").type(Integer.class).setDefault(0);
 
-        Namespace ns = null;
+        Namespace ns;
         try {
             ns = parser.parseArgs(args);
         } catch (ArgumentParserException e) {
             parser.handleError(e);
             System.exit(1);
-        }
-        if (ns == null) return;
-
-        String configFile = ns.getString("config");
-        if (configFile == null) {
-            parser.printHelp();
-            System.exit(1);
             return;
         }
-        String player1RangeStr = ns.getString("player1_range");
-        String player2RangeStr = ns.getString("player2_range");
-        String initialBoardStr = ns.getString("initial_board");
-        String[] initialBoardArr = initialBoardStr.split(",");
-        int[] initialBoard = Arrays.stream(initialBoardArr)
-                .map(Card::strCard2int)
-                .mapToInt(i -> i)
+
+        int[] initialBoard = Arrays.stream(ns.getString("initial_board").split(","))
+                .map(String::trim)
+                .mapToInt(Card::strCard2int)
                 .toArray();
-        int iterationNumber = Integer.parseInt(ns.getString("iteration_number"));
-        int printInterval = Integer.parseInt(ns.getString("print_interval"));
-        float forkAtAction = Float.parseFloat(ns.getString("fork_at_action"));
-        float forkAtChance = Float.parseFloat(ns.getString("fork_at_chance"));
-        boolean debug = Boolean.parseBoolean(ns.getString("debug"));
-        boolean parallel = Boolean.parseBoolean(ns.getString("parallel"));
-        String outputStrategyFile = ns.getString("output_strategy_file");
-        String logfile = ns.getString("logfile");
 
-        Algorithm algorithm = Algorithm.fromId(ns.getString("algorithm"));
-        MonteCarloAlg monteCarlo = MonteCarloAlg.fromId(ns.getString("monte_carlo"));
-        int threads = Integer.parseInt(ns.getString("threads"));
-        int forkEveryNDepth = Integer.parseInt(ns.getString("fork_every_n_depth"));
-        int noForkSubtreeSize = Integer.parseInt(ns.getString("no_fork_subtree_size"));
-
-        Config config = loadConfig(configFile);
+        Config config = new Config(ns.getString("config"));
         Deck deck = SolverEnvironment.deckFromConfig(config);
-        Compairer compairer = SolverEnvironment.compairerFromConfig(config);
         GameTree gameTree = SolverEnvironment.gameTreeFromConfig(config, deck);
 
-        PrivateCards[] player1Range = PrivateRangeConverter.rangeStr2Cards(player1RangeStr, initialBoard);
-        PrivateCards[] player2Range = PrivateRangeConverter.rangeStr2Cards(player2RangeStr, initialBoard);
+        PrivateCards[] range1 = PrivateRangeConverter.rangeStr2Cards(ns.getString("player1_range"), initialBoard);
+        PrivateCards[] range2 = PrivateRangeConverter.rangeStr2Cards(ns.getString("player2_range"), initialBoard);
 
         SolverConfig solverConfig = SolverConfig.builder()
                 .tree(gameTree)
-                .range1(player1Range)
-                .range2(player2Range)
+                .range1(range1)
+                .range2(range2)
                 .initialBoard(initialBoard)
-                .compairer(compairer)
                 .deck(deck)
-                .iterationNumber(iterationNumber)
-                .debug(debug)
-                .printInterval(printInterval)
-                .logfile(logfile)
-                .algorithm(algorithm)
-                .monteCarloAlg(monteCarlo)
+                .iterationNumber(ns.getInt("iteration_number"))
+                .printInterval(ns.getInt("print_interval"))
+                .logfile(ns.getString("logfile"))
+                .algorithm(Algorithm.fromId(ns.getString("algorithm")))
+                .monteCarloAlg(MonteCarloAlg.fromId(ns.getString("monte_carlo")))
+                .stopExploitability(ns.getDouble("stop_exploitability"))
                 .build();
-        Solver solver;
-        if (parallel) {
-            solver = new ParallelCfrPlusSolver(
-                    solverConfig, threads, forkAtAction, forkAtChance, forkEveryNDepth, noForkSubtreeSize);
-        } else {
-            solver = new CfrPlusRiverSolver(solverConfig);
-        }
+
+        Solver solver = ns.getBoolean("parallel")
+                ? new ParallelCfrPlusSolver(
+                        solverConfig,
+                        ns.getInt("threads"),
+                        ns.getDouble("fork_at_action"),
+                        ns.getDouble("fork_at_chance"),
+                        ns.getInt("fork_every_n_depth"),
+                        ns.getInt("no_fork_subtree_size"))
+                : new CfrPlusRiverSolver(solverConfig);
         solver.train();
 
-        String strategyJson = solver.getTree().dumps(false).toString();
-        File outputFile = new File(outputStrategyFile);
-        FileWriter writer = new FileWriter(outputFile, StandardCharsets.UTF_8);
-        writer.write(strategyJson);
-        writer.flush();
-        writer.close();
+        writeStrategy(solver, ns.getString("output_strategy_file"));
+    }
+
+    private static void writeStrategy(Solver solver, String outputPath) throws IOException {
+        Files.writeString(Path.of(outputPath), solver.getTree().dumps().toString(), StandardCharsets.UTF_8);
     }
 }

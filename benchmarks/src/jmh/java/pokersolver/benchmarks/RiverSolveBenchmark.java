@@ -1,6 +1,5 @@
 package pokersolver.benchmarks;
 
-import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -15,7 +14,6 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 import pokersolver.Deck;
 import pokersolver.GameTree;
-import pokersolver.compairer.Compairer;
 import pokersolver.ranges.PrivateCards;
 import pokersolver.solver.CfrPlusRiverSolver;
 import pokersolver.solver.MonteCarloAlg;
@@ -44,15 +42,13 @@ public class RiverSolveBenchmark {
     @SuppressWarnings("NullAway.Init") // JMH state fields are initialized in @Setup
     public static class Shared {
         Deck deck;
-        Compairer compairer;
         int[] board;
         PrivateCards[] ipRange;
         PrivateCards[] oopRange;
 
         @Setup(Level.Trial)
-        public void setup() throws IOException {
+        public void setup() {
             deck = SolverFixtures.holdemDeck();
-            compairer = SolverFixtures.holdemCompairer();
             board = SolverFixtures.boardInts(SolverFixtures.RIVER_BOARD);
             ipRange = PrivateRangeConverter.rangeStr2Cards(SolverFixtures.IP_RANGE, board);
             oopRange = PrivateRangeConverter.rangeStr2Cards(SolverFixtures.OOP_RANGE, board);
@@ -76,10 +72,8 @@ public class RiverSolveBenchmark {
                 .range1(shared.ipRange)
                 .range2(shared.oopRange)
                 .initialBoard(shared.board)
-                .compairer(shared.compairer)
                 .deck(shared.deck)
                 .iterationNumber(CFR_ITERATIONS)
-                .debug(false)
                 .printInterval(CFR_ITERATIONS)
                 .logfile(null)
                 .trainerFactory(DiscountedCfrTrainable::new)

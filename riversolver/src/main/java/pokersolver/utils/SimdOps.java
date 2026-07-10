@@ -27,6 +27,15 @@ public final class SimdOps {
         for (; i < length; i++) dst[i] = a[aOffset + i] * b[i];
     }
 
+    /** {@code dst[i] = src[i] * scalar} */
+    public static void scale(float[] src, float scalar, float[] dst, int length) {
+        int i = 0;
+        for (; i <= length - F.length(); i += F.length()) {
+            FloatVector.fromArray(F, src, i).mul(scalar).intoArray(dst, i);
+        }
+        for (; i < length; i++) dst[i] = src[i] * scalar;
+    }
+
     /** {@code dst[i] += a[aOffset + i] * b[i]} */
     public static void fma(float[] a, int aOffset, float[] b, float[] dst, int length) {
         int i = 0;

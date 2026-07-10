@@ -18,11 +18,8 @@ tasks.withType<me.champeau.jmh.JmhBytecodeGeneratorTask>().configureEach {
 jmh {
     jmhVersion = providers.gradleProperty("jmhVersion").get()
     resultFormat = "JSON"
-    // The compairer dictionary and range files live in riversolver's test resources;
-    // they are too large (50MB+) to duplicate into this module.
-    jvmArgsAppend.add("-Dsolver.testResources=${rootDir.resolve("riversolver/src/test/resources")}")
-    jvmArgsAppend.add("-Xmx2g")
     jvmArgsAppend.add("--add-modules=jdk.incubator.vector")
+    jvmArgsAppend.add("-XX:+UseCompactObjectHeaders")
     if (project.hasProperty("jmhIncludes")) {
         includes.add(project.property("jmhIncludes").toString())
     }

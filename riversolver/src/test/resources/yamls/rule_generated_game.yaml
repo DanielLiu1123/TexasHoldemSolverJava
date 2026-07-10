@@ -9,13 +9,6 @@ card_sampler:
     type: texas.card_sampler.RandomCardSampler
     kwargs:
         
-compairer:
-    dependence: [deck]
-    type: Dic5Compairer
-    kwargs:
-        dicfile: ./src/test/resources/compairer/card5_dic_sorted_shortdeck.txt
-        lines: 376993
-
 rule:
     type: texas.rules_builder.FiveCardRulesBuilder
     kwargs:

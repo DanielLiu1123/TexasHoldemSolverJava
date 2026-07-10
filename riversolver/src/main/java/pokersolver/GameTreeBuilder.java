@@ -2,72 +2,96 @@ package pokersolver;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import pokersolver.exceptions.NodeNotFoundException;
+import pokersolver.nodes.Action;
 import pokersolver.nodes.ActionNode;
 import pokersolver.nodes.ChanceNode;
-import pokersolver.nodes.GameActions;
+import pokersolver.nodes.GameRound;
 import pokersolver.nodes.GameTreeNode;
 import pokersolver.nodes.ShowdownNode;
 import pokersolver.nodes.TerminalNode;
 import pokersolver.solver.GameTreeBuildingSettings;
 
-/** Builds a GameTree programmatically from betting rules. */
-class GameTreeBuilder {
+/** Builds a game tree from the betting rules, one node at a time, depth first. */
+final class GameTreeBuilder {
 
-    static final class Rule {
-        Deck deck;
-        float oopCommit;
-        float ipCommit;
-        int currentRound;
-        int raiseLimit;
-        float smallBlind;
-        float bigBlind;
-        float stack;
-        GameTreeBuildingSettings buildSettings;
+    private GameTreeBuilder() {}
 
-        Rule(
-                Deck deck,
-                float oopCommit,
-                float ipCommit,
-                int currentRound,
-                int raiseLimit,
-                float smallBlind,
-                float bigBlind,
-                float stack,
-                GameTreeBuildingSettings buildSettings) {
-            this.deck = deck;
-            this.oopCommit = oopCommit;
-            this.ipCommit = ipCommit;
-            this.currentRound = currentRound;
-            this.raiseLimit = raiseLimit;
-            this.smallBlind = smallBlind;
-            this.bigBlind = bigBlind;
-            this.stack = stack;
-            this.buildSettings = buildSettings;
+    /** The betting state at a node: what each player has put in, and what the rules allow next. */
+    private record Rule(
+            Deck deck,
+            float oopCommit,
+            float ipCommit,
+            int currentRound,
+            int raiseLimit,
+            float smallBlind,
+            float bigBlind,
+            float stack,
+            GameTreeBuildingSettings buildSettings) {
+
+        float pot() {
+            return oopCommit + ipCommit;
         }
 
-        Rule(Rule rule) {
-            this.deck = rule.deck;
-            this.oopCommit = rule.oopCommit;
-            this.ipCommit = rule.ipCommit;
-            this.currentRound = rule.currentRound;
-            this.raiseLimit = rule.raiseLimit;
-            this.smallBlind = rule.smallBlind;
-            this.bigBlind = rule.bigBlind;
-            this.stack = rule.stack;
-            this.buildSettings = rule.buildSettings;
+        float commit(int player) {
+            return switch (player) {
+                case 0 -> ipCommit;
+                case 1 -> oopCommit;
+                default -> throw new IllegalArgumentException("unknown player: " + player);
+            };
         }
 
-        float getPot() {
-            return this.oopCommit + this.ipCommit;
+        /** The state after {@code player} adds {@code amount} to their commit. */
+        Rule withCommit(int player, double amount) {
+            return switch (player) {
+                case 0 ->
+                    new Rule(
+                            deck,
+                            oopCommit,
+                            (float) (ipCommit + amount),
+                            currentRound,
+                            raiseLimit,
+                            smallBlind,
+                            bigBlind,
+                            stack,
+                            buildSettings);
+                case 1 ->
+                    new Rule(
+                            deck,
+                            (float) (oopCommit + amount),
+                            ipCommit,
+                            currentRound,
+                            raiseLimit,
+                            smallBlind,
+                            bigBlind,
+                            stack,
+                            buildSettings);
+                default -> throw new IllegalArgumentException("unknown player: " + player);
+            };
         }
 
-        float getCommit(int player) {
-            if (player == 0) return this.ipCommit;
-            else if (player == 1) return this.oopCommit;
-            else throw new RuntimeException("unknown player");
+        Rule nextRound() {
+            return new Rule(
+                    deck,
+                    oopCommit,
+                    ipCommit,
+                    currentRound + 1,
+                    raiseLimit,
+                    smallBlind,
+                    bigBlind,
+                    stack,
+                    buildSettings);
         }
+    }
+
+    /** The action that led to the node being expanded — it decides what may be played there. */
+    private enum LastAction {
+        ROUND_BEGIN,
+        BEGIN,
+        BET,
+        RAISE,
+        CHECK,
+        FOLD,
+        CALL
     }
 
     static GameTreeNode build(
@@ -82,292 +106,229 @@ class GameTreeBuilder {
             GameTreeBuildingSettings buildSettings) {
         Rule rule = new Rule(
                 deck, oopCommit, ipCommit, currentRound, raiseLimit, smallBlind, bigBlind, stack, buildSettings);
-        return buildTree(rule);
+        ActionNode root = new ActionNode(List.of(), List.of(), 1, GameRound.fromInt(currentRound), rule.pot(), null);
+        expand(root, rule, LastAction.ROUND_BEGIN, 0, 0);
+        return root;
     }
 
-    private static GameTreeNode buildTree(Rule rule) {
-        GameTreeNode.GameRound round = GameTreeNode.GameRound.fromInt(rule.currentRound);
-        ActionNode node = new ActionNode(List.of(), List.of(), 1, round, (double) rule.getPot(), null);
-        buildRecursive(node, rule);
-        return node;
-    }
-
-    private static GameTreeNode buildRecursive(GameTreeNode node, Rule rule) {
-        return buildRecursive(node, rule, "roundbegin", 0, 0);
-    }
-
-    @SuppressWarnings("NullAway")
-    private static GameTreeNode buildRecursive(
-            GameTreeNode node, Rule rule, String lastAction, int checkTimes, int raiseTimes) {
-        if (node instanceof ActionNode actionNode) {
-            buildAction(actionNode, rule, lastAction, checkTimes, raiseTimes);
-        } else if (node instanceof ChanceNode chanceNode) {
-            buildChance(chanceNode, rule);
-        } else if (node instanceof ShowdownNode || node instanceof TerminalNode) {
-            // terminal node: nothing to expand
-        } else {
-            throw new RuntimeException("node type unknown");
+    private static void expand(GameTreeNode node, Rule rule, LastAction lastAction, int checkTimes, int raiseTimes) {
+        switch (node) {
+            case ActionNode action -> expandAction(action, rule, lastAction, checkTimes, raiseTimes);
+            case ChanceNode chance -> expandChance(chance, rule);
+            case ShowdownNode ignored -> {}
+            case TerminalNode ignored -> {}
         }
-        return node;
     }
 
-    @SuppressWarnings("NullAway")
-    private static void buildChance(ChanceNode root, Rule rule) {
-        Rule nextRule = new Rule(rule);
-        List<GameTreeNode> children = new ArrayList<>();
-        assert rule.currentRound <= 4;
-        for (Card ignored : rule.deck.getCards()) {
-            GameTreeNode oneNode;
-            if (rule.oopCommit == rule.ipCommit && rule.oopCommit == rule.stack) {
-                if (rule.currentRound >= 4) {
-                    double p1Commit = rule.ipCommit;
-                    double p2Commit = rule.oopCommit;
-                    double peaceGetback = (p1Commit + p2Commit) / 2;
-                    double[][] payoffs = {
-                        {p2Commit, -p2Commit},
-                        {-p1Commit, p1Commit}
-                    };
-                    nextRule = new Rule(rule);
-                    oneNode = new ShowdownNode(
-                            new double[] {peaceGetback - p1Commit, peaceGetback - p2Commit},
-                            payoffs,
-                            GameTreeNode.GameRound.fromInt(rule.currentRound),
-                            (double) rule.getPot(),
-                            root);
-                } else {
-                    nextRule = new Rule(rule);
-                    nextRule.currentRound += 1;
-                    assert nextRule.currentRound <= 4;
-                    oneNode = new ChanceNode(
-                            null,
-                            GameTreeNode.GameRound.fromInt(rule.currentRound + 1),
-                            (double) rule.getPot(),
-                            root,
-                            rule.deck.getCards());
-                }
+    private static void expandChance(ChanceNode root, Rule rule) {
+        List<GameTreeNode> children = new ArrayList<>(rule.deck().getCards().size());
+        boolean bothAllIn = rule.oopCommit() == rule.ipCommit() && rule.oopCommit() == rule.stack();
+
+        for (int i = 0; i < rule.deck().getCards().size(); i++) {
+            GameTreeNode child;
+            Rule childRule;
+            if (bothAllIn && rule.currentRound() >= GameRound.RIVER.number()) {
+                child = showdown(rule, root);
+                childRule = rule;
+            } else if (bothAllIn) {
+                childRule = rule.nextRound();
+                child = new ChanceNode(
+                        List.of(),
+                        GameRound.fromInt(rule.currentRound() + 1),
+                        rule.pot(),
+                        root,
+                        rule.deck().getCards());
             } else {
-                oneNode = new ActionNode(
-                        List.of(),
-                        List.of(),
-                        1,
-                        GameTreeNode.GameRound.fromInt(rule.currentRound),
-                        (double) rule.getPot(),
-                        root);
+                childRule = rule;
+                child = new ActionNode(
+                        List.of(), List.of(), 1, GameRound.fromInt(rule.currentRound()), rule.pot(), root);
             }
-            children.add(oneNode);
-            assert nextRule.currentRound <= 4;
-            buildRecursive(oneNode, nextRule, "begin", 0, 0);
+            children.add(child);
+            expand(child, childRule, LastAction.BEGIN, 0, 0);
         }
         root.setChildren(children);
     }
 
-    @SuppressWarnings("NullAway")
-    private static void buildAction(ActionNode root, Rule rule, String lastAction, int checkTimes, int raiseTimes) {
+    private static void expandAction(
+            ActionNode root, Rule rule, LastAction lastAction, int checkTimes, int raiseTimes) {
+        if (lastAction == LastAction.FOLD) return;
+
         int player = root.getPlayer();
-
-        String[] possibleActions =
-                switch (lastAction) {
-                    case "roundbegin", "begin" -> new String[] {"check", "bet"};
-                    case "bet", "raise" -> new String[] {"call", "raise", "fold"};
-                    case "check" -> new String[] {"check", "raise", "bet"};
-                    case "fold" -> null;
-                    case "call" -> new String[] {"check", "raise"};
-                    default -> throw new NodeNotFoundException(String.format("last action %s not found", lastAction));
-                };
         int nextPlayer = 1 - player;
-
-        List<GameActions> actions = new ArrayList<>();
+        List<Action> actions = new ArrayList<>();
         List<GameTreeNode> children = new ArrayList<>();
 
-        if (possibleActions == null) return;
-
-        for (String action : possibleActions) {
-            switch (action) {
-                case "check" -> {
-                    GameTreeNode nextNode;
-                    Rule nextRule;
-                    if ((Objects.equals(lastAction, "call")
-                                    && root.getParent() != null
-                                    && root.getParent().getParent() == null)
-                            || checkTimes >= 1) {
-                        if (rule.currentRound == 4) {
-                            double p1Commit = rule.ipCommit;
-                            double p2Commit = rule.oopCommit;
-                            double peaceGetback = (p1Commit + p2Commit) / 2;
-                            double[][] payoffs = {
-                                {p2Commit, -p2Commit},
-                                {-p1Commit, p1Commit}
-                            };
-                            nextRule = new Rule(rule);
-                            nextNode = new ShowdownNode(
-                                    new double[] {peaceGetback - p1Commit, peaceGetback - p2Commit},
-                                    payoffs,
-                                    GameTreeNode.GameRound.fromInt(rule.currentRound),
-                                    (double) rule.getPot(),
-                                    root);
-                        } else {
-                            nextRule = new Rule(rule);
-                            nextRule.currentRound += 1;
-                            nextNode = new ChanceNode(
-                                    null,
-                                    GameTreeNode.GameRound.fromInt(rule.currentRound + 1),
-                                    (double) rule.getPot(),
-                                    root,
-                                    rule.deck.getCards());
-                        }
-                    } else {
-                        nextRule = new Rule(rule);
-                        nextNode = new ActionNode(
-                                List.of(),
-                                List.of(),
-                                nextPlayer,
-                                GameTreeNode.GameRound.fromInt(rule.currentRound),
-                                (double) rule.getPot(),
-                                root);
-                    }
-                    buildRecursive(nextNode, nextRule, "check", checkTimes + 1, 0);
-                    actions.add(new GameActions(GameTreeNode.PokerActions.CHECK, null));
-                    children.add(nextNode);
-                }
-                case "bet" -> {
-                    BetSizing.BetType betType = BetSizing.BetType.BET;
-                    if (root.getPlayer() == 1
-                            && root.getParent() != null
-                            && root.getParent() instanceof ChanceNode chanceNodeBeforeThis) {
-                        if (chanceNodeBeforeThis.isDonk()) betType = BetSizing.BetType.DONK;
-                    }
-                    List<Double> betSizes = getPossibleBets(root, player, nextPlayer, rule, betType);
-                    for (Double oneBettingSize : betSizes) {
-                        Rule nextRule = new Rule(rule);
-                        if (player == 0) nextRule.ipCommit = (float) (nextRule.ipCommit + oneBettingSize);
-                        else if (player == 1) nextRule.oopCommit = (float) (nextRule.oopCommit + oneBettingSize);
-                        else throw new RuntimeException("unknown player");
-                        GameTreeNode nextNode = new ActionNode(
-                                List.of(),
-                                List.of(),
-                                nextPlayer,
-                                GameTreeNode.GameRound.fromInt(rule.currentRound),
-                                (double) rule.getPot(),
-                                root);
-                        buildRecursive(nextNode, nextRule, "bet", 0, 0);
-                        actions.add(new GameActions(GameTreeNode.PokerActions.BET, oneBettingSize));
-                        children.add(nextNode);
-                    }
-                }
-                case "call" -> {
-                    Rule nextRule = new Rule(rule);
-                    if (player == 0) nextRule.ipCommit += (rule.oopCommit - rule.ipCommit);
-                    else if (player == 1) nextRule.oopCommit += (rule.ipCommit - rule.oopCommit);
-                    else throw new RuntimeException("unknown player");
-
-                    GameTreeNode nextNode;
-                    if (root.getParent() == null) {
-                        nextNode = new ActionNode(
-                                List.of(),
-                                List.of(),
-                                nextPlayer,
-                                GameTreeNode.GameRound.fromInt(rule.currentRound),
-                                (double) rule.getPot(),
-                                root);
-                    } else if (rule.currentRound == 4) {
-                        double p1Commit = nextRule.ipCommit;
-                        double p2Commit = nextRule.oopCommit;
-                        double peaceGetback = (p1Commit + p2Commit) / 2;
-                        double[][] payoffs = {
-                            {p2Commit, -p2Commit},
-                            {-p1Commit, p1Commit}
-                        };
-                        double[] tiePayoffs = new double[] {peaceGetback - p1Commit, peaceGetback - p2Commit};
-                        nextNode = new ShowdownNode(
-                                tiePayoffs,
-                                payoffs,
-                                GameTreeNode.GameRound.fromInt(rule.currentRound),
-                                (double) rule.getPot(),
-                                root);
-                    } else {
-                        nextRule.currentRound += 1;
-                        boolean donk = player == 1;
-                        nextNode = new ChanceNode(
-                                null,
-                                GameTreeNode.GameRound.fromInt(rule.currentRound + 1),
-                                (double) rule.getPot(),
-                                root,
-                                rule.deck.getCards(),
-                                donk);
-                    }
-                    assert nextRule.currentRound <= 4;
-                    buildRecursive(nextNode, nextRule, "call", 0, 0);
-                    actions.add(new GameActions(GameTreeNode.PokerActions.CALL, null));
-                    children.add(nextNode);
-                }
-                case "raise" -> {
-                    if (Objects.equals(lastAction, "call")) {
-                        if (!(root.getParent() != null && root.getParent().getParent() == null)) continue;
-                    } else if (Objects.equals(lastAction, "check")) {
-                        if (!(root.getParent() != null
-                                && root.getParent().getParent() == null
-                                && rule.currentRound == 1)) continue;
-                    }
-                    if (raiseTimes >= rule.raiseLimit) continue;
-                    List<Double> betSizes = getPossibleBets(root, player, nextPlayer, rule, BetSizing.BetType.RAISE);
-                    for (Double oneBettingSize : betSizes) {
-                        Rule nextRule = new Rule(rule);
-                        if (player == 0) nextRule.ipCommit = (float) (nextRule.ipCommit + oneBettingSize);
-                        else if (player == 1) nextRule.oopCommit = (float) (nextRule.oopCommit + oneBettingSize);
-                        else throw new RuntimeException("unknown player");
-                        GameTreeNode nextNode = new ActionNode(
-                                List.of(),
-                                List.of(),
-                                nextPlayer,
-                                GameTreeNode.GameRound.fromInt(rule.currentRound),
-                                (double) rule.getPot(),
-                                root);
-                        buildRecursive(nextNode, nextRule, "raise", 0, raiseTimes + 1);
-                        actions.add(new GameActions(GameTreeNode.PokerActions.RAISE, oneBettingSize));
-                        children.add(nextNode);
-                    }
-                }
-                case "fold" -> {
-                    Rule nextRule = new Rule(rule);
-                    double[] payoffs;
-                    if (player == 0) {
-                        payoffs = new double[] {(double) -rule.ipCommit, (double) rule.ipCommit};
-                    } else if (player == 1) {
-                        payoffs = new double[] {(double) rule.oopCommit, (double) -rule.oopCommit};
-                    } else throw new RuntimeException("unknown player");
-                    GameTreeNode nextNode = new TerminalNode(
-                            payoffs,
-                            nextPlayer,
-                            GameTreeNode.GameRound.fromInt(rule.currentRound),
-                            (double) rule.getPot(),
-                            root);
-                    buildRecursive(nextNode, nextRule, "fold", 0, 0);
-                    actions.add(new GameActions(GameTreeNode.PokerActions.FOLD, null));
-                    children.add(nextNode);
-                }
-                default -> {}
+        switch (lastAction) {
+            case ROUND_BEGIN, BEGIN -> {
+                addCheck(root, rule, lastAction, checkTimes, nextPlayer, actions, children);
+                addBets(root, rule, player, nextPlayer, actions, children);
             }
+            case BET, RAISE -> {
+                addCall(root, rule, player, nextPlayer, actions, children);
+                addRaises(root, rule, lastAction, player, nextPlayer, raiseTimes, actions, children);
+                addFold(root, rule, player, nextPlayer, actions, children);
+            }
+            case CHECK -> {
+                addCheck(root, rule, lastAction, checkTimes, nextPlayer, actions, children);
+                addRaises(root, rule, lastAction, player, nextPlayer, raiseTimes, actions, children);
+                addBets(root, rule, player, nextPlayer, actions, children);
+            }
+            case CALL -> {
+                addCheck(root, rule, lastAction, checkTimes, nextPlayer, actions, children);
+                addRaises(root, rule, lastAction, player, nextPlayer, raiseTimes, actions, children);
+            }
+            case FOLD -> throw new IllegalStateException("unreachable");
         }
-        assert !actions.isEmpty();
-        root.setActions(actions);
-        root.setChildren(children);
+
+        if (actions.isEmpty()) throw new IllegalStateException("action node with no legal actions");
+        root.setEdges(actions, children);
     }
 
-    private static List<Double> getPossibleBets(
+    /** A check either passes to the opponent, or — if it closes the round — deals or shows down. */
+    private static void addCheck(
+            ActionNode root,
+            Rule rule,
+            LastAction lastAction,
+            int checkTimes,
+            int nextPlayer,
+            List<Action> actions,
+            List<GameTreeNode> children) {
+        boolean closesRound = checkTimes >= 1 || (lastAction == LastAction.CALL && isRootChild(root));
+
+        GameTreeNode next;
+        Rule nextRule;
+        if (closesRound && rule.currentRound() == GameRound.RIVER.number()) {
+            next = showdown(rule, root);
+            nextRule = rule;
+        } else if (closesRound) {
+            nextRule = rule.nextRound();
+            next = new ChanceNode(
+                    List.of(),
+                    GameRound.fromInt(rule.currentRound() + 1),
+                    rule.pot(),
+                    root,
+                    rule.deck().getCards());
+        } else {
+            nextRule = rule;
+            next = new ActionNode(
+                    List.of(), List.of(), nextPlayer, GameRound.fromInt(rule.currentRound()), rule.pot(), root);
+        }
+        expand(next, nextRule, LastAction.CHECK, checkTimes + 1, 0);
+        actions.add(Action.CHECK);
+        children.add(next);
+    }
+
+    /** An opening bet, or — for the out-of-position player after they closed the last round — a donk bet. */
+    private static void addBets(
+            ActionNode root, Rule rule, int player, int nextPlayer, List<Action> actions, List<GameTreeNode> children) {
+        BetSizing.BetType betType =
+                root.getPlayer() == 1 && root.getParent() instanceof ChanceNode chance && chance.isDonk()
+                        ? BetSizing.BetType.DONK
+                        : BetSizing.BetType.BET;
+
+        for (double amount : possibleBets(root, player, nextPlayer, rule, betType)) {
+            Rule nextRule = rule.withCommit(player, amount);
+            GameTreeNode next = new ActionNode(
+                    List.of(), List.of(), nextPlayer, GameRound.fromInt(rule.currentRound()), rule.pot(), root);
+            expand(next, nextRule, LastAction.BET, 0, 0);
+            actions.add(new Action.Bet(amount));
+            children.add(next);
+        }
+    }
+
+    /** A call either closes the round — dealing or showing down — or, at the root, passes the action. */
+    private static void addCall(
+            ActionNode root, Rule rule, int player, int nextPlayer, List<Action> actions, List<GameTreeNode> children) {
+        Rule nextRule = rule.withCommit(player, rule.commit(nextPlayer) - rule.commit(player));
+
+        GameTreeNode next;
+        if (root.getParent() == null) {
+            next = new ActionNode(
+                    List.of(), List.of(), nextPlayer, GameRound.fromInt(rule.currentRound()), rule.pot(), root);
+        } else if (rule.currentRound() == GameRound.RIVER.number()) {
+            next = showdown(nextRule, root);
+        } else {
+            // Out of position closing the round with a call may lead into the next one.
+            next = new ChanceNode(
+                    List.of(),
+                    GameRound.fromInt(rule.currentRound() + 1),
+                    rule.pot(),
+                    root,
+                    rule.deck().getCards(),
+                    player == 1);
+            nextRule = nextRule.nextRound();
+        }
+        expand(next, nextRule, LastAction.CALL, 0, 0);
+        actions.add(Action.CALL);
+        children.add(next);
+    }
+
+    private static void addRaises(
+            ActionNode root,
+            Rule rule,
+            LastAction lastAction,
+            int player,
+            int nextPlayer,
+            int raiseTimes,
+            List<Action> actions,
+            List<GameTreeNode> children) {
+        // A raise after a call is only the big blind's option preflop; a raise after a check is only
+        // a check-raise, which needs a bet to raise over.
+        if (lastAction == LastAction.CALL && !isRootChild(root)) return;
+        if (lastAction == LastAction.CHECK && !(isRootChild(root) && rule.currentRound() == GameRound.PREFLOP.number()))
+            return;
+        if (raiseTimes >= rule.raiseLimit()) return;
+
+        for (double amount : possibleBets(root, player, nextPlayer, rule, BetSizing.BetType.RAISE)) {
+            Rule nextRule = rule.withCommit(player, amount);
+            GameTreeNode next = new ActionNode(
+                    List.of(), List.of(), nextPlayer, GameRound.fromInt(rule.currentRound()), rule.pot(), root);
+            expand(next, nextRule, LastAction.RAISE, 0, raiseTimes + 1);
+            actions.add(new Action.Raise(amount));
+            children.add(next);
+        }
+    }
+
+    private static void addFold(
+            ActionNode root, Rule rule, int player, int nextPlayer, List<Action> actions, List<GameTreeNode> children) {
+        float forfeited = rule.commit(player);
+        double[] payoffs = player == 0 ? new double[] {-forfeited, forfeited} : new double[] {forfeited, -forfeited};
+        GameTreeNode next =
+                new TerminalNode(payoffs, nextPlayer, GameRound.fromInt(rule.currentRound()), rule.pot(), root);
+        expand(next, rule, LastAction.FOLD, 0, 0);
+        actions.add(Action.FOLD);
+        children.add(next);
+    }
+
+    private static ShowdownNode showdown(Rule rule, GameTreeNode parent) {
+        double ipCommit = rule.ipCommit();
+        double oopCommit = rule.oopCommit();
+        double chopped = (ipCommit + oopCommit) / 2;
+        double[][] winnerPayoffs = {
+            {oopCommit, -oopCommit},
+            {-ipCommit, ipCommit}
+        };
+        double[] tiePayoffs = {chopped - ipCommit, chopped - oopCommit};
+        return new ShowdownNode(tiePayoffs, winnerPayoffs, GameRound.fromInt(rule.currentRound()), rule.pot(), parent);
+    }
+
+    /** Whether {@code node}'s parent is the tree's root — i.e. this is the first decision of the solve. */
+    private static boolean isRootChild(GameTreeNode node) {
+        GameTreeNode parent = node.getParent();
+        return parent != null && parent.getParent() == null;
+    }
+
+    private static List<Double> possibleBets(
             GameTreeNode root, int player, int nextPlayer, Rule rule, BetSizing.BetType betType) {
-        assert player == 1 - nextPlayer;
-        GameTreeBuildingSettings.StreetSetting streetSetting = rule.buildSettings.getSettings(root.getRound(), player);
         return BetSizing.possibleBets(
                 player,
                 nextPlayer,
-                rule.ipCommit,
-                rule.oopCommit,
-                rule.smallBlind,
-                rule.bigBlind,
-                rule.stack,
-                streetSetting,
+                rule.ipCommit(),
+                rule.oopCommit(),
+                rule.smallBlind(),
+                rule.bigBlind(),
+                rule.stack(),
+                rule.buildSettings().getSettings(root.getRound(), player),
                 betType);
     }
-
-    private GameTreeBuilder() {}
 }

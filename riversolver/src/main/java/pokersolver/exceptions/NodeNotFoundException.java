@@ -1,11 +1,9 @@
 package pokersolver.exceptions;
 
-/**
- * Created by huangxuefeng on 2019/10/7.
- * This file contains code for runtime Node not found exception, where a program trys to creates a node that doesn't exist
- */
-public class NodeNotFoundException extends RuntimeException {
-    public NodeNotFoundException(String errmsg) {
-        super(errmsg);
+/** Signals a game-tree node that does not exist. */
+public class NodeNotFoundException extends SolverException {
+
+    public NodeNotFoundException(String message) {
+        super(message);
     }
 }

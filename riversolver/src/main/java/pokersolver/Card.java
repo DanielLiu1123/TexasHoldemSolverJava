@@ -1,33 +1,47 @@
 package pokersolver;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import pokersolver.exceptions.BoardNotFoundException;
 import pokersolver.exceptions.CardsNotFoundException;
-import pokersolver.ranges.PrivateCards;
 
 /**
- * Created by huangxuefeng on 2019/10/6.
- * created to hold or convert a card to int
+ * One playing card, identified by an integer in {@code [0, 52)} encoded as {@code (rank - 2) * 4 +
+ * suit} — ranks ascending from the deuce, suits ordered clubs, diamonds, hearts, spades.
+ *
+ * <p>Sets of cards travel through the solver as 52-bit masks (bit {@code i} = card {@code i}) rather
+ * than as collections: intersection is a single {@code &}, and {@link pokersolver.eval.HandEvaluator}
+ * consumes the mask directly. Each card caches its own one-bit mask, because the CFR traversal asks
+ * for it once per chance-node edge per iteration.
  */
-public class Card {
-    public String getCard() {
-        return card;
-    }
+public final class Card {
 
-    String card;
+    static final int DECK_SIZE = 52;
+
+    private final String card;
 
     /** The integer id (0..51), parsed once at construction — see {@link #strCard2int}. */
-    final int cardInt;
+    private final int cardInt;
+
+    /** {@code 1L << cardInt}: this card as a one-bit board mask. */
+    private final long mask;
 
     Card(String card) {
         this.card = card;
         this.cardInt = strCard2int(card);
+        this.mask = 1L << cardInt;
+    }
+
+    public String getCard() {
+        return card;
     }
 
     public int getCardInt() {
-        return this.cardInt;
+        return cardInt;
+    }
+
+    /** This card as a single-bit board mask. */
+    public long mask() {
+        return mask;
     }
 
     public static int card2int(Card card) {
@@ -35,12 +49,10 @@ public class Card {
     }
 
     public static int strCard2int(String card) {
-        char rank = card.charAt(0);
-        char suit = card.charAt(1);
         if (card.length() != 2) {
             throw new CardsNotFoundException(String.format("card %s not found", card));
         }
-        return (rankToInt(rank) - 2) * 4 + suitToInt(suit);
+        return (rankToInt(card.charAt(0)) - 2) * 4 + suitToInt(card.charAt(1));
     }
 
     public static String intCard2Str(int card) {
@@ -49,108 +61,57 @@ public class Card {
         return rankToString(rank) + suitToString(suit);
     }
 
-    public static long boardCards2long(String[] cards) {
-        Card[] cardsObjs = new Card[cards.length];
-        for (int i = 0; i < cards.length; i++) {
-            cardsObjs[i] = new Card(cards[i]);
-        }
-        return boardCards2long(cardsObjs);
-    }
-
-    public static long boardCards2long(List<String> cards) {
-        Card[] cardsObjs = new Card[cards.size()];
-        for (int i = 0; i < cards.size(); i++) {
-            cardsObjs[i] = new Card(cards.get(i));
-        }
-        return boardCards2long(cardsObjs);
-    }
-
-    public static long boardCard2long(Card card) {
-        try {
-            return boardCards2long(new Card[] {card});
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException();
-        }
-    }
-
     public static long boardCards2long(Card[] cards) {
-        int[] boardInt = new int[cards.length];
-        for (int i = 0; i < cards.length; i++) {
-            boardInt[i] = Card.card2int(cards[i]);
-        }
-        return boardInts2long(boardInt);
+        long mask = 0;
+        for (Card card : cards) mask |= card.mask;
+        return mask;
     }
 
     public static boolean boardsHasIntercept(long board1, long board2) {
-        return ((board1 & board2) != 0);
-    }
-
-    public static long boardInts2long(List<Integer> board) {
-        int[] array = board.stream().mapToInt(i -> i).toArray();
-        return boardInts2long(array);
-    }
-
-    public static long privateHand2long(PrivateCards oneHand) {
-        return boardInts2long(new int[] {oneHand.card1, oneHand.card2});
+        return (board1 & board2) != 0;
     }
 
     public static long boardInts2long(int[] board) {
         if (board.length < 1 || board.length > 7) {
-            throw new RuntimeException(Arrays.toString(board));
+            throw new BoardNotFoundException(Arrays.toString(board));
         }
-        long boardLong = 0;
-        for (int oneCard : board) {
-            // 这里hard code了一副扑克牌是52张
-            if (oneCard < 0 || oneCard >= 52) {
-                throw new RuntimeException(String.format("Card with id %d not found", oneCard));
+        long mask = 0;
+        for (int card : board) {
+            if (card < 0 || card >= DECK_SIZE) {
+                throw new CardsNotFoundException(String.format("Card with id %d not found", card));
             }
-            // long d
-            // long 的range 在- 2 ^ 63 - 1 ~ + 2^ 63之间,所以不用太担心溢出问题
-            boardLong += (Long.valueOf(1) << oneCard);
+            mask |= 1L << card;
         }
-        return boardLong;
+        return mask;
+    }
+
+    /** How many cards a board mask holds — {@code long2board(mask).length} without the array. */
+    public static int cardCount(long boardLong) {
+        return Long.bitCount(boardLong);
     }
 
     public static int[] long2board(long boardLong) {
-        List<Integer> board = new ArrayList<>();
-        for (int i = 0; i < 52; i++) {
-            if ((boardLong & 1) == 1) {
-                board.add(i);
-            }
-            boardLong = boardLong >> 1;
+        int size = Long.bitCount(boardLong);
+        if (size < 1 || size > 7) {
+            throw new BoardNotFoundException(String.format("board length not correct, board length %d", size));
         }
-        if (board.size() < 1 || board.size() > 7) {
-            throw new RuntimeException(String.format(
-                    "board length not correct, board length %d, boards %s", board.size(), board.toString()));
+        int[] board = new int[size];
+        for (int i = 0; i < size; i++) {
+            board[i] = Long.numberOfTrailingZeros(boardLong);
+            boardLong &= boardLong - 1;
         }
-        int[] retval = new int[board.size()];
-        for (int i = 0; i < board.size(); i++) {
-            retval[i] = board.get(i);
-        }
-        return retval;
+        return board;
     }
 
     public static Card[] long2boardCards(long boardLong) throws BoardNotFoundException {
         int[] board = long2board(boardLong);
-        List<Card> boardCards = new ArrayList<>();
-        for (int oneBoard : board) {
-            boardCards.add(new Card(intCard2Str(oneBoard)));
-        }
-        if (boardCards.size() < 1 || boardCards.size() > 7) {
-            throw new BoardNotFoundException(String.format(
-                    "board length not correct, board length %d, boards %s", boardCards.size(), Arrays.toString(board)));
-        }
-        Card retval[] = new Card[boardCards.size()];
-        for (int i = 0; i < boardCards.size(); i++) {
-            retval[i] = boardCards.get(i);
-        }
-        return retval;
+        Card[] cards = new Card[board.length];
+        for (int i = 0; i < board.length; i++) cards[i] = new Card(intCard2Str(board[i]));
+        return cards;
     }
 
     static String suitToString(int suit) {
         return switch (suit) {
-            case 0 -> "c";
             case 1 -> "d";
             case 2 -> "h";
             case 3 -> "s";
@@ -160,49 +121,34 @@ public class Card {
 
     static String rankToString(int rank) {
         return switch (rank) {
-            case 2 -> "2";
-            case 3 -> "3";
-            case 4 -> "4";
-            case 5 -> "5";
-            case 6 -> "6";
-            case 7 -> "7";
-            case 8 -> "8";
-            case 9 -> "9";
             case 10 -> "T";
             case 11 -> "J";
             case 12 -> "Q";
             case 13 -> "K";
             case 14 -> "A";
-            default -> "2";
+            default -> String.valueOf(rank);
         };
     }
 
     static int rankToInt(char rank) {
         return switch (rank) {
-            case '2' -> 2;
-            case '3' -> 3;
-            case '4' -> 4;
-            case '5' -> 5;
-            case '6' -> 6;
-            case '7' -> 7;
-            case '8' -> 8;
-            case '9' -> 9;
             case 'T' -> 10;
             case 'J' -> 11;
             case 'Q' -> 12;
             case 'K' -> 13;
             case 'A' -> 14;
-            default -> 2;
+            case '2', '3', '4', '5', '6', '7', '8', '9' -> rank - '0';
+            default -> throw new CardsNotFoundException(String.format("rank %s not found", rank));
         };
     }
 
     static int suitToInt(char suit) {
         return switch (suit) {
-            case 'c' -> 0; // 梅花
-            case 'd' -> 1; // 方块
-            case 'h' -> 2; // 红桃
-            case 's' -> 3; // 黑桃
-            default -> 0;
+            case 'c' -> 0;
+            case 'd' -> 1;
+            case 'h' -> 2;
+            case 's' -> 3;
+            default -> throw new CardsNotFoundException(String.format("suit %s not found", suit));
         };
     }
 
@@ -212,6 +158,6 @@ public class Card {
 
     @Override
     public String toString() {
-        return this.card;
+        return card;
     }
 }

@@ -1,15 +1,11 @@
 package pokersolver.benchmarks;
 
-import java.io.IOException;
-import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import pokersolver.Card;
 import pokersolver.Deck;
 import pokersolver.GameTree;
 import pokersolver.SolverEnvironment;
-import pokersolver.compairer.Compairer;
 import pokersolver.solver.GameTreeBuildingSettings;
 
 /**
@@ -44,24 +40,10 @@ final class SolverFixtures {
 
     static final int ROUND_RIVER = 4;
 
-    static final int HOLDEM_DICT_LINES = 2598961;
-
-    static Path testResources() {
-        String dir = Objects.requireNonNull(
-                System.getProperty("solver.testResources"),
-                "system property solver.testResources not set; run through Gradle's jmh task");
-        return Path.of(dir);
-    }
-
     static Deck holdemDeck() {
         List<String> ranks = Arrays.asList("A", "K", "Q", "J", "T", "9", "8", "7", "6", "5", "4", "3", "2");
         List<String> suits = Arrays.asList("h", "s", "d", "c");
         return new Deck(ranks, suits);
-    }
-
-    static Compairer holdemCompairer() throws IOException {
-        Path dict = testResources().resolve("compairer/card5_dic_sorted.txt");
-        return SolverEnvironment.compairerFromFile("Dic5Compairer", dict.toString(), HOLDEM_DICT_LINES);
     }
 
     static int[] boardInts(String board) {

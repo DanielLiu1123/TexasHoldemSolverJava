@@ -4,26 +4,36 @@ import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 import pokersolver.Deck;
 import pokersolver.GameTree;
-import pokersolver.compairer.Compairer;
 import pokersolver.ranges.PrivateCards;
-import pokersolver.trainable.DiscountedCfrTrainable;
 import pokersolver.trainable.TrainableFactory;
 
 /**
- * Common configuration shared by all CFR solvers.
+ * The scenario and the knobs, shared by every CFR solver.
  *
- * @param stopExploitability stop training early once exploitability (in percent of the pot) drops
- *     below this value; {@code 0} disables early stopping
+ * <p>The hand evaluator is not configurable: it follows from the deck, and a mismatched one would
+ * silently rank hands under the wrong variant's rules.
+ *
+ * @param tree the post-flop game tree to solve
+ * @param range1 the in-position player's range
+ * @param range2 the out-of-position player's range
+ * @param initialBoard the community cards already dealt
+ * @param deck the deck, which also determines how hands are ranked
+ * @param iterationNumber the iteration ceiling
+ * @param printInterval how often to evaluate exploitability, in iterations
+ * @param logfile where to append a JSON line per evaluation, or null
+ * @param trainerFactory the CFR variant, per {@link Algorithm}
+ * @param monteCarloAlg whether chance nodes deal every card or one sampled card
+ * @param stopExploitability stop once exploitability (as a percentage of the pot) drops below this;
+ *     {@code 0} disables early stopping
+ * @param progressListener notified at each exploitability evaluation
  */
 public record SolverConfig(
         GameTree tree,
         PrivateCards[] range1,
         PrivateCards[] range2,
         int[] initialBoard,
-        Compairer compairer,
         Deck deck,
         int iterationNumber,
-        boolean debug,
         int printInterval,
         @Nullable String logfile,
         TrainableFactory trainerFactory,
@@ -40,13 +50,11 @@ public record SolverConfig(
         private PrivateCards @Nullable [] range1;
         private PrivateCards @Nullable [] range2;
         private int @Nullable [] initialBoard;
-        private @Nullable Compairer compairer;
         private @Nullable Deck deck;
         private int iterationNumber = 100;
-        private boolean debug = false;
         private int printInterval = 10;
         private @Nullable String logfile;
-        private TrainableFactory trainerFactory = DiscountedCfrTrainable::new;
+        private TrainableFactory trainerFactory = Algorithm.DISCOUNTED_CFR.trainableFactory();
         private MonteCarloAlg monteCarloAlg = MonteCarloAlg.NONE;
         private double stopExploitability = 0;
         private TrainingProgressListener progressListener = TrainingProgressListener.NONE;
@@ -73,11 +81,6 @@ public record SolverConfig(
             return this;
         }
 
-        public Builder compairer(Compairer compairer) {
-            this.compairer = compairer;
-            return this;
-        }
-
         public Builder deck(Deck deck) {
             this.deck = deck;
             return this;
@@ -85,11 +88,6 @@ public record SolverConfig(
 
         public Builder iterationNumber(int iterationNumber) {
             this.iterationNumber = iterationNumber;
-            return this;
-        }
-
-        public Builder debug(boolean debug) {
-            this.debug = debug;
             return this;
         }
 
@@ -103,13 +101,13 @@ public record SolverConfig(
             return this;
         }
 
-        public Builder trainerFactory(TrainableFactory trainerFactory) {
-            this.trainerFactory = trainerFactory;
+        public Builder algorithm(Algorithm algorithm) {
+            this.trainerFactory = algorithm.trainableFactory();
             return this;
         }
 
-        public Builder algorithm(Algorithm algorithm) {
-            this.trainerFactory = algorithm.trainableFactory();
+        public Builder trainerFactory(TrainableFactory trainerFactory) {
+            this.trainerFactory = trainerFactory;
             return this;
         }
 
@@ -134,10 +132,8 @@ public record SolverConfig(
                     Objects.requireNonNull(range1, "range1"),
                     Objects.requireNonNull(range2, "range2"),
                     Objects.requireNonNull(initialBoard, "initialBoard"),
-                    Objects.requireNonNull(compairer, "compairer"),
                     Objects.requireNonNull(deck, "deck"),
                     iterationNumber,
-                    debug,
                     printInterval,
                     logfile,
                     trainerFactory,

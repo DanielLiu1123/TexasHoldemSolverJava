@@ -8,9 +8,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.time.Duration;
-import java.util.Objects;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -19,8 +17,8 @@ import pokersolver.utils.JsonUtil;
 import tools.jackson.databind.JsonNode;
 
 /**
- * End-to-end test against a real server on a random port, using the shortdeck dictionary (7MB)
- * to keep startup fast.
+ * End-to-end test against a real server on a random port. Nothing is read from disk: the hand
+ * evaluator derives its lookup tables from each variant's rules, so the server needs no data files.
  */
 class SolveApiIntegrationTest {
 
@@ -30,9 +28,7 @@ class SolveApiIntegrationTest {
 
     @BeforeAll
     static void start() {
-        Path resources = Path.of(Objects.requireNonNull(
-                System.getProperty("solver.testResources"), "solver.testResources system property not set"));
-        server = new ApiServer(resources).start(0);
+        server = new ApiServer().start(0);
         client = HttpClient.newHttpClient();
         base = String.format("http://localhost:%d/api/v1", server.port());
     }
@@ -142,6 +138,17 @@ class SolveApiIntegrationTest {
                         .build(),
                 HttpResponse.BodyHandlers.ofString());
         assertThat(missing.statusCode()).isEqualTo(404);
+    }
+
+    @Test
+    void healthReportsTheSupportedVariantsWithoutLoadingAnything() throws Exception {
+        HttpResponse<String> health = client.send(
+                HttpRequest.newBuilder(URI.create(base + "/health")).GET().build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertThat(health.statusCode()).isEqualTo(200);
+        JsonNode body = JsonUtil.MAPPER.readTree(health.body());
+        assertThat(body.get("status").asString()).isEqualTo("ok");
+        assertThat(body.get("games").toString()).contains("holdem", "shortdeck");
     }
 
     private JsonNode awaitTerminal(String id, Duration timeout) throws Exception {

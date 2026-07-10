@@ -1,11 +1,9 @@
 package pokersolver.exceptions;
 
-/**
- * Created by huangxuefeng on 2019/10/6.
- * this file cotains code for a custom exception
- */
-public class CardsNotFoundException extends RuntimeException {
-    public CardsNotFoundException(String errmsg) {
-        super(errmsg);
+/** Signals a card, rank or suit does not exist. */
+public class CardsNotFoundException extends SolverException {
+
+    public CardsNotFoundException(String message) {
+        super(message);
     }
 }

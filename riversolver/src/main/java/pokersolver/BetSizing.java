@@ -33,7 +33,7 @@ final class BetSizing {
     private static float commit(int player, float ipCommit, float oopCommit) {
         if (player == 0) return ipCommit;
         else if (player == 1) return oopCommit;
-        else throw new RuntimeException("unknown player");
+        else throw new IllegalArgumentException("unknown player: " + player);
     }
 
     /**
@@ -56,14 +56,14 @@ final class BetSizing {
             GameTreeBuildingSettings.StreetSetting streetSetting,
             BetType betType) {
         ArrayList<Double> betsRatios = new ArrayList<>();
-        boolean allIn = streetSetting.allin;
+        boolean allIn = streetSetting.allin();
         float[] betsFromRule;
-        if (betType == BetType.BET) betsFromRule = streetSetting.betSizes;
+        if (betType == BetType.BET) betsFromRule = streetSetting.betSizes();
         else if (betType == BetType.DONK) {
-            betsFromRule = streetSetting.donkSizes;
+            betsFromRule = streetSetting.donkSizes();
             allIn = false;
-        } else if (betType == BetType.RAISE) betsFromRule = streetSetting.raiseSizes;
-        else throw new RuntimeException("bet type unknown");
+        } else if (betType == BetType.RAISE) betsFromRule = streetSetting.raiseSizes();
+        else throw new IllegalArgumentException("bet type unknown");
         if (betsFromRule == null) return new ArrayList<>();
         for (float oneBet : betsFromRule) {
             betsRatios.add((double) oneBet / 100);

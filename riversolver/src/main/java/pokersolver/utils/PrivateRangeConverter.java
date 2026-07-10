@@ -1,128 +1,86 @@
 package pokersolver.utils;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Objects;
+import java.util.Set;
 import pokersolver.Card;
 import pokersolver.ranges.PrivateCards;
 
-public class PrivateRangeConverter {
-    public static PrivateCards[] rangeStr2Cards(String rangeStr, int[] initialBoards) {
-        String[] rangeList = rangeStr.split(",", -1);
-        List<PrivateCards> privateCards = new ArrayList<PrivateCards>();
+/**
+ * Parses range notation into the concrete two-card combos it stands for.
+ *
+ * <p>The grammar is the usual one: {@code "AA"} means every pair of aces, {@code "AKs"} the four
+ * suited combos, {@code "AKo"} the twelve offsuit ones, {@code "AK"} all sixteen. Any entry may
+ * carry a weight — {@code "KQs:0.5"} — and entries are comma-separated. Combos the board already
+ * blocks are dropped.
+ */
+public final class PrivateRangeConverter {
 
-        for (String oneRange : rangeList) {
-            PrivateCards thisCard;
-            List<String> cardstrArr = Arrays.asList(oneRange.split(":"));
-            if (cardstrArr.size() > 2 || cardstrArr.isEmpty()) {
-                throw new RuntimeException("':' number exceeded 2");
-            }
-            float weight = 1;
+    private PrivateRangeConverter() {}
 
-            oneRange = cardstrArr.get(0);
-            if (cardstrArr.size() == 2) {
-                weight = Float.parseFloat(cardstrArr.get(1));
-            }
+    public static PrivateCards[] rangeStr2Cards(String rangeStr, int[] initialBoard) {
+        long board = initialBoard.length == 0 ? 0 : Card.boardInts2long(initialBoard);
+        List<PrivateCards> combos = new ArrayList<>();
+        Set<Integer> seen = new LinkedHashSet<>();
+
+        for (String entry : rangeStr.split(",", -1)) {
+            String[] parts = entry.split(":", -1);
+            if (parts.length > 2) throw new IllegalArgumentException("more than one ':' in range entry: " + entry);
+
+            float weight = parts.length == 2 ? Float.parseFloat(parts[1]) : 1;
             if (weight == 0) continue;
 
-            int rangeLen = oneRange.length();
-            if (rangeLen == 3) {
-                if (oneRange.charAt(2) == 's') {
-                    char rank1 = oneRange.charAt(0);
-                    char rank2 = oneRange.charAt(1);
-                    if (rank1 == rank2)
-                        throw new RuntimeException(String.format("%s%ss is not a valid card desc", rank1, rank2));
-                    for (String oneSuit : Card.getSuits()) {
-                        int card1 = Card.strCard2int(rank1 + oneSuit);
-                        int card2 = Card.strCard2int(rank2 + oneSuit);
-                        thisCard = new PrivateCards(card1, card2, weight);
-                        privateCards.add(thisCard);
-                    }
-
-                } else if (oneRange.charAt(2) == 'o') {
-                    char rank1 = oneRange.charAt(0);
-                    char rank2 = oneRange.charAt(1);
-
-                    String[] suits = Card.getSuits();
-                    for (int i = 0; i < suits.length; i++) {
-                        String oneSuit = suits[i];
-                        int beginIndex = rank1 == rank2 ? i : 0;
-                        for (int j = beginIndex; j < suits.length; j++) {
-                            String anotherSuit = suits[j];
-                            if (Objects.equals(oneSuit, anotherSuit)) {
-                                continue;
-                            }
-                            int card1 = Card.strCard2int(rank1 + oneSuit);
-                            int card2 = Card.strCard2int(rank2 + anotherSuit);
-                            if (Card.boardsHasIntercept(
-                                    Card.boardInts2long(new int[] {card1, card2}),
-                                    Card.boardInts2long(initialBoards))) {
-                                continue;
-                            }
-                            thisCard = new PrivateCards(card1, card2, weight);
-                            privateCards.add(thisCard);
-                        }
-                    }
-                } else {
-                    throw new RuntimeException("format not recognize");
+            for (PrivateCards combo : expand(parts[0], board)) {
+                if (!seen.add(combo.hashCode())) {
+                    throw new IllegalArgumentException("duplicate combo in range: " + combo);
                 }
-            } else if (rangeLen == 2) {
-                char rank1 = oneRange.charAt(0);
-                char rank2 = oneRange.charAt(1);
-                String[] suits = Card.getSuits();
-                for (int i = 0; i < suits.length; i++) {
-                    String oneSuit = suits[i];
-                    int beginIndex = rank1 == rank2 ? i : 0;
-                    for (int j = beginIndex; j < suits.length; j++) {
-                        String anotherSuit = suits[j];
-                        if (Objects.equals(oneSuit, anotherSuit) && rank1 == rank2) {
-                            continue;
-                        }
-                        int card1 = Card.strCard2int(rank1 + oneSuit);
-                        int card2 = Card.strCard2int(rank2 + anotherSuit);
-                        if (Card.boardsHasIntercept(
-                                Card.boardInts2long(new int[] {card1, card2}), Card.boardInts2long(initialBoards))) {
-                            continue;
-                        }
-                        thisCard = new PrivateCards(card1, card2, weight);
-                        privateCards.add(thisCard);
-                    }
-                }
-
-            } else throw new RuntimeException(String.format(" range str %s len not valid ", oneRange));
-        }
-
-        // 排除初试range中重复的情况
-        for (int i = 0; i < privateCards.size(); i++) {
-            for (int j = i + 1; j < privateCards.size(); j++) {
-                PrivateCards oneCards = privateCards.get(i);
-                PrivateCards anotherCards = privateCards.get(j);
-                if (oneCards.card1 == anotherCards.card1 && oneCards.card2 == anotherCards.card2) {
-                    throw new RuntimeException(String.format(
-                            "card %s %s duplicate",
-                            Card.intCard2Str(oneCards.card1), Card.intCard2Str(oneCards.card2)));
-                }
-                if (oneCards.card1 == anotherCards.card2 && oneCards.card2 == anotherCards.card1) {
-                    throw new RuntimeException(String.format(
-                            "card %s %s duplicate",
-                            Card.intCard2Str(oneCards.card1), Card.intCard2Str(oneCards.card2)));
-                }
+                combos.add(new PrivateCards(combo.card1, combo.card2, weight));
             }
         }
+        return combos.toArray(new PrivateCards[0]);
+    }
 
-        PrivateCards[] privateCardsList = new PrivateCards[privateCards.size()];
-        for (int i = 0; i < privateCards.size(); i++) {
-            privateCardsList[i] = privateCards.get(i);
-            // System.out.print(String.format("[%s-%s]",Card.intCard2Str(private_cards_list[i].card1),Card.intCard2Str(private_cards_list[i].card2)));
+    /** The combos one range entry stands for, minus those the board blocks. */
+    private static List<PrivateCards> expand(String entry, long board) {
+        if (entry.length() != 2 && entry.length() != 3) {
+            throw new IllegalArgumentException("not a valid range entry: " + entry);
         }
-        /*
-            output all private combos
+        char rank1 = entry.charAt(0);
+        char rank2 = entry.charAt(1);
+        Character suitedness = entry.length() == 3 ? entry.charAt(2) : null;
 
-        System.out.println("private range number:");
-        System.out.println(private_cards.size());
-        System.out.println();
-         */
-        return privateCardsList;
+        if (suitedness != null && suitedness != 's' && suitedness != 'o') {
+            throw new IllegalArgumentException("not a valid range entry: " + entry);
+        }
+        if (suitedness != null && suitedness == 's' && rank1 == rank2) {
+            throw new IllegalArgumentException("%c%cs is not a valid combo".formatted(rank1, rank2));
+        }
+
+        String[] suits = Card.getSuits();
+        List<PrivateCards> combos = new ArrayList<>();
+
+        if (suitedness != null && suitedness == 's') {
+            for (String suit : suits) add(combos, rank1 + suit, rank2 + suit, board);
+            return combos;
+        }
+
+        // A pair's two cards are interchangeable, so the second suit starts at the first to avoid
+        // emitting each combo twice — and it can never match the first, which would be one card.
+        // "AKo" excludes matching suits by definition; bare "AK" is every combo, suited included.
+        boolean pair = rank1 == rank2;
+        boolean excludeSameSuit = pair || suitedness != null;
+        for (int i = 0; i < suits.length; i++) {
+            for (int j = pair ? i : 0; j < suits.length; j++) {
+                if (excludeSameSuit && i == j) continue;
+                add(combos, rank1 + suits[i], rank2 + suits[j], board);
+            }
+        }
+        return combos;
+    }
+
+    private static void add(List<PrivateCards> combos, String card1, String card2, long board) {
+        PrivateCards combo = new PrivateCards(Card.strCard2int(card1), Card.strCard2int(card2), 1);
+        if (!Card.boardsHasIntercept(combo.mask(), board)) combos.add(combo);
     }
 }

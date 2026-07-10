@@ -3,79 +3,76 @@ package pokersolver.ranges;
 import pokersolver.Card;
 
 /**
- * Created by huangxuefeng on 2019/10/11.
- * contains code to describe private ranges
+ * One two-card holding in a player's range, with the weight the range assigns it.
+ *
+ * <p>The pair's board mask is precomputed: the CFR traversal tests it against the running board once
+ * per hand per node, and rebuilding it from the two card ids each time showed up in profiles.
  */
-public class PrivateCards {
-    public int card1;
-    public int card2;
-    public float weight;
-    public float relativeProb;
+public final class PrivateCards {
+
+    public final int card1;
+    public final int card2;
+    public final float weight;
+
+    /** {@code (1L << card1) | (1L << card2)}. */
+    private final long mask;
+
+    /**
+     * This hand's share of the combos the opponent's range leaves available, normalized across the
+     * player's range. Assigned once by {@link PrivateCardsManager} at construction.
+     */
+    float relativeProb;
 
     public PrivateCards(int card1, int card2, float weight) {
         this.card1 = card1;
         this.card2 = card2;
         this.weight = weight;
-        this.relativeProb = 0;
+        this.mask = (1L << card1) | (1L << card2);
     }
 
-    public long toBoardLong() {
-        return Card.boardInts2long(new int[] {this.card1, this.card2});
+    /** This hand as a two-bit board mask. */
+    public long mask() {
+        return mask;
+    }
+
+    public float relativeProb() {
+        return relativeProb;
+    }
+
+    /** A suit-aware key for the unordered pair, in {@code [0, 52 * 52)}. */
+    public static int hashHand(int card1, int card2) {
+        return card1 > card2 ? card1 * 52 + card2 : card2 * 52 + card1;
     }
 
     @Override
     public int hashCode() {
-        if (card1 > card2) {
-            return card1 * 52 + card2;
-        } else {
-            return card2 * 52 + card1;
-        }
+        return hashHand(card1, card2);
     }
 
-    public static int hashHand(int card1, int card2) {
-        if (card1 > card2) {
-            return card1 * 52 + card2;
-        } else {
-            return card2 * 52 + card1;
-        }
+    @Override
+    public boolean equals(Object other) {
+        // The pair is unordered: (As, Kd) and (Kd, As) are the same holding.
+        return other instanceof PrivateCards that
+                && Math.min(card1, card2) == Math.min(that.card1, that.card2)
+                && Math.max(card1, card2) == Math.max(that.card1, that.card2);
     }
 
     @Override
     public String toString() {
-        if (card1 > card2) {
-            return Card.intCard2Str(card1) + Card.intCard2Str(card2);
-        } else {
-            return Card.intCard2Str(card2) + Card.intCard2Str(card1);
-        }
+        return card1 > card2
+                ? Card.intCard2Str(card1) + Card.intCard2Str(card2)
+                : Card.intCard2Str(card2) + Card.intCard2Str(card1);
     }
 
+    /** The canonical hand label: {@code "AA"}, {@code "AKs"}, {@code "AKo"}. */
     public String summary() {
-        String card1Str = Card.intCard2Str(card1);
-        String card2Str = Card.intCard2Str(card2);
-        boolean samecolor = (card1Str.charAt(1) == card2Str.charAt(1));
-        boolean samerank = (card1Str.charAt(0) == card2Str.charAt(0));
-        if (samerank) {
-            return String.format("%s%s", card1Str.charAt(0), card2Str.charAt(0));
-        }
-        String summary;
-        if (card1 > card2) {
-            summary = String.format("%s%s", card1Str.charAt(0), card2Str.charAt(0));
-        } else {
-            summary = String.format("%s%s", card2Str.charAt(0), card1Str.charAt(0));
-        }
-        if (samecolor) {
-            summary += "s";
-        } else {
-            summary += "o";
-        }
-        return summary;
+        String high = Card.intCard2Str(Math.max(card1, card2));
+        String low = Card.intCard2Str(Math.min(card1, card2));
+        if (high.charAt(0) == low.charAt(0)) return String.valueOf(high.charAt(0)) + low.charAt(0);
+        return String.valueOf(high.charAt(0)) + low.charAt(0) + (high.charAt(1) == low.charAt(1) ? 's' : 'o');
     }
 
     public int[] getHands() {
-        if (card1 > card2) {
-            return new int[] {card1, card2};
-        } else {
-            return new int[] {card2, card1};
-        }
+        return card1 > card2 ? new int[] {card1, card2} : new int[] {card2, card1};
     }
 }

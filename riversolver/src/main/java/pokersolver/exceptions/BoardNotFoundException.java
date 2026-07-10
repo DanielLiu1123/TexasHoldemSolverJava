@@ -1,11 +1,9 @@
 package pokersolver.exceptions;
 
-/**
- * Created by huangxuefeng on 2019/10/9.
- * contains code for board not found
- */
-public class BoardNotFoundException extends Exception {
-    public BoardNotFoundException(String errmsg) {
-        super(errmsg);
+/** Signals a board mask holds the wrong number of cards. */
+public class BoardNotFoundException extends SolverException {
+
+    public BoardNotFoundException(String message) {
+        super(message);
     }
 }

@@ -3,7 +3,6 @@ package pokersolver.api;
 import io.javalin.Javalin;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
-import java.nio.file.Path;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -21,11 +20,13 @@ import java.util.function.Consumer;
  */
 public final class ApiServer implements AutoCloseable {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ApiServer.class);
+
     private final SolveService service;
     private final Javalin app;
 
-    public ApiServer(Path resourcesDir) {
-        this.service = new SolveService(new GameResources(resourcesDir));
+    public ApiServer() {
+        this.service = new SolveService();
         // Javalin 7: all routes, handlers and lifecycle configuration go into the create block.
         this.app = Javalin.create(config -> {
             config.startup.showJavalinBanner = false;
@@ -71,9 +72,11 @@ public final class ApiServer implements AutoCloseable {
                     "/api/v1/health",
                     ctx -> ctx.json(Map.of(
                             "status",
-                            "ok", //
-                            "loadedGames",
-                            service.resources().loadedGames())));
+                            "ok",
+                            "games",
+                            java.util.Arrays.stream(GameType.values())
+                                    .map(GameType::id)
+                                    .toList())));
             config.routes.sse("/api/v1/solves/{id}/events", client -> {
                 SolveJob job = job(client.ctx().pathParam("id"));
                 client.keepAlive();
@@ -111,19 +114,10 @@ public final class ApiServer implements AutoCloseable {
 
     public static void main(String[] args) {
         int port = 8080;
-        Path resources = Path.of(".");
         for (int i = 0; i < args.length - 1; i++) {
-            switch (args[i]) {
-                case "--port" -> port = Integer.parseInt(args[i + 1]);
-                case "--resources" -> resources = Path.of(args[i + 1]);
-                default -> {
-                    // positional/unknown tokens are ignored; flags are self-describing
-                }
-            }
+            if (args[i].equals("--port")) port = Integer.parseInt(args[i + 1]);
         }
-        ApiServer server = new ApiServer(resources).start(port);
-        System.out.printf(
-                "solver-api listening on http://localhost:%d (resources: %s)%n",
-                server.port(), resources.toAbsolutePath().normalize());
+        ApiServer server = new ApiServer().start(port);
+        log.info("solver-api listening on http://localhost:{}", server.port());
     }
 }

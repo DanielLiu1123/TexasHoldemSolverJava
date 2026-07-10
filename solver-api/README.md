@@ -6,12 +6,11 @@ Javalin 7 on virtual threads; JSON via the project-wide Jackson 3 mapper.
 ## Run
 
 ```bash
-./gradlew :solver-api:run --args="--port 8080 --resources riversolver/src/test/resources"
+./gradlew :solver-api:run --args="--port 8080"
 ```
 
-`--resources` must point at a directory containing `compairer/card5_dic_sorted.txt`
-(holdem) and/or `compairer/card5_dic_sorted_shortdeck.txt` (shortdeck). Dictionaries
-load lazily on the first solve of each game type and stay resident.
+No data files are needed: the hand evaluator derives its rank tables from the rules of each
+variant (see [ADR 0002](../docs/adr/0002-derive-hand-ranks-instead-of-loading-a-dictionary.md)).
 
 ## Endpoints
 
@@ -22,7 +21,7 @@ load lazily on the first solve of each game type and stay resident.
 | GET | `/api/v1/solves/{id}/events` | Live progress as SSE (send `Accept: text/event-stream`) |
 | GET | `/api/v1/solves/{id}/strategy` | Strategy JSON once completed (`409` before that) |
 | DELETE | `/api/v1/solves/{id}` | Request cancellation (takes effect at the next iteration) |
-| GET | `/api/v1/health` | Process status and loaded dictionaries |
+| GET | `/api/v1/health` | Process status and the supported game types |
 
 ## Example
 

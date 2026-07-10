@@ -5,34 +5,39 @@ import org.jspecify.annotations.Nullable;
 import pokersolver.trainable.Trainable;
 
 /**
- * Created by huangxuefeng on 2019/10/7.
- * This file contians action node implementation
+ * A node where one player chooses an action. Its {@link Trainable} holds the strategy CFR trains —
+ * these are the only nodes that carry one.
+ *
+ * <p>{@code actions} and {@code children} are parallel: taking {@code actions.get(i)} leads to
+ * {@code children.get(i)}. The tree builder fills both in after construction, because a child cannot
+ * name its parent before the parent exists.
  */
-public class ActionNode extends GameTreeNode {
+public final class ActionNode extends GameTreeNode {
 
-    List<GameActions> actions;
-    List<GameTreeNode> children;
+    private final int player;
+    private List<Action> actions;
+    private List<GameTreeNode> children;
 
     @Nullable
-    Trainable trainable;
-
-    int player;
+    private Trainable trainable;
 
     public ActionNode(
-            List<GameActions> actions,
+            List<Action> actions,
             List<GameTreeNode> children,
             int player,
             GameRound round,
             double pot,
             @Nullable GameTreeNode parent) {
         super(round, pot, parent);
-        assert (actions.size() == children.size());
+        if (actions.size() != children.size()) {
+            throw new IllegalArgumentException("%d actions but %d children".formatted(actions.size(), children.size()));
+        }
         this.actions = actions;
         this.children = children;
         this.player = player;
     }
 
-    public List<GameActions> getActions() {
+    public List<Action> getActions() {
         return actions;
     }
 
@@ -40,11 +45,12 @@ public class ActionNode extends GameTreeNode {
         return children;
     }
 
-    public void setActions(List<GameActions> actions) {
+    /** Installs this node's edges. Both lists must have the same length. */
+    public void setEdges(List<Action> actions, List<GameTreeNode> children) {
+        if (actions.size() != children.size()) {
+            throw new IllegalArgumentException("%d actions but %d children".formatted(actions.size(), children.size()));
+        }
         this.actions = actions;
-    }
-
-    public void setChildren(List<GameTreeNode> children) {
         this.children = children;
     }
 
@@ -58,10 +64,5 @@ public class ActionNode extends GameTreeNode {
 
     public void setTrainable(Trainable trainable) {
         this.trainable = trainable;
-    }
-
-    @Override
-    public GameTreeNodeType getType() {
-        return GameTreeNodeType.ACTION;
     }
 }
