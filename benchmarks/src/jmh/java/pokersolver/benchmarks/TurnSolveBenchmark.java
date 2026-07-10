@@ -15,7 +15,7 @@ import org.openjdk.jmh.annotations.Warmup;
 import pokersolver.GameTree;
 import pokersolver.ranges.PrivateCards;
 import pokersolver.solver.MonteCarloAlg;
-import pokersolver.solver.ParallelCfrPlusSolver;
+import pokersolver.solver.ParallelCfrSolver;
 import pokersolver.solver.SolverConfig;
 import pokersolver.trainable.DiscountedCfrTrainable;
 import pokersolver.utils.PrivateRangeConverter;
@@ -72,7 +72,7 @@ public class TurnSolveBenchmark {
                 .trainerFactory(DiscountedCfrTrainable::new)
                 .monteCarloAlg(MonteCarloAlg.NONE)
                 .build();
-        ParallelCfrPlusSolver solver = new ParallelCfrPlusSolver(config, -1, 1.0, 0.0, 1, 0);
+        ParallelCfrSolver solver = new ParallelCfrSolver(config, -1, 1.0, 0.0, 1, 0);
         solver.train();
         return solver.getTree();
     }

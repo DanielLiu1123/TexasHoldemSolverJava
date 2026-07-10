@@ -1,57 +1,39 @@
-# TexasHoldemSolverJava
+# Texas Hold'em Solver
 
-[![license](https://img.shields.io/github/license/bupticybee/TexasHoldemSolverJava?style=flat-square)](LICENSE)
+[![license](https://img.shields.io/github/license/DanielLiu1123/TexasHoldemSolverJava?style=flat-square)](LICENSE)
+[![build](https://img.shields.io/github/actions/workflow/status/DanielLiu1123/TexasHoldemSolverJava/build.yml?style=flat-square)](.github/workflows/build.yml)
 
 README [English](README.md) | [中文](README.zh-CN.md)
 
-> **About this fork.** This is a modernized fork of [bupticybee's original
-> TexasHoldemSolverJava](https://github.com/bupticybee/TexasHoldemSolverJava) (no longer
-> maintained upstream). It runs on Java 25 with a Gradle multi-module build; the Swing GUI and
-> JPype Python bridge have been replaced by a browser web UI over an embedded HTTP API
-> ([ADR 0001](docs/adr/0001-unified-http-api-replaces-swing-and-jpype.md)); hand ranks are
-> derived from the rules of the game rather than loaded from a 52 MB dictionary
-> ([ADR 0002](docs/adr/0002-derive-hand-ranks-instead-of-loading-a-dictionary.md)); and the CFR
-> hot loops are SIMD-vectorized with the Java Vector API. For a faster native solver, see the
-> C++ port [TexasSolver](https://github.com/bupticybee/TexasSolver).
+A post-flop solver for heads-up Texas hold'em, built around Counterfactual Regret Minimization.
+It constructs the game tree for a spot, runs a CFR variant until the strategy's exploitability
+converges, and serializes the resulting mixed strategy at every decision node.
 
-## Introduction
-
-An open-source, efficient solver for Texas Hold'em. Like commercial solvers such as piosolver, it
-focuses on **post-flop** play, and its results align with piosolver. On the river it is faster than
-piosolver; on the flop it is slower.
-
-Built around Counterfactual Regret Minimization (CFR): it constructs the post-flop game tree,
-runs a CFR variant until the strategy's exploitability converges, and serializes the resulting
-mixed strategy at every node to JSON. See [CONTEXT.md](CONTEXT.md) for the domain glossary.
-
-This project is suitable for:
-
-- high-level Texas Hold'em players
-- researchers in imperfect-information games
+Runs on Java 25. No data files, no native dependencies, no install step beyond the Gradle wrapper.
 
 ## Features
 
-- Efficient — river and turn solving comparable to or faster than piosolver
-- Accurate — results closely match piosolver
-- Fully open source and free (MIT)
-- Browser web UI and a language-agnostic HTTP/JSON API (with live SSE convergence streaming)
-- Six selectable CFR variants — `discounted_cfr` (default), `pdcfr`, `pdcfr_plus`, `pcfr_plus`,
-  `cfr_plus`, `cfr` — with [measured convergence](docs/adr/0003-discounted-cfr-remains-the-default.md)
-- SIMD-vectorized CFR hot loops (`jdk.incubator.vector`)
-- Perfect-hash hand evaluator with no data files: 23 ms to build its tables, ~150 KB resident
+- **Browser web UI** and a language-agnostic **HTTP/JSON API**, with live convergence streamed over
+  SSE ([ADR 0001](docs/adr/0001-unified-http-api-replaces-swing-and-jpype.md))
+- **Six CFR variants** — `discounted_cfr` (default), `pdcfr`, `pdcfr_plus`, `pcfr_plus`, `cfr_plus`,
+  `cfr` — chosen by [measurement, not by paper date](docs/adr/0003-discounted-cfr-remains-the-default.md)
+- **Perfect-hash hand evaluator** derived from the rules of the game: ~150 KB of tables built in
+  23 ms, no dictionary to load ([ADR 0002](docs/adr/0002-derive-hand-ranks-instead-of-loading-a-dictionary.md))
+- **SIMD-vectorized** CFR hot loops (`jdk.incubator.vector`)
+- Exploitability measured directly against a best response, so convergence is a number, not a hope
+
+See [CONTEXT.md](CONTEXT.md) for the domain glossary and [docs/adr](docs/adr) for the decisions
+behind the design.
 
 ## Requirements
 
-- **JDK 25** (the build targets Java 25 and uses the incubating Vector API)
-- The Gradle wrapper (`./gradlew`) is included — no separate Gradle install needed
+- **JDK 25** — the build targets Java 25 and uses the incubating Vector API
+- The Gradle wrapper (`./gradlew`) is included; no separate Gradle install
 - Node is fetched automatically by the build for the `web-ui` module
-
-Nothing else is needed. The hand evaluator derives its rank tables from the rules of the game at
-startup, so there are no data files to download or ship.
 
 ## Build & run
 
-### Web UI (recommended)
+### Web UI
 
 Start the embedded server — it serves both the HTTP API and the bundled web UI — then open
 <http://localhost:8080>:
@@ -64,8 +46,8 @@ The UI provides a range editor, board picker, live convergence chart, and a stra
 
 ### HTTP API
 
-The same server exposes a JSON API for solving from any language. Endpoints, request fields,
-and `curl` examples are documented in [solver-api/README.md](solver-api/README.md):
+The same server exposes a JSON API for solving from any language. Endpoints and request fields are
+documented in [solver-api/README.md](solver-api/README.md).
 
 ```bash
 curl -s -X POST localhost:8080/api/v1/solves -H 'Content-Type: application/json' -d '{
@@ -78,13 +60,14 @@ curl -s -X POST localhost:8080/api/v1/solves -H 'Content-Type: application/json'
 
 ### Command line
 
-The CLI takes a game-tree JSON file plus ranges/board/iterations and writes a strategy JSON:
+The CLI takes a game-tree JSON file plus ranges, board and iteration count, and writes the strategy
+as JSON:
 
 ```bash
-./gradlew :riversolver:installDist
-cd riversolver
-./build/install/RiverSolver/bin/RiverSolver \
-  --tree src/test/resources/gametree/simple_part_tree_depthinf.km \
+./gradlew :solver-core:installDist
+cd solver-core
+./build/install/poker-solver/bin/poker-solver \
+  --tree src/test/resources/gametree/river-tree.json \
   -p1 "AA,KK,QQ,JJ,TT,99,AK,AQ,KQ,JT" \
   -p2 "AA,KK,QQ,JJ,TT,99,AK,AQ,KQ,JT" \
   -b "Kd,Jd,Td,7s,8s" -n 100 -i 10 \
@@ -97,57 +80,48 @@ cd riversolver
 
 | Module | What it is |
 | --- | --- |
-| `riversolver` | The solver core: game-tree builder, CFR solvers, hand evaluator, CLI |
+| `solver-core` | Game-tree builder, CFR solvers, hand evaluator, CLI |
 | `solver-api` | Embedded HTTP/JSON API (Javalin on virtual threads); serves the web UI |
 | `web-ui` | React + TypeScript front end, bundled into `solver-api` at build time |
 | `benchmarks` | JMH benchmarks for the hand evaluator, tree building, and solving |
 
-## Reading the solver's output
+## Reading the output
 
-While solving, the solver logs exploitability per iteration (in % of the pot):
+While solving, exploitability is logged every `-i` iterations, as a percentage of the pot:
 
 ```text
-Iter: 0   Total exploitability 47.49 percent
-Iter: 11  Total exploitability  4.53 percent
-Iter: 41  Total exploitability  0.68 percent
+iteration 0:  exploitability 20.737505% of pot
+iteration 21: exploitability 0.191139% of pot (14 ms)
+iteration 41: exploitability 0.056625% of pot (9 ms)
 ```
 
-Watch how exploitability converges — a strategy below ~0.5% pot is generally good enough to
-treat as optimal.
+Exploitability is what a best-responding opponent could win against the current strategy. It reaches
+zero exactly at a Nash equilibrium; below ~0.5% of the pot is generally good enough to treat as
+optimal.
 
-The strategy JSON maps each node to the actions considered and, per hand, the mixed strategy
-over those actions:
+The strategy JSON maps each action node to the actions available and, per hand, the mixed strategy
+over them:
 
-![strategy](img/strategy2.png)
-
-For example, with `qd7c` the optimal play might be check 34% / bet 65%.
-
-![strategy detail](img/strategy3.png)
-
-## Benchmarks
-
-Performance is guarded by the JMH `benchmarks` module:
-
-```bash
-./gradlew :benchmarks:jmh -PjmhIncludes='RiverSolveBenchmark'
+```json
+{
+  "nodeType": "action_node",
+  "player": 1,
+  "actions": ["CHECK", "BET 2.0"],
+  "strategy": {
+    "strategy": {
+      "AsAh": [0.9961, 0.0039],
+      "JsTs": [0.6416, 0.3584]
+    }
+  }
+}
 ```
 
-See [benchmarks/README.md](benchmarks/README.md) for the available benchmarks. For historical
-reference, the original per-street comparison against piosolver (turn/river comparable, flop
-slower due to tree size):
-
-|                       | flop  | turn  | river |
-| --------------------- | ----- | ----- | ----- |
-| piosolver             | 7.91s | 1.5s  | 0.56s |
-| TexasHoldemSolverJava | 98s   | 4.21s | 0.06s |
+So with `JsTs` the equilibrium play is to check 64% and bet 36%.
 
 ## Algorithm
 
-The solver builds the post-flop game tree, runs a CFR variant until the strategy's exploitability
-converges, and serializes the resulting mixed strategy at every action node.
-
-Six variants ship. Exploitability (percentage of the pot, lower is better) after 200 single-threaded
-iterations, from `AlgorithmBakeoff`:
+Six CFR variants ship. Exploitability (percentage of the pot, lower is better) after 200
+single-threaded iterations, measured by `AlgorithmBakeoff`:
 
 |                                                               | river (wide) | river (broadway) | turn       |
 | ------------------------------------------------------------- | ------------ | ---------------- | ---------- |
@@ -160,25 +134,44 @@ iterations, from `AlgorithmBakeoff`:
 
 Discounted CFR wins every scenario measured, so it is the default. The optimistic variants lead on
 matrix games and trail here, which their own papers predict. See
-[ADR 0003](docs/adr/0003-discounted-cfr-remains-the-default.md) for the full table and the reasoning.
+[ADR 0003](docs/adr/0003-discounted-cfr-remains-the-default.md) for the reasoning.
 
-Hand ranking is a perfect-hash evaluator generated from the rules of the game — a 7-card rank is four
-bit-gathers and two array reads into ~150 KB of tables, with no data file to load. See
-[ADR 0002](docs/adr/0002-derive-hand-ranks-instead-of-loading-a-dictionary.md). Short-deck support was
-removed in [ADR 0004](docs/adr/0004-drop-short-deck-support.md).
+Hand ranking is a perfect-hash evaluator generated from the rules of the game: a seven-card rank is
+four bit-gathers, a popcount and two array reads into ~150 KB of tables, with no data file to load
+([ADR 0002](docs/adr/0002-derive-hand-ranks-instead-of-loading-a-dictionary.md)).
 
-![algorithms](img/algs.png)
+Only 52-card hold'em is supported ([ADR 0004](docs/adr/0004-drop-short-deck-support.md)).
 
-## C++ version
+## Benchmarks
 
-If the Java version is not fast enough, there is a native [C++ port,
-TexasSolver](https://github.com/bupticybee/TexasSolver), which is faster on turn and river and
-roughly 5x faster on the flop.
+Performance is guarded by the JMH `benchmarks` module:
+
+```bash
+./gradlew :benchmarks:jmh -PjmhIncludes='RiverSolveBenchmark'
+```
+
+Measured on an M-series Mac, JDK 25:
+
+| | |
+| --- | --- |
+| 7-card hand rank | 26.3 ns |
+| river solve, 20 iterations, single-threaded | 1.97 ms |
+| evaluator table construction (once, at startup) | 22.9 ms |
+
+See [benchmarks/README.md](benchmarks/README.md) for the full list.
+
+## Contributing
+
+Issues and pull requests are welcome. `./gradlew build` runs the full check: tests, Spotless,
+Error Prone and NullAway. Architectural decisions are recorded in [docs/adr](docs/adr) — if a change
+overturns one, add the next ADR rather than editing the old one.
 
 ## License
 
-[MIT](LICENSE) © bupticybee
+[MIT](LICENSE).
 
-## Contact
+## Acknowledgements
 
-icybee@yeah.net
+This project began as a fork of [TexasHoldemSolverJava](https://github.com/bupticybee/TexasHoldemSolverJava)
+by bupticybee, which is no longer maintained. The solver core has since been substantially rewritten;
+the original copyright is retained in [LICENSE](LICENSE) as the MIT license requires.

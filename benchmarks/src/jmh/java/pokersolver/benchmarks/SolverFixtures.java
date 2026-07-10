@@ -9,9 +9,8 @@ import pokersolver.solver.GameTreeBuildingSettings;
 /**
  * Shared scenario fixtures for all benchmarks.
  *
- * <p>The solve scenario mirrors {@code benchmarks/benchmark_river.txt} / {@code
- * benchmark_turn.txt} (the historical piosolver comparison runs): pot 180, effective stacks 910,
- * 50%-pot bets and raises, all-in enabled on turn and river.
+ * <p>A deep, realistic spot: pot 180, effective stacks 910, 50%-pot bets and raises, all-in enabled
+ * on turn and river.
  */
 final class SolverFixtures {
 

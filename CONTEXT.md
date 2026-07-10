@@ -33,8 +33,8 @@ _Avoid_: fold node
 _Avoid_: hole cards（代码语境下）
 
 **HandEvaluator（手牌评估器）**:
-判定五到七张牌牌力强弱的组件。按德扑规则在类初始化时生成完美哈希表，返回稠密 rank（1 = 皇家同花顺，7462 = 最小高牌，越小越强，相等即平局）。全静态、无实例、无数据文件。取代了此前基于 260 万行字典文件的 Compairer / Dic5Compairer。
-_Avoid_: Compairer, 比牌器（拼写沿用自上游，已弃用）
+判定五到七张牌牌力强弱的组件。按德扑规则在类初始化时生成完美哈希表，返回稠密 rank（1 = 皇家同花顺，7462 = 最小高牌，越小越强，相等即平局）。全静态、无实例、无数据文件。
+_Avoid_: 比牌器
 
 **Deck（牌组）**:
 固定的 52 张牌，按 card id 排序（`Deck.card(i).getCardInt() == i`）。ChanceNode 的子节点与它同序，第 i 条边发的就是 `Deck.card(i)`。
@@ -45,7 +45,7 @@ _Avoid_: Compairer, 比牌器（拼写沿用自上游，已弃用）
 ### 求解
 
 **Solver（求解器）**:
-在 GameTree 上迭代训练直至策略收敛的算法骨架。遍历与训练主循环在 AbstractCfrSolver，两个具体实现只决定子节点如何调度：单线程 CfrPlusRiverSolver 顺序遍历，ParallelCfrPlusSolver 用 ForkJoin 分叉。
+在 GameTree 上迭代训练直至策略收敛的算法骨架。遍历与训练主循环在 AbstractCfrSolver，两个具体实现只决定子节点如何调度：SequentialCfrSolver 顺序遍历，ParallelCfrSolver 用 ForkJoin 分叉。
 
 **Trainable（可训练单元）**:
 挂在每个 ActionNode 上的策略存储与更新单元，记录 regret 并累积平均策略。六种实现对应六种 CFR 变体：cfr / cfr_plus / pcfr_plus / pdcfr_plus / pdcfr / discounted_cfr（默认）。

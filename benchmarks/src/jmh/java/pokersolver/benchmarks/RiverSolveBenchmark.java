@@ -14,9 +14,9 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 import pokersolver.GameTree;
 import pokersolver.ranges.PrivateCards;
-import pokersolver.solver.CfrPlusRiverSolver;
 import pokersolver.solver.MonteCarloAlg;
-import pokersolver.solver.ParallelCfrPlusSolver;
+import pokersolver.solver.ParallelCfrSolver;
+import pokersolver.solver.SequentialCfrSolver;
 import pokersolver.solver.SolverConfig;
 import pokersolver.trainable.DiscountedCfrTrainable;
 import pokersolver.utils.PrivateRangeConverter;
@@ -25,7 +25,7 @@ import pokersolver.utils.PrivateRangeConverter;
  * Measures a fixed-iteration river solve (single-threaded vs parallel CFR+).
  *
  * <p>A fresh tree is built per invocation because training mutates the trainables attached to the
- * tree, and {@link ParallelCfrPlusSolver} shuts down its pool after {@code train()}. The measured
+ * tree, and {@link ParallelCfrSolver} shuts down its pool after {@code train()}. The measured
  * time includes the exploitability evaluation the solver always performs on iteration 0.
  */
 @BenchmarkMode(Mode.AverageTime)
@@ -79,14 +79,14 @@ public class RiverSolveBenchmark {
 
     @Benchmark
     public GameTree singleThreaded(Shared shared, FreshTree fresh) throws Exception {
-        CfrPlusRiverSolver solver = new CfrPlusRiverSolver(config(shared, fresh.tree));
+        SequentialCfrSolver solver = new SequentialCfrSolver(config(shared, fresh.tree));
         solver.train();
         return solver.getTree();
     }
 
     @Benchmark
     public GameTree parallel(Shared shared, FreshTree fresh) throws Exception {
-        ParallelCfrPlusSolver solver = new ParallelCfrPlusSolver(config(shared, fresh.tree), -1, 1.0, 0.0, 1, 0);
+        ParallelCfrSolver solver = new ParallelCfrSolver(config(shared, fresh.tree), -1, 1.0, 0.0, 1, 0);
         solver.train();
         return solver.getTree();
     }

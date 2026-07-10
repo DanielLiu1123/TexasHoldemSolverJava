@@ -26,9 +26,7 @@ comparison across commits).
 | `RiverSolveBenchmark` | Fixed 20-iteration river solve, single-threaded vs parallel CFR+ |
 | `TurnSolveBenchmark` | Fixed 10-iteration parallel turn solve (chance-node fan-out) |
 
-`AlgorithmBakeoff` (in `riversolver`'s test sources, `@Disabled`) is the companion measurement
+`AlgorithmBakeoff` (in `solver-core`'s test sources, `@Disabled`) is the companion measurement
 for the CFR variants: it prints exploitability per variant per scenario, and is what
 [ADR 0003](../docs/adr/0003-discounted-cfr-remains-the-default.md) is based on.
 
-The legacy `benchmark_*.txt` files are the original piosolver comparison scenario exports;
-they are kept as documentation of the scenario parameters.

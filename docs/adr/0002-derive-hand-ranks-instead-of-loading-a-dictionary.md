@@ -70,11 +70,16 @@ Downstream simplifications:
 - Test workers no longer need a 2 GB heap.
 - `LongIntHashMap`, written for the dictionary, is deleted.
 
-The dictionary stays in `riversolver/src/test/resources/compairer/` as golden data.
-`HandEvaluatorGoldenTest` asserts the generated tables reproduce **every one of its 2,598,960 rows**,
-value for value — not merely inducing the same ordering — and checks the six- and seven-card paths
+`HandEvaluatorGoldenTest` asserts the generated tables agree with `FiveCardReference` — a deliberately
+naive evaluator that materializes the cards, sorts them, counts the ranks and reads off the category,
+sharing no machinery with the tables under test — on **every one of the 2,598,960 five-card hands**,
+value for value, not merely inducing the same ordering. It then checks the six- and seven-card paths
 against the five-card path by brute force. That test is the reason this change could be made at all,
 and it must keep running.
+
+The dictionary itself is gone. It was kept as the oracle until `FiveCardReference` was written and
+verified to reproduce it on all 2,598,960 rows; a reference that can be read and checked is worth more
+than 50 MB of numbers that can only be trusted.
 
 ## Alternatives considered
 

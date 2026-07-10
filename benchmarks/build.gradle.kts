@@ -7,7 +7,7 @@ plugins {
 description = "JMH benchmarks for the solver core"
 
 dependencies {
-    jmhImplementation(project(":riversolver"))
+    jmhImplementation(project(":solver-core"))
 }
 
 // The JMH bytecode generator reflects over benchmark classes in its own JVM.

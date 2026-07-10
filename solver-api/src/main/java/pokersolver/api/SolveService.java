@@ -17,7 +17,7 @@ import pokersolver.ranges.PrivateCards;
 import pokersolver.solver.Algorithm;
 import pokersolver.solver.GameTreeBuildingSettings;
 import pokersolver.solver.MonteCarloAlg;
-import pokersolver.solver.ParallelCfrPlusSolver;
+import pokersolver.solver.ParallelCfrSolver;
 import pokersolver.solver.SolverConfig;
 import pokersolver.utils.PrivateRangeConverter;
 
@@ -107,8 +107,8 @@ public final class SolveService implements AutoCloseable {
                             job.publish(ProgressEvent.progress(iteration, exploitability, elapsedMs)))
                     .build();
 
-            ParallelCfrPlusSolver solver = new ParallelCfrPlusSolver(
-                    config, Objects.requireNonNullElse(request.threads(), -1), 1.0, 0.0, 1, 0);
+            ParallelCfrSolver solver =
+                    new ParallelCfrSolver(config, Objects.requireNonNullElse(request.threads(), -1), 1.0, 0.0, 1, 0);
             job.attachSolver(solver);
             solver.train();
 

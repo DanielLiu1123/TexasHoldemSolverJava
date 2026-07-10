@@ -22,7 +22,7 @@ import org.openjdk.jmh.annotations.Warmup;
  * Scalar vs {@code jdk.incubator.vector} SIMD variants of the loop shapes that dominate the CFR
  * walk (see the stack profile of RiverSolveBenchmark): the discounted-CFR regret update, the
  * strategy normalization, and the payoff multiply-accumulate from actionUtility. Decides whether
- * wiring the incubator module into riversolver is worth it — C2 already auto-vectorizes some of
+ * wiring the incubator module into the solver core is worth it — C2 already auto-vectorizes some of
  * these shapes.
  */
 @BenchmarkMode(Mode.AverageTime)

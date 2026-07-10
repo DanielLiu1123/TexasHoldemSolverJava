@@ -10,7 +10,7 @@ val webDist by configurations.creating {
 }
 
 dependencies {
-    implementation(project(":riversolver"))
+    implementation(project(":solver-core"))
     implementation("io.javalin:javalin:${providers.gradleProperty("javalinVersion").get()}")
     implementation("tools.jackson.core:jackson-databind:${providers.gradleProperty("jacksonVersion").get()}")
     runtimeOnly("org.slf4j:slf4j-simple:${providers.gradleProperty("slf4jVersion").get()}")
