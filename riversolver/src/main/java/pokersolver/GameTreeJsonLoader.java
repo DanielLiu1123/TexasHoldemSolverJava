@@ -32,9 +32,9 @@ final class GameTreeJsonLoader {
 
     private GameTreeJsonLoader() {}
 
-    static GameTreeNode load(String path, Deck deck) throws IOException {
+    static GameTreeNode load(String path) throws IOException {
         JsonNode root = MAPPER.readTree(Files.readString(Path.of(path), StandardCharsets.UTF_8));
-        return buildNode(require(root, "root"), deck, null);
+        return buildNode(require(root, "root"), null);
     }
 
     private static JsonNode require(JsonNode node, String field) {
@@ -43,23 +43,23 @@ final class GameTreeJsonLoader {
         return value;
     }
 
-    private static GameTreeNode buildNode(JsonNode json, Deck deck, @Nullable GameTreeNode parent) {
+    private static GameTreeNode buildNode(JsonNode json, @Nullable GameTreeNode parent) {
         JsonNode meta = require(json, "meta");
         GameRound round = GameRound.fromString(require(meta, "round").asString());
         double pot = require(meta, "pot").asDouble();
         String nodeType = require(meta, "node_type").asString();
 
         return switch (nodeType) {
-            case "Action" -> buildActionNode(json, meta, round, pot, parent, deck);
+            case "Action" -> buildActionNode(json, meta, round, pot, parent);
             case "Showdown" -> buildShowdownNode(meta, round, pot, parent);
             case "Terminal" -> buildTerminalNode(meta, round, pot, parent);
-            case "Chance" -> buildChanceNode(json, round, pot, parent, deck);
+            case "Chance" -> buildChanceNode(json, round, pot, parent);
             default -> throw new NodeNotFoundException("node type %s not found".formatted(nodeType));
         };
     }
 
     private static ActionNode buildActionNode(
-            JsonNode json, JsonNode meta, GameRound round, double pot, @Nullable GameTreeNode parent, Deck deck) {
+            JsonNode json, JsonNode meta, GameRound round, double pot, @Nullable GameTreeNode parent) {
         JsonNode labels = require(json, "children_actions");
         JsonNode childJson = require(json, "children");
         if (labels.size() != childJson.size()) {
@@ -71,7 +71,7 @@ final class GameTreeJsonLoader {
         List<GameTreeNode> children = new ArrayList<>(labels.size());
         for (int i = 0; i < labels.size(); i++) {
             actions.add(parseAction(labels.get(i).asString()));
-            children.add(buildNode(childJson.get(i), deck, null));
+            children.add(buildNode(childJson.get(i), null));
         }
 
         ActionNode node =
@@ -121,17 +121,15 @@ final class GameTreeJsonLoader {
 
     /** A chance node's single child in the file is the template each dealable card expands into. */
     private static ChanceNode buildChanceNode(
-            JsonNode json, GameRound round, double pot, @Nullable GameTreeNode parent, Deck deck) {
+            JsonNode json, GameRound round, double pot, @Nullable GameTreeNode parent) {
         JsonNode childJson = require(json, "children");
         if (childJson.size() != 1) {
             throw new NodeLengthMismatchException("a chance node has one child template, found " + childJson.size());
         }
 
-        List<GameTreeNode> children = new ArrayList<>(deck.getCards().size());
-        for (int i = 0; i < deck.getCards().size(); i++) {
-            children.add(buildNode(childJson.get(0), deck, null));
-        }
-        ChanceNode node = new ChanceNode(children, round, pot, parent, deck.getCards());
+        List<GameTreeNode> children = new ArrayList<>(Deck.SIZE);
+        for (int i = 0; i < Deck.SIZE; i++) children.add(buildNode(childJson.get(0), null));
+        ChanceNode node = new ChanceNode(children, round, pot, parent);
         for (GameTreeNode child : children) child.setParent(node);
         return node;
     }

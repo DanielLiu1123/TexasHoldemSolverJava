@@ -16,31 +16,27 @@ import pokersolver.solver.Algorithm;
 @Disabled("manual: prints a comparison table")
 class AlgorithmBakeoff {
 
-    private record Scenario(String name, Config config, int[] board, String range) {}
+    private record Scenario(String name, String tree, int[] board, String range) {}
 
     @Test
     void compareVariantsAcrossScenarios() throws Exception {
         Scenario[] scenarios = {
             new Scenario(
-                    "shortdeck river (narrow)",
-                    SolverFixture.shortDeckRiver(),
+                    "river (narrow range)",
+                    SolverFixture.RIVER_TREE,
                     SolverFixture.RIVER_BOARD,
-                    SolverFixture.SHORT_DECK_RANGE),
+                    SolverFixture.NARROW_RANGE),
             new Scenario(
-                    "shortdeck river (wide)",
-                    SolverFixture.shortDeckRiver(),
+                    "river (wide range)",
+                    SolverFixture.RIVER_TREE,
                     SolverFixture.RIVER_BOARD,
-                    SolverFixture.WIDE_SHORT_DECK_RANGE),
+                    SolverFixture.WIDE_RANGE),
             new Scenario(
-                    "holdem river",
-                    SolverFixture.holdemRiver(),
+                    "river (broadway range)",
+                    SolverFixture.RIVER_TREE,
                     SolverFixture.RIVER_BOARD,
                     "AA,KK,QQ,JJ,TT,99,88,77,AK,AQ,AJ,KQ,KJ,QJ,JT,T9,98"),
-            new Scenario(
-                    "shortdeck turn",
-                    SolverFixture.shortDeckTurn(),
-                    SolverFixture.TURN_BOARD,
-                    SolverFixture.SHORT_DECK_RANGE),
+            new Scenario("turn", SolverFixture.TURN_TREE, SolverFixture.TURN_BOARD, SolverFixture.NARROW_RANGE),
         };
         // 50-200 is where a solve actually runs. 800 shows the asymptotic behaviour, where the
         // optimistic variants' tighter regret bound starts to tell and pcfr_plus nearly catches
@@ -59,11 +55,7 @@ class AlgorithmBakeoff {
                 for (int i = 0; i < iterationCounts.length; i++) {
                     row[i] = SolverFixture.solveAndMeasure(
                             SolverFixture.builder(
-                                    scenario.config(),
-                                    scenario.board(),
-                                    scenario.range(),
-                                    algorithm,
-                                    iterationCounts[i]),
+                                    scenario.tree(), scenario.board(), scenario.range(), algorithm, iterationCounts[i]),
                             false);
                 }
                 results.put(algorithm, row);

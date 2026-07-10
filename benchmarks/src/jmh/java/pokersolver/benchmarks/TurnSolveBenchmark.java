@@ -12,7 +12,6 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
-import pokersolver.Deck;
 import pokersolver.GameTree;
 import pokersolver.ranges.PrivateCards;
 import pokersolver.solver.MonteCarloAlg;
@@ -37,14 +36,12 @@ public class TurnSolveBenchmark {
     @State(Scope.Benchmark)
     @SuppressWarnings("NullAway.Init") // JMH state fields are initialized in @Setup
     public static class Shared {
-        Deck deck;
         int[] board;
         PrivateCards[] ipRange;
         PrivateCards[] oopRange;
 
         @Setup(Level.Trial)
         public void setup() {
-            deck = SolverFixtures.holdemDeck();
             board = SolverFixtures.boardInts(SolverFixtures.TURN_BOARD);
             ipRange = PrivateRangeConverter.rangeStr2Cards(SolverFixtures.IP_RANGE, board);
             oopRange = PrivateRangeConverter.rangeStr2Cards(SolverFixtures.OOP_RANGE, board);
@@ -58,7 +55,7 @@ public class TurnSolveBenchmark {
 
         @Setup(Level.Invocation)
         public void setup(Shared shared) {
-            tree = SolverFixtures.buildTree(shared.deck, SolverFixtures.ROUND_TURN);
+            tree = SolverFixtures.buildTree(SolverFixtures.ROUND_TURN);
         }
     }
 
@@ -69,7 +66,6 @@ public class TurnSolveBenchmark {
                 .range1(shared.ipRange)
                 .range2(shared.oopRange)
                 .initialBoard(shared.board)
-                .deck(shared.deck)
                 .iterationNumber(CFR_ITERATIONS)
                 .printInterval(CFR_ITERATIONS)
                 .logfile(null)

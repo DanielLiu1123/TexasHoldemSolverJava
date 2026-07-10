@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cancelJob, createSolve, getJob, subscribe } from "./api";
-import { ranksFor } from "./poker";
 import { BoardPicker } from "./components/BoardPicker";
 import { ProgressPanel } from "./components/ProgressPanel";
 import { RangeEditor } from "./components/RangeEditor";
 import { StreetForm } from "./components/StreetForm";
 import { StrategyExplorer } from "./components/StrategyExplorer";
-import { Collapsible, Field, InfoTip, Section, Segmented } from "./components/ui";
-import type { GameType, JobView, ProgressEvent, SolveRequest, StreetSpec } from "./types";
+import { Collapsible, Field, InfoTip, Section } from "./components/ui";
+import type { JobView, ProgressEvent, SolveRequest, StreetSpec } from "./types";
 
 const DEFAULT_RANGE =
   "AA,KK,QQ,JJ,TT,99,88,77,66,AK,AQ,AJ,AT,A9,A8,KQ,KJ,KT,QJ,QT,JT,T9s,98s,87s,76s";
@@ -16,7 +15,6 @@ const DEFAULT_RANGE =
 const STREET_OF = ["", "", "", "翻牌 flop", "转牌 turn", "河牌 river"];
 
 export function App() {
-  const [game, setGame] = useState<GameType>("holdem");
   const [board, setBoard] = useState<string[]>([]);
   const [rangeIp, setRangeIp] = useState(DEFAULT_RANGE);
   const [rangeOop, setRangeOop] = useState(DEFAULT_RANGE);
@@ -37,7 +35,6 @@ export function App() {
   const unsubscribe = useRef<(() => void) | null>(null);
   const resultRef = useRef<HTMLDivElement | null>(null);
 
-  const ranks = ranksFor(game);
   const ready = board.length >= 3;
   const running = job?.state === "RUNNING";
   const solved = job?.state === "COMPLETED" || job?.state === "CANCELLED";
@@ -63,7 +60,6 @@ export function App() {
 
   const solve = () =>
     runSolve({
-      game,
       board: board.join(","),
       rangeIp,
       rangeOop,
@@ -81,7 +77,6 @@ export function App() {
 
   /** Fill a complete, valid scenario and solve it immediately — the zero-thinking path. */
   const loadExample = () => {
-    setGame("holdem");
     setBoard(["Ah", "Kd", "7c"]);
     setRangeIp(DEFAULT_RANGE);
     setRangeOop(DEFAULT_RANGE);
@@ -96,7 +91,6 @@ export function App() {
     setTurn({});
     setRiver({});
     runSolve({
-      game: "holdem",
       board: "Ah,Kd,7c",
       rangeIp: DEFAULT_RANGE,
       rangeOop: DEFAULT_RANGE,
@@ -135,25 +129,6 @@ export function App() {
 
       <Section
         step={1}
-        title="选择玩法"
-        done={true}
-        hint="标准德州用 52 张牌；短牌（六加）去掉 2–5，只留 36 张。"
-      >
-        <Segmented<GameType>
-          value={game}
-          onChange={(g) => {
-            setGame(g);
-            setBoard([]);
-          }}
-          options={[
-            { value: "holdem", label: "标准德州", hint: "52 张 · Hold'em" },
-            { value: "shortdeck", label: "短牌", hint: "36 张 · Short-deck" },
-          ]}
-        />
-      </Section>
-
-      <Section
-        step={2}
         title="选公共牌"
         done={ready}
         hint={
@@ -163,11 +138,11 @@ export function App() {
           </>
         }
       >
-        <BoardPicker ranks={ranks} value={board} onChange={setBoard} />
+        <BoardPicker value={board} onChange={setBoard} />
       </Section>
 
       <Section
-        step={3}
+        step={2}
         title="设置双方范围"
         hint={
           <>
@@ -177,23 +152,13 @@ export function App() {
         }
       >
         <div className="ranges">
-          <RangeEditor
-            title="IP 范围（有利位 / 后手）"
-            ranks={ranks}
-            value={rangeIp}
-            onChange={setRangeIp}
-          />
-          <RangeEditor
-            title="OOP 范围（不利位 / 先手）"
-            ranks={ranks}
-            value={rangeOop}
-            onChange={setRangeOop}
-          />
+          <RangeEditor title="IP 范围（有利位 / 后手）" value={rangeIp} onChange={setRangeIp} />
+          <RangeEditor title="OOP 范围（不利位 / 先手）" value={rangeOop} onChange={setRangeOop} />
         </div>
       </Section>
 
       <Section
-        step={4}
+        step={3}
         title="筹码与下注尺度"
         hint="底池和有效筹码用同一种单位（如大盲数）。下注尺度按底池百分比给出，可留默认。"
       >
@@ -318,7 +283,7 @@ export function App() {
                 <span className="dot" style={{ background: "#e67e22" }} /> 下注/加注 bet·raise（越深=越大）
               </span>
             </p>
-            <StrategyExplorer solveId={job.id} ranks={ranks} />
+            <StrategyExplorer solveId={job.id} />
           </section>
         )}
       </div>

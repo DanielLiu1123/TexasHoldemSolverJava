@@ -3,11 +3,13 @@ package pokersolver.nodes;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 import pokersolver.Card;
+import pokersolver.Deck;
 
 /**
  * A node where the next community card is dealt: one child per card in the deck, including the cards
- * the running board has already used. The traversal skips those children rather than pruning them,
- * so a chance node's children stay index-aligned with {@link pokersolver.Deck#getCards()}.
+ * the running board has already used. The traversal skips those children rather than pruning them, so
+ * a chance node's children stay index-aligned with {@link Deck#cards()} — the card dealt down edge
+ * {@code i} is {@code Deck.card(i)}.
  *
  * <p>A chance node whose round is {@code RIVER} deals the river card — it sits <em>between</em> the
  * turn and the river, not on it.
@@ -16,30 +18,23 @@ import pokersolver.Card;
  */
 public final class ChanceNode extends GameTreeNode {
 
-    private final List<Card> cards;
     private final boolean donk;
     private List<GameTreeNode> children;
 
+    public ChanceNode(List<GameTreeNode> children, GameRound round, double pot, @Nullable GameTreeNode parent) {
+        this(children, round, pot, parent, false);
+    }
+
     public ChanceNode(
-            List<GameTreeNode> children,
-            GameRound round,
-            double pot,
-            @Nullable GameTreeNode parent,
-            List<Card> cards,
-            boolean donk) {
+            List<GameTreeNode> children, GameRound round, double pot, @Nullable GameTreeNode parent, boolean donk) {
         super(round, pot, parent);
         this.children = children;
-        this.cards = cards;
         this.donk = donk;
     }
 
-    public ChanceNode(
-            List<GameTreeNode> children, GameRound round, double pot, @Nullable GameTreeNode parent, List<Card> cards) {
-        this(children, round, pot, parent, cards, false);
-    }
-
+    /** The deck, whose order this node's children follow. */
     public List<Card> getCards() {
-        return cards;
+        return Deck.cards();
     }
 
     public List<GameTreeNode> getChildren() {

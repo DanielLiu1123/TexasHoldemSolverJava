@@ -68,15 +68,7 @@ public final class ApiServer implements AutoCloseable {
                         .result(StrategyNodeView.atPath(solver.getTree(), ctx.queryParam("path"))
                                 .toString());
             });
-            config.routes.get(
-                    "/api/v1/health",
-                    ctx -> ctx.json(Map.of(
-                            "status",
-                            "ok",
-                            "games",
-                            java.util.Arrays.stream(GameType.values())
-                                    .map(GameType::id)
-                                    .toList())));
+            config.routes.get("/api/v1/health", ctx -> ctx.json(Map.of("status", "ok")));
             config.routes.sse("/api/v1/solves/{id}/events", client -> {
                 SolveJob job = job(client.ctx().pathParam("id"));
                 client.keepAlive();

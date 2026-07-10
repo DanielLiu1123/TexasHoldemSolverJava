@@ -18,7 +18,6 @@ final class GameTreeBuilder {
 
     /** The betting state at a node: what each player has put in, and what the rules allow next. */
     private record Rule(
-            Deck deck,
             float oopCommit,
             float ipCommit,
             int currentRound,
@@ -45,7 +44,6 @@ final class GameTreeBuilder {
             return switch (player) {
                 case 0 ->
                     new Rule(
-                            deck,
                             oopCommit,
                             (float) (ipCommit + amount),
                             currentRound,
@@ -56,7 +54,6 @@ final class GameTreeBuilder {
                             buildSettings);
                 case 1 ->
                     new Rule(
-                            deck,
                             (float) (oopCommit + amount),
                             ipCommit,
                             currentRound,
@@ -71,15 +68,7 @@ final class GameTreeBuilder {
 
         Rule nextRound() {
             return new Rule(
-                    deck,
-                    oopCommit,
-                    ipCommit,
-                    currentRound + 1,
-                    raiseLimit,
-                    smallBlind,
-                    bigBlind,
-                    stack,
-                    buildSettings);
+                    oopCommit, ipCommit, currentRound + 1, raiseLimit, smallBlind, bigBlind, stack, buildSettings);
         }
     }
 
@@ -95,7 +84,6 @@ final class GameTreeBuilder {
     }
 
     static GameTreeNode build(
-            Deck deck,
             float oopCommit,
             float ipCommit,
             int currentRound,
@@ -104,8 +92,7 @@ final class GameTreeBuilder {
             float bigBlind,
             float stack,
             GameTreeBuildingSettings buildSettings) {
-        Rule rule = new Rule(
-                deck, oopCommit, ipCommit, currentRound, raiseLimit, smallBlind, bigBlind, stack, buildSettings);
+        Rule rule = new Rule(oopCommit, ipCommit, currentRound, raiseLimit, smallBlind, bigBlind, stack, buildSettings);
         ActionNode root = new ActionNode(List.of(), List.of(), 1, GameRound.fromInt(currentRound), rule.pot(), null);
         expand(root, rule, LastAction.ROUND_BEGIN, 0, 0);
         return root;
@@ -121,10 +108,10 @@ final class GameTreeBuilder {
     }
 
     private static void expandChance(ChanceNode root, Rule rule) {
-        List<GameTreeNode> children = new ArrayList<>(rule.deck().getCards().size());
+        List<GameTreeNode> children = new ArrayList<>(Deck.SIZE);
         boolean bothAllIn = rule.oopCommit() == rule.ipCommit() && rule.oopCommit() == rule.stack();
 
-        for (int i = 0; i < rule.deck().getCards().size(); i++) {
+        for (int i = 0; i < Deck.SIZE; i++) {
             GameTreeNode child;
             Rule childRule;
             if (bothAllIn && rule.currentRound() >= GameRound.RIVER.number()) {
@@ -132,12 +119,7 @@ final class GameTreeBuilder {
                 childRule = rule;
             } else if (bothAllIn) {
                 childRule = rule.nextRound();
-                child = new ChanceNode(
-                        List.of(),
-                        GameRound.fromInt(rule.currentRound() + 1),
-                        rule.pot(),
-                        root,
-                        rule.deck().getCards());
+                child = new ChanceNode(List.of(), GameRound.fromInt(rule.currentRound() + 1), rule.pot(), root);
             } else {
                 childRule = rule;
                 child = new ActionNode(
@@ -202,12 +184,7 @@ final class GameTreeBuilder {
             nextRule = rule;
         } else if (closesRound) {
             nextRule = rule.nextRound();
-            next = new ChanceNode(
-                    List.of(),
-                    GameRound.fromInt(rule.currentRound() + 1),
-                    rule.pot(),
-                    root,
-                    rule.deck().getCards());
+            next = new ChanceNode(List.of(), GameRound.fromInt(rule.currentRound() + 1), rule.pot(), root);
         } else {
             nextRule = rule;
             next = new ActionNode(
@@ -249,13 +226,7 @@ final class GameTreeBuilder {
             next = showdown(nextRule, root);
         } else {
             // Out of position closing the round with a call may lead into the next one.
-            next = new ChanceNode(
-                    List.of(),
-                    GameRound.fromInt(rule.currentRound() + 1),
-                    rule.pot(),
-                    root,
-                    rule.deck().getCards(),
-                    player == 1);
+            next = new ChanceNode(List.of(), GameRound.fromInt(rule.currentRound() + 1), rule.pot(), root, player == 1);
             nextRule = nextRule.nextRound();
         }
         expand(next, nextRule, LastAction.CALL, 0, 0);

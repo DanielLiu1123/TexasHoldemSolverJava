@@ -36,9 +36,9 @@ class ParallelSolverTest {
 
     private static SolverConfig.Builder scenario() {
         return SolverFixture.builder(
-                SolverFixture.shortDeckRiver(),
+                SolverFixture.RIVER_TREE,
                 SolverFixture.RIVER_BOARD,
-                SolverFixture.WIDE_SHORT_DECK_RANGE,
+                SolverFixture.WIDE_RANGE,
                 Algorithm.DISCOUNTED_CFR,
                 ITERATIONS);
     }
@@ -136,9 +136,9 @@ class ParallelSolverTest {
     @Test
     void trainingStopsWhenAskedTo() throws Exception {
         Solver solver = new CfrPlusRiverSolver(SolverFixture.builder(
-                        SolverFixture.shortDeckRiver(),
+                        SolverFixture.RIVER_TREE,
                         SolverFixture.RIVER_BOARD,
-                        SolverFixture.SHORT_DECK_RANGE,
+                        SolverFixture.NARROW_RANGE,
                         Algorithm.DISCOUNTED_CFR,
                         1_000_000)
                 .printInterval(1)

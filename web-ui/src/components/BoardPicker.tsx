@@ -1,14 +1,13 @@
-import { SUIT_COLOR, SUIT_SYMBOL, deckCards } from "../poker";
+import { RANKS, SUIT_COLOR, SUIT_SYMBOL, deckCards } from "../poker";
 
 interface Props {
-  ranks: string[];
   /** Selected cards in deal order, e.g. ["Qs","Jh","2h"]. */
   value: string[];
   onChange: (cards: string[]) => void;
 }
 
 /** Click cards to toggle them onto the board (3 = flop, 4 = turn, 5 = river). */
-export function BoardPicker({ ranks, value, onChange }: Props) {
+export function BoardPicker({ value, onChange }: Props) {
   const toggle = (card: string) => {
     if (value.includes(card)) onChange(value.filter((c) => c !== card));
     else if (value.length < 5) onChange([...value, card]);
@@ -25,8 +24,8 @@ export function BoardPicker({ ranks, value, onChange }: Props) {
           </button>
         ))}
       </div>
-      <div className="deck" style={{ gridTemplateColumns: `repeat(${ranks.length}, 1fr)` }}>
-        {deckCards(ranks).map((card) => (
+      <div className="deck" style={{ gridTemplateColumns: `repeat(${RANKS.length}, 1fr)` }}>
+        {deckCards().map((card) => (
           <button
             type="button"
             key={card}

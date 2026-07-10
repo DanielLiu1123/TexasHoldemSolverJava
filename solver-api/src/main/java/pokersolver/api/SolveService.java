@@ -56,7 +56,6 @@ public final class SolveService implements AutoCloseable {
         if (request.progressInterval() != null) require(request.progressInterval() > 0, "progressInterval must be > 0");
         if (request.algorithm() != null) Algorithm.fromId(request.algorithm());
         if (request.monteCarlo() != null) MonteCarloAlg.fromId(request.monteCarlo());
-        if (request.game() != null) GameType.fromId(request.game());
     }
 
     private static void require(boolean condition, String message) {
@@ -65,8 +64,6 @@ public final class SolveService implements AutoCloseable {
 
     private void run(SolveJob job, SolveRequest request) {
         try {
-            GameType game = GameType.fromId(Objects.requireNonNullElse(request.game(), GameType.HOLDEM.id()));
-
             int[] board = Arrays.stream(Objects.requireNonNull(request.board()).split(","))
                     .map(String::trim)
                     .mapToInt(Card::strCard2int)
@@ -86,7 +83,6 @@ public final class SolveService implements AutoCloseable {
             float pot = Objects.requireNonNull(request.pot());
             float effectiveStack = Objects.requireNonNull(request.effectiveStack());
             GameTree tree = SolverEnvironment.gameTreeFromParams(
-                    game.deck(),
                     pot / 2,
                     pot / 2,
                     round.number(),
@@ -101,7 +97,6 @@ public final class SolveService implements AutoCloseable {
                     .range1(rangeIp)
                     .range2(rangeOop)
                     .initialBoard(board)
-                    .deck(game.deck())
                     .iterationNumber(Objects.requireNonNullElse(request.iterations(), 100))
                     .printInterval(Objects.requireNonNullElse(request.progressInterval(), 10))
                     .algorithm(Algorithm.fromId(

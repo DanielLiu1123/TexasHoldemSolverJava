@@ -9,16 +9,16 @@ README [English](README.md) | [中文](README.zh-CN.md)
 > maintained upstream). It runs on Java 25 with a Gradle multi-module build; the Swing GUI and
 > JPype Python bridge have been replaced by a browser web UI over an embedded HTTP API
 > ([ADR 0001](docs/adr/0001-unified-http-api-replaces-swing-and-jpype.md)); hand ranks are
-> derived from the rules of each variant rather than loaded from a 60 MB dictionary
+> derived from the rules of the game rather than loaded from a 52 MB dictionary
 > ([ADR 0002](docs/adr/0002-derive-hand-ranks-instead-of-loading-a-dictionary.md)); and the CFR
 > hot loops are SIMD-vectorized with the Java Vector API. For a faster native solver, see the
 > C++ port [TexasSolver](https://github.com/bupticybee/TexasSolver).
 
 ## Introduction
 
-An open-source, efficient solver for standard Texas Hold'em and short-deck (six-plus) Hold'em.
-Like commercial solvers such as piosolver, it focuses on **post-flop** play, and its results
-align with piosolver. On the river it is faster than piosolver; on the flop it is slower.
+An open-source, efficient solver for Texas Hold'em. Like commercial solvers such as piosolver, it
+focuses on **post-flop** play, and its results align with piosolver. On the river it is faster than
+piosolver; on the flop it is slower.
 
 Built around Counterfactual Regret Minimization (CFR): it constructs the post-flop game tree,
 runs a CFR variant until the strategy's exploitability converges, and serializes the resulting
@@ -35,7 +35,6 @@ This project is suitable for:
 - Accurate — results closely match piosolver
 - Fully open source and free (MIT)
 - Browser web UI and a language-agnostic HTTP/JSON API (with live SSE convergence streaming)
-- Standard Texas Hold'em and short-deck
 - Six selectable CFR variants — `discounted_cfr` (default), `pdcfr`, `pdcfr_plus`, `pcfr_plus`,
   `cfr_plus`, `cfr` — with [measured convergence](docs/adr/0003-discounted-cfr-remains-the-default.md)
 - SIMD-vectorized CFR hot loops (`jdk.incubator.vector`)
@@ -47,8 +46,8 @@ This project is suitable for:
 - The Gradle wrapper (`./gradlew`) is included — no separate Gradle install needed
 - Node is fetched automatically by the build for the `web-ui` module
 
-Nothing else is needed. The hand evaluator derives its rank tables from the rules of each variant
-at startup, so there are no data files to download or ship.
+Nothing else is needed. The hand evaluator derives its rank tables from the rules of the game at
+startup, so there are no data files to download or ship.
 
 ## Build & run
 
@@ -70,7 +69,6 @@ and `curl` examples are documented in [solver-api/README.md](solver-api/README.m
 
 ```bash
 curl -s -X POST localhost:8080/api/v1/solves -H 'Content-Type: application/json' -d '{
-  "game": "shortdeck",
   "board": "Kd,Jd,Td,7s,8s",
   "rangeIp":  "AA,KK,QQ,JJ,TT,99,88,AK,AQ,KQ,JT",
   "rangeOop": "AA,KK,QQ,JJ,TT,99,88,AK,AQ,KQ,JT",
@@ -80,15 +78,13 @@ curl -s -X POST localhost:8080/api/v1/solves -H 'Content-Type: application/json'
 
 ### Command line
 
-The CLI takes a YAML rule file plus ranges/board/iterations and writes a strategy JSON. Run it
-from the `riversolver` module directory (the sample YAML resolves its game-tree path relative to
-it):
+The CLI takes a game-tree JSON file plus ranges/board/iterations and writes a strategy JSON:
 
 ```bash
 ./gradlew :riversolver:installDist
 cd riversolver
 ./build/install/RiverSolver/bin/RiverSolver \
-  -c src/test/resources/yamls/rule_holdem_simple.yaml \
+  --tree src/test/resources/gametree/simple_part_tree_depthinf.km \
   -p1 "AA,KK,QQ,JJ,TT,99,AK,AQ,KQ,JT" \
   -p2 "AA,KK,QQ,JJ,TT,99,AK,AQ,KQ,JT" \
   -b "Kd,Jd,Td,7s,8s" -n 100 -i 10 \
@@ -153,22 +149,23 @@ converges, and serializes the resulting mixed strategy at every action node.
 Six variants ship. Exploitability (percentage of the pot, lower is better) after 200 single-threaded
 iterations, from `AlgorithmBakeoff`:
 
-|                                                                | sd-river | hold'em river | short-deck turn |
-| -------------------------------------------------------------- | -------- | ------------- | --------------- |
-| `cfr` — vanilla CFR (Zinkevich 2007)                            | 0.052    | 0.220         | 3.003           |
-| `cfr_plus` — regret-matching⁺ (Tammelin 2014)                   | 0.0097   | 0.0100        | 0.288           |
-| `pcfr_plus` — predictive CFR+ (Farina 2021)                     | 0.0103   | 0.0251        | 0.287           |
-| `pdcfr_plus` — predictive discounted CFR+ (Xu 2024)             | 0.0280   | 0.0213        | 0.227           |
-| `pdcfr` — predictive discounted CFR (Xu 2024)                   | 0.0095   | 0.0174        | 0.201           |
-| **`discounted_cfr`** — discounted CFR (Brown & Sandholm 2019)   | **0.0014** | **0.0051**  | **0.096**       |
+|                                                               | river (wide) | river (broadway) | turn       |
+| ------------------------------------------------------------- | ------------ | ---------------- | ---------- |
+| `cfr` — vanilla CFR (Zinkevich 2007)                          | 0.0413       | 0.2196           | 1.506      |
+| `cfr_plus` — regret-matching⁺ (Tammelin 2014)                 | 0.0099       | 0.0100           | 0.204      |
+| `pcfr_plus` — predictive CFR+ (Farina 2021)                   | 0.0103       | 0.0251           | 0.137      |
+| `pdcfr_plus` — predictive discounted CFR+ (Xu 2024)           | 0.0381       | 0.0213           | 0.209      |
+| `pdcfr` — predictive discounted CFR (Xu 2024)                 | 0.0089       | 0.0174           | 0.0714     |
+| **`discounted_cfr`** — discounted CFR (Brown & Sandholm 2019) | **0.0013**   | **0.0051**       | **0.0400** |
 
 Discounted CFR wins every scenario measured, so it is the default. The optimistic variants lead on
 matrix games and trail here, which their own papers predict. See
 [ADR 0003](docs/adr/0003-discounted-cfr-remains-the-default.md) for the full table and the reasoning.
 
-Hand ranking is a perfect-hash evaluator generated from each variant's rules — a 7-card rank is four
+Hand ranking is a perfect-hash evaluator generated from the rules of the game — a 7-card rank is four
 bit-gathers and two array reads into ~150 KB of tables, with no data file to load. See
-[ADR 0002](docs/adr/0002-derive-hand-ranks-instead-of-loading-a-dictionary.md).
+[ADR 0002](docs/adr/0002-derive-hand-ranks-instead-of-loading-a-dictionary.md). Short-deck support was
+removed in [ADR 0004](docs/adr/0004-drop-short-deck-support.md).
 
 ![algorithms](img/algs.png)
 

@@ -30,30 +30,30 @@ class SolverConvergenceTest {
 
     private static final int ITERATIONS = 100;
 
-    /** Exploitability ceiling per variant on the wide short-deck river, as a percentage of the pot. */
+    /** Exploitability ceiling per variant on the wide-range river, as a percentage of the pot. */
     private static final Map<Algorithm, Float> CEILING = new EnumMap<>(Algorithm.class);
 
     static {
-        CEILING.put(Algorithm.CFR, 0.20f);
+        CEILING.put(Algorithm.CFR, 0.15f);
         CEILING.put(Algorithm.CFR_PLUS, 0.06f);
-        CEILING.put(Algorithm.PCFR_PLUS, 0.06f);
-        CEILING.put(Algorithm.PDCFR_PLUS, 0.04f);
-        CEILING.put(Algorithm.PDCFR, 0.03f);
-        CEILING.put(Algorithm.DISCOUNTED_CFR, 0.015f);
+        CEILING.put(Algorithm.PCFR_PLUS, 0.055f);
+        CEILING.put(Algorithm.PDCFR_PLUS, 0.035f);
+        CEILING.put(Algorithm.PDCFR, 0.025f);
+        CEILING.put(Algorithm.DISCOUNTED_CFR, 0.02f);
     }
 
     private static float solve(Algorithm algorithm, int iterations) throws Exception {
         return SolverFixture.solveAndMeasure(
                 SolverFixture.builder(
-                        SolverFixture.shortDeckRiver(),
+                        SolverFixture.RIVER_TREE,
                         SolverFixture.RIVER_BOARD,
-                        SolverFixture.WIDE_SHORT_DECK_RANGE,
+                        SolverFixture.WIDE_RANGE,
                         algorithm,
                         iterations),
                 false);
     }
 
-    @ParameterizedTest(name = "{0} converges on a short-deck river")
+    @ParameterizedTest(name = "{0} converges on a river solve")
     @EnumSource(Algorithm.class)
     void everyVariantConvergesOnARiverSolve(Algorithm algorithm) throws Exception {
         assertThat(solve(algorithm, ITERATIONS))
@@ -85,9 +85,9 @@ class SolverConvergenceTest {
     void exploitabilityFallsByAnOrderOfMagnitude() throws Exception {
         List<Float> trace = new ArrayList<>();
         SolverConfig config = SolverFixture.builder(
-                        SolverFixture.shortDeckRiver(),
+                        SolverFixture.RIVER_TREE,
                         SolverFixture.RIVER_BOARD,
-                        SolverFixture.SHORT_DECK_RANGE,
+                        SolverFixture.NARROW_RANGE,
                         Algorithm.DISCOUNTED_CFR,
                         ITERATIONS)
                 .progressListener((iteration, exploitability, elapsedMs) -> trace.add(exploitability))
@@ -104,20 +104,20 @@ class SolverConvergenceTest {
     void aTurnSolveConverges() throws Exception {
         float exploitability = SolverFixture.solveAndMeasure(
                 SolverFixture.builder(
-                        SolverFixture.shortDeckTurn(),
+                        SolverFixture.TURN_TREE,
                         SolverFixture.TURN_BOARD,
-                        SolverFixture.SHORT_DECK_RANGE,
+                        SolverFixture.NARROW_RANGE,
                         Algorithm.DISCOUNTED_CFR,
                         ITERATIONS),
                 false);
-        assertThat(exploitability).isPositive().isLessThan(0.5f);
+        assertThat(exploitability).isPositive().isLessThan(0.25f);
     }
 
     @Test
-    void aHoldemRiverSolveConverges() throws Exception {
+    void aBroadwayHeavyRangeConverges() throws Exception {
         float exploitability = SolverFixture.solveAndMeasure(
                 SolverFixture.builder(
-                        SolverFixture.holdemRiver(),
+                        SolverFixture.RIVER_TREE,
                         SolverFixture.RIVER_BOARD,
                         "AA,KK,QQ,JJ,TT,99,88,77,AK,AQ,AJ,KQ,KJ,QJ,JT,T9,98",
                         Algorithm.DISCOUNTED_CFR,
@@ -130,9 +130,9 @@ class SolverConvergenceTest {
     void theParallelSolverConvergesToo() throws Exception {
         float exploitability = SolverFixture.solveAndMeasure(
                 SolverFixture.builder(
-                        SolverFixture.shortDeckRiver(),
+                        SolverFixture.RIVER_TREE,
                         SolverFixture.RIVER_BOARD,
-                        SolverFixture.WIDE_SHORT_DECK_RANGE,
+                        SolverFixture.WIDE_RANGE,
                         Algorithm.DISCOUNTED_CFR,
                         ITERATIONS),
                 true);

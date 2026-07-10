@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import { cellLabel } from "../poker";
+import { RANKS, cellLabel } from "../poker";
 
 export interface CellRender {
   background: string;
@@ -8,27 +8,25 @@ export interface CellRender {
 }
 
 interface Props {
-  ranks: string[];
   renderCell: (label: string) => CellRender;
   onPaint?: (label: string) => void;
   onPaintStart?: () => void;
 }
 
 /**
- * The 13×13 (or 9×9 for shortdeck) hand grid. Pure presentation: the parent decides each
- * cell's background (selection weight or strategy mix) via renderCell, and receives paint
- * callbacks for click-drag editing.
+ * The 13×13 hand grid. Pure presentation: the parent decides each cell's background (selection
+ * weight or strategy mix) via renderCell, and receives paint callbacks for click-drag editing.
  */
-export function RangeGrid({ ranks, renderCell, onPaint, onPaintStart }: Props) {
+export function RangeGrid({ renderCell, onPaint, onPaintStart }: Props) {
   const gridStyle: CSSProperties = {
     display: "grid",
-    gridTemplateColumns: `repeat(${ranks.length}, 1fr)`,
+    gridTemplateColumns: `repeat(${RANKS.length}, 1fr)`,
   };
   return (
     <div className="range-grid" style={gridStyle}>
-      {ranks.map((_, row) =>
-        ranks.map((_, col) => {
-          const label = cellLabel(ranks, row, col);
+      {RANKS.map((_, row) =>
+        RANKS.map((_, col) => {
+          const label = cellLabel(row, col);
           const cell = renderCell(label);
           return (
             <div

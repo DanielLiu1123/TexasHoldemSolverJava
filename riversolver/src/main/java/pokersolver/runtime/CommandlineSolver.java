@@ -10,8 +10,6 @@ import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
 import pokersolver.Card;
-import pokersolver.Config;
-import pokersolver.Deck;
 import pokersolver.GameTree;
 import pokersolver.SolverEnvironment;
 import pokersolver.ranges.PrivateCards;
@@ -32,8 +30,8 @@ public final class CommandlineSolver {
         ArgumentParser parser = ArgumentParsers.newFor("CommandlineSolver")
                 .build()
                 .defaultHelp(true)
-                .description("solve a post-flop poker spot with counterfactual regret minimization");
-        parser.addArgument("-c", "--config").required(true).help("path to the YAML config file");
+                .description("solve a post-flop Texas hold'em spot with counterfactual regret minimization");
+        parser.addArgument("--tree").required(true).help("path to the game-tree JSON file");
         parser.addArgument("-p1", "--player1-range").required(true).help("in-position range, e.g. 'AA,KK,AKs,KQs:0.5'");
         parser.addArgument("-p2", "--player2-range").required(true).help("out-of-position range");
         parser.addArgument("-b", "--initial-board").required(true).help("community cards, e.g. 'Qs,Jh,2h'");
@@ -79,9 +77,7 @@ public final class CommandlineSolver {
                 .mapToInt(Card::strCard2int)
                 .toArray();
 
-        Config config = new Config(ns.getString("config"));
-        Deck deck = SolverEnvironment.deckFromConfig(config);
-        GameTree gameTree = SolverEnvironment.gameTreeFromConfig(config, deck);
+        GameTree gameTree = SolverEnvironment.gameTreeFromJson(ns.getString("tree"));
 
         PrivateCards[] range1 = PrivateRangeConverter.rangeStr2Cards(ns.getString("player1_range"), initialBoard);
         PrivateCards[] range2 = PrivateRangeConverter.rangeStr2Cards(ns.getString("player2_range"), initialBoard);
@@ -91,7 +87,6 @@ public final class CommandlineSolver {
                 .range1(range1)
                 .range2(range2)
                 .initialBoard(initialBoard)
-                .deck(deck)
                 .iterationNumber(ns.getInt("iteration_number"))
                 .printInterval(ns.getInt("print_interval"))
                 .logfile(ns.getString("logfile"))

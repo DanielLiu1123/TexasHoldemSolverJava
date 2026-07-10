@@ -2,32 +2,24 @@ package pokersolver;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.util.Objects;
 import pokersolver.solver.GameTreeBuildingSettings;
 
-/** Static factories assembling the solver's building blocks — deck and game tree — from configuration. */
+/** Static factories for the solver's game tree. */
 public final class SolverEnvironment {
 
     private SolverEnvironment() {}
 
-    public static Deck deckFromConfig(Config config) {
-        return new Deck(config.ranks(), config.suits());
-    }
-
-    public static GameTree gameTreeFromConfig(Config config, Deck deck) {
-        return gameTreeFromJson(Objects.requireNonNull(config.treeBuilderJson(), "config has no tree_builder"), deck);
-    }
-
-    public static GameTree gameTreeFromJson(String jsonPath, Deck deck) {
+    /** Loads a tree from a JSON description produced by the upstream tree builder. */
+    public static GameTree gameTreeFromJson(String jsonPath) {
         try {
-            return new GameTree(jsonPath, deck);
+            return new GameTree(jsonPath);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
 
+    /** Builds a tree from the betting rules. */
     public static GameTree gameTreeFromParams(
-            Deck deck,
             float oopCommit,
             float ipCommit,
             int currentRound,
@@ -37,6 +29,6 @@ public final class SolverEnvironment {
             float stack,
             GameTreeBuildingSettings buildingSettings) {
         return new GameTree(
-                deck, oopCommit, ipCommit, currentRound, raiseLimit, smallBlind, bigBlind, stack, buildingSettings);
+                oopCommit, ipCommit, currentRound, raiseLimit, smallBlind, bigBlind, stack, buildingSettings);
     }
 }

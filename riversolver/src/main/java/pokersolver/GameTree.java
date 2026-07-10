@@ -16,16 +16,14 @@ import tools.jackson.databind.node.ObjectNode;
 public final class GameTree {
 
     private final GameTreeNode root;
-    private final Deck deck;
 
     /** Loads a tree from a JSON description. */
-    public GameTree(String treeJsonPath, Deck deck) throws IOException {
-        this(GameTreeJsonLoader.load(treeJsonPath, deck), deck);
+    public GameTree(String treeJsonPath) throws IOException {
+        this(GameTreeJsonLoader.load(treeJsonPath));
     }
 
     /** Builds a tree from the betting rules. */
     public GameTree(
-            Deck deck,
             float oopCommit,
             float ipCommit,
             int currentRound,
@@ -34,32 +32,17 @@ public final class GameTree {
             float bigBlind,
             float stack,
             GameTreeBuildingSettings buildingSettings) {
-        this(
-                GameTreeBuilder.build(
-                        deck,
-                        oopCommit,
-                        ipCommit,
-                        currentRound,
-                        raiseLimit,
-                        smallBlind,
-                        bigBlind,
-                        stack,
-                        buildingSettings),
-                deck);
+        this(GameTreeBuilder.build(
+                oopCommit, ipCommit, currentRound, raiseLimit, smallBlind, bigBlind, stack, buildingSettings));
     }
 
-    private GameTree(GameTreeNode root, Deck deck) {
+    private GameTree(GameTreeNode root) {
         this.root = root;
-        this.deck = deck;
         measure(root, 0);
     }
 
     public GameTreeNode getRoot() {
         return root;
-    }
-
-    public Deck getDeck() {
-        return deck;
     }
 
     /** Records each node's depth and subtree size — the parallel solver's forking heuristic reads both. */

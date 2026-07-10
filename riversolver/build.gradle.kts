@@ -7,7 +7,6 @@ description = "Texas Hold'em Poker Solver"
 
 dependencies {
     api("org.slf4j:slf4j-api:${providers.gradleProperty("slf4jVersion").get()}")
-    implementation("org.yaml:snakeyaml:${providers.gradleProperty("snakeyamlVersion").get()}")
     implementation("tools.jackson.core:jackson-databind:${providers.gradleProperty("jacksonVersion").get()}")
     implementation("net.sourceforge.argparse4j:argparse4j:${providers.gradleProperty("argparse4jVersion").get()}")
 

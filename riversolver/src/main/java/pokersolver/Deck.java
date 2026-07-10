@@ -1,48 +1,35 @@
 package pokersolver;
 
-import java.util.ArrayList;
 import java.util.List;
-import pokersolver.eval.HandEvaluator;
-import pokersolver.eval.PokerVariant;
 
 /**
- * The deck a game is played with — thirteen ranks for hold'em, nine for short-deck — together with
- * the {@link HandEvaluator} that ranks hands under that variant's rules.
+ * The standard 52-card deck, in card-id order: {@code cards().get(i).getCardInt() == i}.
  *
- * <p>Immutable, and safe to share across the solver's worker threads.
+ * <p>A chance node's children are index-aligned with this list, so the card dealt down edge {@code i}
+ * is {@code card(i)}. The deck used to be constructed from a YAML rank/suit list so short-deck could
+ * supply a 36-card one; there is one deck now, and it is a constant.
  */
 public final class Deck {
 
-    private final List<String> ranks;
-    private final List<String> suits;
-    private final List<Card> cards;
-    private final HandEvaluator evaluator;
+    public static final int SIZE = Card.DECK_SIZE;
 
-    public Deck(List<String> ranks, List<String> suits) {
-        this.ranks = List.copyOf(ranks);
-        this.suits = List.copyOf(suits);
-        List<Card> cards = new ArrayList<>(ranks.size() * suits.size());
-        for (String rank : this.ranks) {
-            for (String suit : this.suits) cards.add(new Card(rank + suit));
-        }
-        this.cards = List.copyOf(cards);
-        this.evaluator = HandEvaluator.forVariant(PokerVariant.forRankCount(this.ranks.size()));
+    private static final List<Card> CARDS = buildCards();
+
+    private Deck() {}
+
+    private static List<Card> buildCards() {
+        Card[] cards = new Card[SIZE];
+        for (int id = 0; id < SIZE; id++) cards[id] = new Card(Card.intCard2Str(id));
+        return List.of(cards);
     }
 
-    public List<Card> getCards() {
-        return cards;
+    /** All 52 cards, ordered by card id. */
+    public static List<Card> cards() {
+        return CARDS;
     }
 
-    public List<String> getRanks() {
-        return ranks;
-    }
-
-    public List<String> getSuits() {
-        return suits;
-    }
-
-    /** Ranks hands under this deck's variant. */
-    public HandEvaluator evaluator() {
-        return evaluator;
+    /** The card with id {@code cardInt}, in {@code [0, 52)}. */
+    public static Card card(int cardInt) {
+        return CARDS.get(cardInt);
     }
 }

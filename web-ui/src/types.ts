@@ -1,5 +1,3 @@
-export type GameType = "holdem" | "shortdeck";
-
 export interface StreetSpec {
   betSizes?: number[];
   raiseSizes?: number[];
@@ -8,7 +6,6 @@ export interface StreetSpec {
 }
 
 export interface SolveRequest {
-  game: GameType;
   board: string;
   rangeIp: string;
   rangeOop: string;

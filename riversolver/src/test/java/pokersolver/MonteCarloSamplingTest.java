@@ -34,9 +34,9 @@ class MonteCarloSamplingTest {
 
     private static pokersolver.solver.SolverConfig.Builder sampledTurnSolve(List<Float> trace) {
         return SolverFixture.builder(
-                        SolverFixture.shortDeckTurn(),
+                        SolverFixture.TURN_TREE,
                         SolverFixture.TURN_BOARD,
-                        SolverFixture.SHORT_DECK_RANGE,
+                        SolverFixture.NARROW_RANGE,
                         Algorithm.DISCOUNTED_CFR,
                         ITERATIONS)
                 .monteCarloAlg(MonteCarloAlg.PUBLIC)
@@ -77,9 +77,9 @@ class MonteCarloSamplingTest {
         // A river tree has no chance nodes left to sample, so PUBLIC must be a no-op there.
         List<Float> sampled = new ArrayList<>();
         new CfrPlusRiverSolver(SolverFixture.builder(
-                                SolverFixture.shortDeckRiver(),
+                                SolverFixture.RIVER_TREE,
                                 SolverFixture.RIVER_BOARD,
-                                SolverFixture.SHORT_DECK_RANGE,
+                                SolverFixture.NARROW_RANGE,
                                 Algorithm.DISCOUNTED_CFR,
                                 40)
                         .monteCarloAlg(MonteCarloAlg.PUBLIC)
@@ -89,9 +89,9 @@ class MonteCarloSamplingTest {
 
         List<Float> full = new ArrayList<>();
         new CfrPlusRiverSolver(SolverFixture.builder(
-                                SolverFixture.shortDeckRiver(),
+                                SolverFixture.RIVER_TREE,
                                 SolverFixture.RIVER_BOARD,
-                                SolverFixture.SHORT_DECK_RANGE,
+                                SolverFixture.NARROW_RANGE,
                                 Algorithm.DISCOUNTED_CFR,
                                 40)
                         .monteCarloAlg(MonteCarloAlg.NONE)

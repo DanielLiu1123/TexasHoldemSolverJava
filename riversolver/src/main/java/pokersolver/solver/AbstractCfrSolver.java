@@ -17,7 +17,6 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pokersolver.Card;
-import pokersolver.Deck;
 import pokersolver.RiverRangeManager;
 import pokersolver.nodes.Action;
 import pokersolver.nodes.ActionNode;
@@ -59,7 +58,6 @@ abstract class AbstractCfrSolver extends Solver {
     final PrivateCards[][] ranges;
     final int[] initialBoard;
     final long initialBoardLong;
-    final Deck deck;
     final RiverRangeManager riverRanges;
     final PrivateCardsManager privateCards;
     final int iterationNumber;
@@ -85,13 +83,12 @@ abstract class AbstractCfrSolver extends Solver {
         this.initialBoardLong = Card.boardInts2long(config.initialBoard());
         this.logfile = config.logfile();
         this.trainerFactory = config.trainerFactory();
-        this.deck = config.deck();
 
         this.ranges = new PrivateCards[PLAYER_COUNT][];
         this.ranges[0] = playableHands(config.range1(), initialBoardLong);
         this.ranges[1] = playableHands(config.range2(), initialBoardLong);
 
-        this.riverRanges = new RiverRangeManager(config.deck().evaluator());
+        this.riverRanges = new RiverRangeManager();
         this.iterationNumber = config.iterationNumber();
         this.privateCards = new PrivateCardsManager(ranges, PLAYER_COUNT, initialBoardLong);
         this.printInterval = config.printInterval();

@@ -6,7 +6,6 @@ import org.jspecify.annotations.Nullable;
  * A solve submission. Only the scenario itself (board, ranges, pot, stack) is required — solver
  * parameters fall back to the defaults documented on each accessor.
  *
- * @param game "holdem" (default) or "shortdeck"
  * @param board comma-separated public cards, e.g. {@code "Qs,Jh,2h"} (flop), 4 cards for turn, 5
  *     for river
  * @param rangeIp in-position player's range, e.g. {@code "AA,KQs:0.5"}
@@ -15,7 +14,6 @@ import org.jspecify.annotations.Nullable;
  * @param effectiveStack remaining effective stack behind
  */
 public record SolveRequest(
-        @Nullable String game,
         @Nullable String board,
         @Nullable String rangeIp,
         @Nullable String rangeOop,

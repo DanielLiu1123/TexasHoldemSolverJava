@@ -9,10 +9,9 @@ Accepted. Supersedes the `pokersolver.compairer` package, which is removed.
 ## Context
 
 Hand evaluation sat behind `Compairer`, whose only implementation, `Dic5Compairer`, read a
-comma-separated dictionary at startup: 2,598,960 lines (52 MB) for hold'em, 376,992 (7.4 MB) for
-short-deck. Each line mapped a five-card hand to its rank. Ranking a seven-card hand meant taking the
-best of its 21 five-card subsets — 21 probes into a 2.6M-entry open-addressed hash map, each one a
-likely cache miss into a 50 MB table.
+comma-separated dictionary of all 2,598,960 five-card hands (52 MB) at startup. Each line mapped a
+hand to its rank. Ranking a seven-card hand meant taking the best of its 21 five-card subsets — 21
+probes into a 2.6M-entry open-addressed hash map, each one a likely cache miss into a 50 MB table.
 
 This cost was structural, not incidental:
 
@@ -22,15 +21,14 @@ This cost was structural, not incidental:
   alone.
 - **Throughput.** 56 ns per seven-card rank. A flop solve projects ~1300 hands onto each of 1081
   river boards, twice — roughly 2.8M evaluations before any regret is computed.
-- **Distribution.** 60 MB of data files had to ship with the JAR and be found at runtime, which is
-  why the CLI took a `--config` naming a `dicfile` and the server took `--resources`.
+- **Distribution.** The data file had to ship with the JAR and be found at runtime, which is why the
+  CLI took a `--config` naming a `dicfile` and the server took `--resources`.
 
-The dictionaries were also opaque. Nothing in the repository explained where the numbers came from or
-asserted that short-deck ranks flushes above full houses, which they do.
+The dictionary was also opaque. Nothing in the repository explained where its numbers came from.
 
 ## Decision
 
-Derive both variants' rank tables from the rules of the game at class-initialization time, in a new
+Derive the rank tables from the rules of the game at class-initialization time, in a new
 `pokersolver.eval` package. There is no data file.
 
 A hand of five to seven cards resolves down one of two disjoint paths:
@@ -46,12 +44,8 @@ A hand of five to seven cards resolves down one of two disjoint paths:
 `Long.compress` splits the 52-bit card mask into the four suit bitmasks in one instruction where the
 hardware offers `PEXT`.
 
-`PokerVariant` carries what differs between hold'em and short-deck: the deck's lowest rank, and the
-order of the nine hand categories. Everything else — the wheel straight following the deck, the
-tables' size, the perfect hash — falls out of those two facts.
-
-The dense rank is unchanged: `1` is a royal flush, larger is weaker, equal ranks tie. It reproduces
-the dictionaries' numbering exactly, so nothing downstream needed to change.
+The dense rank is unchanged: `1` is a royal flush, `7462` is seven-high, larger is weaker, equal ranks
+tie. It reproduces the dictionary's numbering exactly, so nothing downstream needed to change.
 
 ## Consequences
 
@@ -59,11 +53,10 @@ Measured on an M-series Mac, JDK 25:
 
 | | dictionary | derived | |
 |---|---|---|---|
-| hold'em startup | 1139 ms | 22.9 ms | **50× faster** |
-| short-deck startup | ~160 ms | 1.3 ms | |
+| startup | 1139 ms | 22.9 ms | **50× faster** |
 | retained heap | ~100 MB | ~150 KB of tables | **~300× smaller** |
 | 7-card rank | 55.96 ns | 26.28 ns | **2.1× faster** |
-| data files shipped | 60 MB | none | |
+| data file shipped | 52 MB | none | |
 
 A river solve of 20 iterations went from 2.50 ms to 1.97 ms end to end; the evaluator's share is
 amortized there because a river board is projected once. Turn and flop solves, which project 47 and
@@ -71,18 +64,17 @@ amortized there because a river board is projected once. Turn and flop solves, w
 
 Downstream simplifications:
 
-- `ApiServer` no longer takes `--resources`; `GameResources`, which lazily cached dictionaries per
-  game type, is deleted. `GameType` now just holds a `Deck`.
-- `SolverConfig` no longer takes a `compairer`. The evaluator follows from the deck, so it is no
-  longer possible to rank hold'em hands under short-deck rules by passing the wrong one.
+- `ApiServer` no longer takes `--resources`; `GameResources`, which lazily cached dictionaries, is
+  deleted.
+- `SolverConfig` no longer takes a `compairer`.
 - Test workers no longer need a 2 GB heap.
 - `LongIntHashMap`, written for the dictionary, is deleted.
-- YAML configs may still name a `compairer` section; it is ignored.
 
-The dictionaries stay in `riversolver/src/test/resources/compairer/` as golden data.
-`HandEvaluatorGoldenTest` asserts the generated tables reproduce **every one of the 2,975,952 rows**
-across both variants, value for value — not merely inducing the same ordering. That test is the
-reason this change could be made at all, and it must keep running.
+The dictionary stays in `riversolver/src/test/resources/compairer/` as golden data.
+`HandEvaluatorGoldenTest` asserts the generated tables reproduce **every one of its 2,598,960 rows**,
+value for value — not merely inducing the same ordering — and checks the six- and seven-card paths
+against the five-card path by brute force. That test is the reason this change could be made at all,
+and it must keep running.
 
 ## Alternatives considered
 
@@ -92,5 +84,4 @@ reason this change could be made at all, and it must keep running.
 - **Keeping the dictionary and caching seven-card results.** The range cache already does this per
   board; the remaining cost is the cold path, which is what hurts.
 - **A published evaluator library** (e.g. a JNI binding to a C implementation). Adds a native
-  dependency and a build-time toolchain to save ~10 ns, and none of the ones surveyed support
-  short-deck's reordered categories.
+  dependency and a build-time toolchain to save ~10 ns.

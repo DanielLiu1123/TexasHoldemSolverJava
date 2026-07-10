@@ -51,14 +51,14 @@ accumulator).
 Then **measure**, rather than assume the newest paper wins. `AlgorithmBakeoff` reports exploitability
 (percentage of the pot, lower is better) after 200 single-threaded iterations:
 
-| | sd-river (narrow) | sd-river (wide) | hold'em river | short-deck turn |
+| | river (narrow) | river (wide) | river (broadway) | turn |
 |---|---|---|---|---|
-| `cfr` | 0.052 | 0.052 | 0.220 | 3.003 |
-| `cfr_plus` | 0.0059 | 0.0097 | 0.0100 | 0.288 |
-| `pcfr_plus` | 0.0031 | 0.0103 | 0.0251 | 0.287 |
-| `pdcfr_plus` | 0.0032 | 0.0280 | 0.0213 | 0.227 |
-| `pdcfr` | 0.0018 | 0.0095 | 0.0174 | 0.201 |
-| **`discounted_cfr`** | **0.0009** | **0.0014** | **0.0051** | **0.096** |
+| `cfr` | 0.0465 | 0.0413 | 0.2196 | 1.506 |
+| `cfr_plus` | 0.0066 | 0.0099 | 0.0100 | 0.204 |
+| `pcfr_plus` | 0.0035 | 0.0103 | 0.0251 | 0.137 |
+| `pdcfr_plus` | 0.0027 | 0.0381 | 0.0213 | 0.209 |
+| `pdcfr` | 0.0023 | 0.0089 | 0.0174 | 0.0714 |
+| **`discounted_cfr`** | **0.0010** | **0.0013** | **0.0051** | **0.0400** |
 
 **Discounted CFR wins every scenario, so it stays the default.**
 
@@ -71,21 +71,22 @@ Two things the table explains:
   games, where the regret sequence is smooth enough for the prediction to pay for itself, and trails
   DCFR on poker. Combining optimism with discounting narrows the gap without closing it.
 
-Run out to 800 iterations on the wide short-deck river, the picture is more interesting than the
-200-iteration snapshot:
+Run out to 800 iterations, the picture is more interesting than the 200-iteration snapshot. On the
+wide-range river:
 
-| iterations | 100 | 200 | 400 | 800 |
+| iterations | 50 | 100 | 200 | 800 |
 |---|---|---|---|---|
-| `cfr_plus` | 0.0391 | 0.0097 | 0.0023 | 0.00055 |
-| `pcfr_plus` | 0.0366 | 0.0103 | 0.00097 | 0.00012 |
-| `pdcfr_plus` | 0.0222 | 0.0280 | 0.0039 | 0.00045 |
-| `pdcfr` | 0.0171 | 0.0095 | 0.0012 | 0.00014 |
-| `discounted_cfr` | 0.0088 | 0.0014 | 0.00024 | 0.000093 |
+| `cfr_plus` | 0.1159 | 0.0401 | 0.0099 | 0.00058 |
+| `pcfr_plus` | 0.1081 | 0.0379 | 0.0103 | 0.00010 |
+| `pdcfr_plus` | 0.0913 | 0.0237 | 0.0381 | 0.00079 |
+| `pdcfr` | 0.0687 | 0.0167 | 0.0089 | 0.00012 |
+| `discounted_cfr` | 0.0539 | 0.0127 | 0.0013 | 0.000065 |
 
 `pdcfr_plus` rises between 100 and 200 iterations and then resumes falling: optimistic prediction
 overshoots on a non-stationary regret sequence. It is oscillation, not divergence. And the optimistic
-variants do close most of the gap asymptotically, which is their tighter regret bound arriving — but
-a solve is run at 100-200 iterations, not 800, and DCFR leads by 3-6× there.
+variants do close most of the gap asymptotically — on the narrow-range river `pcfr_plus` actually
+passes DCFR by 800 iterations — which is their tighter regret bound arriving. But a solve runs at
+50-200 iterations, not 800, and DCFR leads by 3-6× there.
 
 ## Consequences
 
@@ -97,18 +98,21 @@ correctly. That coincidence is load-bearing evidence: the hand evaluator, the st
 layout, the rewritten tree builder, and the SIMD kernels are all exactly equivalent to what they
 replaced. Only the three bugs moved.
 
-Convergence improved across the board. On the wide short-deck river at 100 iterations:
+Convergence improved across the board. On the wide-range river at 100 iterations:
 
 | | before | after |
 |---|---|---|
-| `cfr` | 0.6% ceiling (test) | 0.131% |
-| `cfr_plus` | 0.05% ceiling (test) | 0.039% |
-| `discounted_cfr` | 0.02% ceiling (test) | 0.0088% |
+| `cfr` | 0.6% ceiling (test) | 0.106% |
+| `cfr_plus` | 0.05% ceiling (test) | 0.040% |
+| `discounted_cfr` | 0.02% ceiling (test) | 0.0127% |
 
 `SolverConvergenceTest` now asserts exploitability directly, per variant, with ceilings ~40% above
 measurement — and asserts the ordering (`cfr_plus < cfr`, `discounted_cfr < cfr_plus`, `pdcfr <
 pdcfr_plus`, `discounted_cfr < pdcfr`). A regression in any trainable fails a test that says what
 broke, instead of a golden table that says a number changed.
+
+The measurements above were re-taken on the 52-card deck after short-deck support was removed (see
+[ADR 0004](0004-drop-short-deck-support.md)); the conclusion did not change.
 
 ## Alternatives considered
 

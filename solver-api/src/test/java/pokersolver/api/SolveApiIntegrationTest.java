@@ -18,7 +18,7 @@ import tools.jackson.databind.JsonNode;
 
 /**
  * End-to-end test against a real server on a random port. Nothing is read from disk: the hand
- * evaluator derives its lookup tables from each variant's rules, so the server needs no data files.
+ * evaluator derives its lookup tables from the rules of the game, so the server needs no data files.
  */
 class SolveApiIntegrationTest {
 
@@ -40,7 +40,6 @@ class SolveApiIntegrationTest {
 
     static final String SOLVE_REQUEST = """
             {
-              "game": "shortdeck",
               "board": "Kd,Jd,Td,7s,8s",
               "rangeIp": "AA,KK,QQ,JJ,TT,99,88,77,66,AK,AQ,AJ,AT,A9,A8,KQ,KJ,KT,QJ,QT,JT,98,97,87,86,76",
               "rangeOop": "AA,KK,QQ,JJ,TT,99,88,77,66,AK,AQ,AJ,AT,A9,A8,KQ,KJ,KT,QJ,QT,JT,98,97,87,86,76",
@@ -141,14 +140,13 @@ class SolveApiIntegrationTest {
     }
 
     @Test
-    void healthReportsTheSupportedVariantsWithoutLoadingAnything() throws Exception {
+    void healthNeedsNoDataFiles() throws Exception {
         HttpResponse<String> health = client.send(
                 HttpRequest.newBuilder(URI.create(base + "/health")).GET().build(),
                 HttpResponse.BodyHandlers.ofString());
         assertThat(health.statusCode()).isEqualTo(200);
-        JsonNode body = JsonUtil.MAPPER.readTree(health.body());
-        assertThat(body.get("status").asString()).isEqualTo("ok");
-        assertThat(body.get("games").toString()).contains("holdem", "shortdeck");
+        assertThat(JsonUtil.MAPPER.readTree(health.body()).get("status").asString())
+                .isEqualTo("ok");
     }
 
     private JsonNode awaitTerminal(String id, Duration timeout) throws Exception {

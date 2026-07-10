@@ -13,7 +13,7 @@ README [English](README.md) | [中文](README.zh-CN.md)
 
 ## 项目介绍
 
-一个完全开源、Java 实现的高效标准德州扑克与短牌（六加）solver。与 piosolver 等商业 solver 类似，
+一个完全开源、Java 实现的高效德州扑克 solver。与 piosolver 等商业 solver 类似，
 重点求解**翻牌后**情况，结果与 piosolver 对齐。river 上比 piosolver 快，flop 上比 piosolver 慢。
 
 核心是 Counterfactual Regret Minimization（CFR）：构建翻牌后博弈树，运行某个 CFR 变体直到策略的
@@ -31,7 +31,6 @@ README [English](README.md) | [中文](README.zh-CN.md)
 - 准确 —— 结果与 piosolver 高度一致
 - 完全开源且免费（MIT）
 - 浏览器 Web UI 与语言无关的 HTTP/JSON API（含 SSE 实时收敛进度流）
-- 支持标准德州扑克与短牌
 - 可选 CFR 变体：`discounted_cfr`（默认）、`pcfr_plus`、`cfr_plus`、`cfr`
 - CFR 热循环 SIMD 向量化（`jdk.incubator.vector`）
 
@@ -62,7 +61,6 @@ README [English](README.md) | [中文](README.zh-CN.md)
 
 ```bash
 curl -s -X POST localhost:8080/api/v1/solves -H 'Content-Type: application/json' -d '{
-  "game": "shortdeck",
   "board": "Kd,Jd,Td,7s,8s",
   "rangeIp":  "AA,KK,QQ,JJ,TT,99,88,AK,AQ,KQ,JT",
   "rangeOop": "AA,KK,QQ,JJ,TT,99,88,AK,AQ,KQ,JT",
@@ -79,7 +77,7 @@ CLI 接收一个 YAML 规则文件以及 range/牌面/迭代次数，输出策�
 ./gradlew :riversolver:installDist
 cd riversolver
 ./build/install/RiverSolver/bin/RiverSolver \
-  -c src/test/resources/yamls/rule_holdem_simple.yaml \
+  --tree src/test/resources/gametree/simple_part_tree_depthinf.km \
   -p1 "AA,KK,QQ,JJ,TT,99,AK,AQ,KQ,JT" \
   -p2 "AA,KK,QQ,JJ,TT,99,AK,AQ,KQ,JT" \
   -b "Kd,Jd,Td,7s,8s" -n 100 -i 10 \

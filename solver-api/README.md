@@ -9,8 +9,8 @@ Javalin 7 on virtual threads; JSON via the project-wide Jackson 3 mapper.
 ./gradlew :solver-api:run --args="--port 8080"
 ```
 
-No data files are needed: the hand evaluator derives its rank tables from the rules of each
-variant (see [ADR 0002](../docs/adr/0002-derive-hand-ranks-instead-of-loading-a-dictionary.md)).
+No data files are needed: the hand evaluator derives its rank tables from the rules of the game
+(see [ADR 0002](../docs/adr/0002-derive-hand-ranks-instead-of-loading-a-dictionary.md)).
 
 ## Endpoints
 
@@ -21,13 +21,12 @@ variant (see [ADR 0002](../docs/adr/0002-derive-hand-ranks-instead-of-loading-a-
 | GET | `/api/v1/solves/{id}/events` | Live progress as SSE (send `Accept: text/event-stream`) |
 | GET | `/api/v1/solves/{id}/strategy` | Strategy JSON once completed (`409` before that) |
 | DELETE | `/api/v1/solves/{id}` | Request cancellation (takes effect at the next iteration) |
-| GET | `/api/v1/health` | Process status and the supported game types |
+| GET | `/api/v1/health` | Process status |
 
 ## Example
 
 ```bash
 curl -s -X POST localhost:8080/api/v1/solves -H 'Content-Type: application/json' -d '{
-  "game": "shortdeck",
   "board": "Kd,Jd,Td,7s,8s",
   "rangeIp":  "AA,KK,QQ,JJ,TT,99,88,AK,AQ,KQ,JT",
   "rangeOop": "AA,KK,QQ,JJ,TT,99,88,AK,AQ,KQ,JT",

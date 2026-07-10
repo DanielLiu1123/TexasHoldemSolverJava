@@ -1,9 +1,7 @@
 package pokersolver.benchmarks;
 
 import java.util.Arrays;
-import java.util.List;
 import pokersolver.Card;
-import pokersolver.Deck;
 import pokersolver.GameTree;
 import pokersolver.SolverEnvironment;
 import pokersolver.solver.GameTreeBuildingSettings;
@@ -40,12 +38,6 @@ final class SolverFixtures {
 
     static final int ROUND_RIVER = 4;
 
-    static Deck holdemDeck() {
-        List<String> ranks = Arrays.asList("A", "K", "Q", "J", "T", "9", "8", "7", "6", "5", "4", "3", "2");
-        List<String> suits = Arrays.asList("h", "s", "d", "c");
-        return new Deck(ranks, suits);
-    }
-
     static int[] boardInts(String board) {
         return Arrays.stream(board.split(",")).mapToInt(Card::strCard2int).toArray();
     }
@@ -54,7 +46,7 @@ final class SolverFixtures {
      * Builds a fresh game tree for the scenario. A new tree is needed per solve because training
      * mutates the trainables attached to its action nodes.
      */
-    static GameTree buildTree(Deck deck, int round) {
+    static GameTree buildTree(int round) {
         GameTreeBuildingSettings.StreetSetting noAllin =
                 new GameTreeBuildingSettings.StreetSetting(new float[] {50.0f}, new float[] {50.0f}, null, false);
         GameTreeBuildingSettings.StreetSetting withAllin =
@@ -62,6 +54,6 @@ final class SolverFixtures {
         GameTreeBuildingSettings settings =
                 new GameTreeBuildingSettings(noAllin, withAllin, withAllin, noAllin, withAllin, withAllin);
         return SolverEnvironment.gameTreeFromParams(
-                deck, POT / 2, POT / 2, round, 5, 0.5f, 1.0f, EFFECTIVE_STACK + POT / 2, settings);
+                POT / 2, POT / 2, round, 5, 0.5f, 1.0f, EFFECTIVE_STACK + POT / 2, settings);
     }
 }

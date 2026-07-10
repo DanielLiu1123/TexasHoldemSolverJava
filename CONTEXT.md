@@ -1,6 +1,6 @@
 # TexasHoldemSolver
 
-一个基于 CFR（Counterfactual Regret Minimization，反事实遗憾最小化）的德州扑克翻牌后求解器，计算双人对局中接近纳什均衡的混合策略。支持标准德扑和短牌（short-deck）变体。
+一个基于 CFR（Counterfactual Regret Minimization，反事实遗憾最小化）的德州扑克翻牌后求解器，计算双人对局中接近纳什均衡的混合策略。只支持标准 52 张牌德州扑克。
 
 ## Language
 
@@ -33,8 +33,11 @@ _Avoid_: fold node
 _Avoid_: hole cards（代码语境下）
 
 **HandEvaluator（手牌评估器）**:
-判定五到七张牌牌力强弱的组件。按 PokerVariant（德扑 / 短牌）的规则在启动时生成完美哈希表，返回稠密 rank（1 = 皇家同花顺，越小越强，相等即平局）。取代了此前基于 260 万行字典文件的 Compairer / Dic5Compairer。
+判定五到七张牌牌力强弱的组件。按德扑规则在类初始化时生成完美哈希表，返回稠密 rank（1 = 皇家同花顺，7462 = 最小高牌，越小越强，相等即平局）。全静态、无实例、无数据文件。取代了此前基于 260 万行字典文件的 Compairer / Dic5Compairer。
 _Avoid_: Compairer, 比牌器（拼写沿用自上游，已弃用）
+
+**Deck（牌组）**:
+固定的 52 张牌，按 card id 排序（`Deck.card(i).getCardInt() == i`）。ChanceNode 的子节点与它同序，第 i 条边发的就是 `Deck.card(i)`。
 
 **RiverRange（河牌范围）**:
 一名玩家的范围投影到某个完整公共牌面后的结果：未被牌面阻断的手牌，各自带 rank，按弱到强排序。以列存（struct-of-arrays）布局，摊牌 kernel 直接线性扫描。

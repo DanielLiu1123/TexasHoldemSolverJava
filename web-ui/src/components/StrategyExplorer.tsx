@@ -6,7 +6,6 @@ import { RangeGrid } from "./RangeGrid";
 
 interface Props {
   solveId: string;
-  ranks: string[];
 }
 
 /** Color per action label: folds blue, checks/calls green, bets/raises warm by size order. */
@@ -26,7 +25,7 @@ function actionColors(actions: string[]): Map<string, string> {
  * Walks the solved tree one node at a time: the current path is a list of edge labels, and each
  * node is fetched on demand (the whole tree is far too large to ship at once).
  */
-export function StrategyExplorer({ solveId, ranks }: Props) {
+export function StrategyExplorer({ solveId }: Props) {
   const [path, setPath] = useState<string[]>([]);
   const [node, setNode] = useState<StrategyNode | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +69,7 @@ export function StrategyExplorer({ solveId, ranks }: Props) {
 
       {node?.nodeType === "terminal" && <p className="muted">终局节点 —— 这条线到此结束。</p>}
       {node?.nodeType === "action_node" && (
-        <ActionNodeView node={node} ranks={ranks} onDescend={(label) => setPath([...path, label])} />
+        <ActionNodeView node={node} onDescend={(label) => setPath([...path, label])} />
       )}
       {node?.nodeType === "chance_node" && (
         <div className="chance-view">
@@ -91,11 +90,9 @@ export function StrategyExplorer({ solveId, ranks }: Props) {
 
 function ActionNodeView({
   node,
-  ranks,
   onDescend,
 }: {
   node: ActionStrategyNode;
-  ranks: string[];
   onDescend: (action: string) => void;
 }) {
   const colors = useMemo(() => actionColors(node.strategy.actions), [node]);
@@ -105,7 +102,7 @@ function ActionNodeView({
   const cellMix = useMemo(() => {
     const sums = new Map<string, { probs: number[]; count: number }>();
     for (const [combo, probs] of Object.entries(node.strategy.strategy)) {
-      const cell = comboToCell(combo, ranks);
+      const cell = comboToCell(combo);
       if (!cell) continue;
       const entry = sums.get(cell) ?? { probs: new Array<number>(probs.length).fill(0), count: 0 };
       for (let i = 0; i < probs.length; i++) entry.probs[i] += probs[i];
@@ -115,7 +112,7 @@ function ActionNodeView({
     const mix = new Map<string, number[]>();
     for (const [cell, { probs, count }] of sums) mix.set(cell, probs.map((p) => p / count));
     return mix;
-  }, [node, ranks]);
+  }, [node]);
 
   const averages = useMemo(() => {
     const totals = new Array<number>(node.strategy.actions.length).fill(0);
@@ -149,7 +146,6 @@ function ActionNodeView({
         ))}
       </div>
       <RangeGrid
-        ranks={ranks}
         renderCell={(label) => {
           const probs = cellMix.get(label);
           if (!probs) return { background: "#161e29" };

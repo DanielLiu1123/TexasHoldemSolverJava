@@ -4,7 +4,6 @@ import { RangeGrid } from "./RangeGrid";
 
 interface Props {
   title: string;
-  ranks: string[];
   value: string;
   onChange: (text: string) => void;
 }
@@ -13,14 +12,14 @@ interface Props {
  * Range editor: paint on the grid with the active weight, or edit the text form directly —
  * the two stay in sync (grid edits re-serialize the text canonically).
  */
-export function RangeEditor({ title, ranks, value, onChange }: Props) {
+export function RangeEditor({ title, value, onChange }: Props) {
   const [weight, setWeight] = useState(1);
   // During a drag stroke, painting either sets the active weight or erases — decided by the
   // state of the first cell touched.
   const strokeMode = useRef<"paint" | "erase">("paint");
   const strokeStarted = useRef(false);
 
-  const model = useMemo(() => parseRange(value, ranks), [value, ranks]);
+  const model = useMemo(() => parseRange(value), [value]);
 
   const paint = (label: string) => {
     if (!strokeStarted.current) {
@@ -30,7 +29,7 @@ export function RangeEditor({ title, ranks, value, onChange }: Props) {
     const next = new Map(model);
     if (strokeMode.current === "erase") next.delete(label);
     else next.set(label, weight);
-    onChange(serializeRange(next, ranks));
+    onChange(serializeRange(next));
   };
 
   const combos = useMemo(() => {
@@ -64,7 +63,6 @@ export function RangeEditor({ title, ranks, value, onChange }: Props) {
         </button>
       </div>
       <RangeGrid
-        ranks={ranks}
         onPaintStart={() => {
           strokeStarted.current = false;
         }}

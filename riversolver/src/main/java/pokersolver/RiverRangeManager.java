@@ -25,11 +25,6 @@ public final class RiverRangeManager {
 
     private final ConcurrentMap<Long, RiverRange> playerRanges = new ConcurrentHashMap<>();
     private final ConcurrentMap<Long, RiverRange> opponentRanges = new ConcurrentHashMap<>();
-    private final HandEvaluator evaluator;
-
-    public RiverRangeManager(HandEvaluator evaluator) {
-        this.evaluator = evaluator;
-    }
 
     /** The hands of {@code player}'s {@code range} that {@code board} does not block, weakest first. */
     public RiverRange getRiverRange(int player, PrivateCards[] range, long board) {
@@ -57,7 +52,7 @@ public final class RiverRangeManager {
         for (int hand = 0; hand < range.length; hand++) {
             PrivateCards combo = range[hand];
             if (Card.boardsHasIntercept(combo.mask(), board)) continue;
-            long inverted = (long) Integer.MAX_VALUE - evaluator.rank(combo.mask(), board);
+            long inverted = (long) Integer.MAX_VALUE - HandEvaluator.rank(combo.mask(), board);
             ranked[size++] = (inverted << 32) | hand;
         }
         Arrays.sort(ranked, 0, size);

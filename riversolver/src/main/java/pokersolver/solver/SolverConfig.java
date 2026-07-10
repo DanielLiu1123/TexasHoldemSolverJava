@@ -2,7 +2,6 @@ package pokersolver.solver;
 
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
-import pokersolver.Deck;
 import pokersolver.GameTree;
 import pokersolver.ranges.PrivateCards;
 import pokersolver.trainable.TrainableFactory;
@@ -10,14 +9,10 @@ import pokersolver.trainable.TrainableFactory;
 /**
  * The scenario and the knobs, shared by every CFR solver.
  *
- * <p>The hand evaluator is not configurable: it follows from the deck, and a mismatched one would
- * silently rank hands under the wrong variant's rules.
- *
  * @param tree the post-flop game tree to solve
  * @param range1 the in-position player's range
  * @param range2 the out-of-position player's range
  * @param initialBoard the community cards already dealt
- * @param deck the deck, which also determines how hands are ranked
  * @param iterationNumber the iteration ceiling
  * @param printInterval how often to evaluate exploitability, in iterations
  * @param logfile where to append a JSON line per evaluation, or null
@@ -32,7 +27,6 @@ public record SolverConfig(
         PrivateCards[] range1,
         PrivateCards[] range2,
         int[] initialBoard,
-        Deck deck,
         int iterationNumber,
         int printInterval,
         @Nullable String logfile,
@@ -50,7 +44,6 @@ public record SolverConfig(
         private PrivateCards @Nullable [] range1;
         private PrivateCards @Nullable [] range2;
         private int @Nullable [] initialBoard;
-        private @Nullable Deck deck;
         private int iterationNumber = 100;
         private int printInterval = 10;
         private @Nullable String logfile;
@@ -78,11 +71,6 @@ public record SolverConfig(
 
         public Builder initialBoard(int[] initialBoard) {
             this.initialBoard = initialBoard;
-            return this;
-        }
-
-        public Builder deck(Deck deck) {
-            this.deck = deck;
             return this;
         }
 
@@ -132,7 +120,6 @@ public record SolverConfig(
                     Objects.requireNonNull(range1, "range1"),
                     Objects.requireNonNull(range2, "range2"),
                     Objects.requireNonNull(initialBoard, "initialBoard"),
-                    Objects.requireNonNull(deck, "deck"),
                     iterationNumber,
                     printInterval,
                     logfile,

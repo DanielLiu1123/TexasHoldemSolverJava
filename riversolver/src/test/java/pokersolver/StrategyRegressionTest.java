@@ -17,7 +17,7 @@ import pokersolver.solver.Solver;
 import tools.jackson.databind.JsonNode;
 
 /**
- * Pins each CFR variant's solved strategy on a fixed short-deck river spot.
+ * Pins each CFR variant's solved strategy on a fixed river spot.
  *
  * <p>The single-threaded solver under {@link MonteCarloAlg#NONE} is deterministic, so the root
  * node's average strategy is reproducible to the bit — which makes it a tripwire for silent changes
@@ -42,28 +42,27 @@ class StrategyRegressionTest {
     private static final Map<Algorithm, Map<String, Float>> GOLDEN = new LinkedHashMap<>();
 
     static {
-        // Regenerated after the trainable fixes. PCFR+ is unchanged from the pre-refactor
-        // baseline, bit for bit — it is the one variant whose semantics this work did not touch,
-        // which is what pins the hand evaluator, the range layout, and the SIMD kernels as exactly
-        // equivalent. The other five moved because their bugs were fixed (see Algorithm's table).
+        // Regenerated for the 52-card deck after short-deck support was removed. The scenario's
+        // tree, board and range are unchanged; only the hand ranks moved, because short-deck ranked
+        // a flush above a full house and trips above a straight.
         GOLDEN.put(
                 Algorithm.CFR,
-                golden(0.9315f, 0.0001f, 0.0098f, 0.9335f, 0.9486f, 0.5897f, 0.9991f, 0.0535f, 0.9863f, 0.5949f));
+                golden(0.9896f, 0.0239f, 0.0138f, 0.9975f, 0.9875f, 0.5612f, 0.9990f, 0.0537f, 0.9770f, 0.6455f));
         GOLDEN.put(
                 Algorithm.CFR_PLUS,
-                golden(0.9969f, 0.0022f, 0.0020f, 0.9585f, 0.9666f, 0.6343f, 0.9704f, 0.0174f, 0.9870f, 0.6360f));
+                golden(0.9984f, 0.0049f, 0.0022f, 0.9907f, 0.9925f, 0.6056f, 0.9766f, 0.0302f, 0.9868f, 0.6214f));
         GOLDEN.put(
                 Algorithm.PCFR_PLUS,
-                golden(0.9995f, 0.0028f, 0.0004f, 0.9881f, 0.9917f, 0.6147f, 0.9734f, 0.0194f, 0.9870f, 0.6225f));
+                golden(0.9996f, 0.0019f, 0.0006f, 0.9973f, 0.9924f, 0.6146f, 0.9775f, 0.0216f, 0.9869f, 0.6225f));
         GOLDEN.put(
                 Algorithm.PDCFR_PLUS,
-                golden(0.9999f, 0.0029f, 0.0013f, 0.9983f, 0.9986f, 0.5719f, 0.9727f, 0.0360f, 0.9880f, 0.6263f));
+                golden(0.9999f, 0.0008f, 0.0014f, 0.9955f, 0.9928f, 0.6466f, 0.9765f, 0.0095f, 0.9861f, 0.6196f));
         GOLDEN.put(
                 Algorithm.PDCFR,
-                golden(0.9997f, 0.0032f, 0.0014f, 0.9985f, 0.9987f, 0.6204f, 0.9749f, 0.0179f, 0.9867f, 0.6180f));
+                golden(0.9999f, 0.0031f, 0.0016f, 0.9979f, 0.9950f, 0.6446f, 0.9749f, 0.0097f, 0.9864f, 0.6186f));
         GOLDEN.put(
                 Algorithm.DISCOUNTED_CFR,
-                golden(0.9992f, 0.0009f, 0.0008f, 0.9992f, 0.9993f, 0.6518f, 0.9745f, 0.0064f, 0.9856f, 0.6141f));
+                golden(0.9995f, 0.0007f, 0.0008f, 0.9989f, 0.9974f, 0.6548f, 0.9751f, 0.0055f, 0.9859f, 0.6154f));
     }
 
     private static Map<String, Float> golden(float... pCheck) {
@@ -75,9 +74,9 @@ class StrategyRegressionTest {
     /** Solves single-threaded and returns the root action node's average strategy by hand. */
     private static Map<String, float[]> solve(Algorithm algorithm) throws Exception {
         Solver solver = new CfrPlusRiverSolver(SolverFixture.builder(
-                        SolverFixture.shortDeckRiver(),
+                        SolverFixture.RIVER_TREE,
                         SolverFixture.RIVER_BOARD,
-                        SolverFixture.SHORT_DECK_RANGE,
+                        SolverFixture.NARROW_RANGE,
                         algorithm,
                         ITERATIONS)
                 .build());

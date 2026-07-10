@@ -31,34 +31,6 @@ export function Section({
   );
 }
 
-/** A two-state pill toggle (used for the game type). */
-export function Segmented<T extends string>({
-  value,
-  options,
-  onChange,
-}: {
-  value: T;
-  options: { value: T; label: string; hint?: string }[];
-  onChange: (value: T) => void;
-}) {
-  return (
-    <div className="segmented" role="tablist">
-      {options.map((opt) => (
-        <button
-          key={opt.value}
-          type="button"
-          role="tab"
-          aria-selected={opt.value === value}
-          className={`segment${opt.value === value ? " segment-on" : ""}`}
-          onClick={() => onChange(opt.value)}
-        >
-          <span>{opt.label}</span>
-          {opt.hint && <small>{opt.hint}</small>}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 /** A labeled numeric field with a short hint underneath. */
 export function Field({
