@@ -3,6 +3,7 @@ package pokersolver.api;
 import static pokersolver.utils.JsonUtil.MAPPER;
 
 import io.javalin.http.NotFoundResponse;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
@@ -31,16 +32,22 @@ final class StrategyNodeView {
      * @param path comma-separated edge labels from the root — action labels like {@code "BET 10.0"}
      *     or dealt-card labels like {@code "Ah"}. Null or blank addresses the root.
      */
-    static ObjectNode atPath(GameTree tree, @Nullable String path) {
+    static ObjectNode atPath(GameTree tree, @Nullable String path, long board) {
         GameTreeNode node = tree.getRoot();
         if (path != null && !path.isBlank()) {
             for (String segment : path.split(",", -1)) {
                 GameTreeNode next = step(node, segment);
                 if (next == null) throw new NotFoundResponse("no strategy node at path segment: " + segment);
+                if (node instanceof ChanceNode) {
+                    long dealt = 1L << Card.strCard2int(segment);
+                    if (Card.boardsHasIntercept(board, dealt))
+                        throw new NotFoundResponse("card is already on the board: " + segment);
+                    board |= dealt;
+                }
                 node = next;
             }
         }
-        return dump(node);
+        return dump(node, board);
     }
 
     private static @Nullable GameTreeNode step(GameTreeNode node, String label) {
@@ -66,7 +73,7 @@ final class StrategyNodeView {
         };
     }
 
-    private static ObjectNode dump(GameTreeNode node) {
+    private static ObjectNode dump(GameTreeNode node, long board) {
         ObjectNode json = MAPPER.createObjectNode();
         switch (node) {
             case ActionNode action -> {
@@ -83,15 +90,23 @@ final class StrategyNodeView {
                     if (child instanceof ActionNode || child instanceof ChanceNode) childActions.add(label);
                 }
                 json.set("childActions", childActions);
-                json.set(
-                        "strategy",
-                        Objects.requireNonNull(action.getTrainable(), "trainable not set")
-                                .dumps());
+                ObjectNode strategy = Objects.requireNonNull(action.getTrainable(), "trainable not set")
+                        .dumps();
+                ObjectNode combos = (ObjectNode) strategy.get("strategy");
+                List<String> blocked = new ArrayList<>();
+                for (String combo : combos.propertyNames()) {
+                    long hand = (1L << Card.strCard2int(combo.substring(0, 2)))
+                            | (1L << Card.strCard2int(combo.substring(2, 4)));
+                    if (Card.boardsHasIntercept(hand, board)) blocked.add(combo);
+                }
+                for (String combo : blocked) combos.remove(combo);
+                json.set("strategy", strategy);
             }
             case ChanceNode chance -> {
                 json.put("nodeType", "chance_node");
                 ArrayNode cards = json.putArray("cards");
-                for (Card card : chance.getCards()) cards.add(card.toString());
+                for (Card card : chance.getCards())
+                    if (!Card.boardsHasIntercept(board, card.mask())) cards.add(card.toString());
             }
             case ShowdownNode ignored -> json.put("nodeType", "terminal");
             case TerminalNode ignored -> json.put("nodeType", "terminal");

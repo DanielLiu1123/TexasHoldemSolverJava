@@ -25,13 +25,16 @@ public final class PrivateRangeConverter {
         Set<Integer> seen = new LinkedHashSet<>();
 
         for (String entry : rangeStr.split(",", -1)) {
-            String[] parts = entry.split(":", -1);
+            String[] parts = entry.trim().split(":", -1);
             if (parts.length > 2) throw new IllegalArgumentException("more than one ':' in range entry: " + entry);
 
-            float weight = parts.length == 2 ? Float.parseFloat(parts[1]) : 1;
+            float weight = parts.length == 2 ? Float.parseFloat(parts[1].trim()) : 1;
+            if (!Float.isFinite(weight) || weight < 0 || weight > 1)
+                throw new IllegalArgumentException("range weight must be finite and in [0, 1]: " + entry);
+            List<PrivateCards> expanded = expand(parts[0].trim(), board);
             if (weight == 0) continue;
 
-            for (PrivateCards combo : expand(parts[0], board)) {
+            for (PrivateCards combo : expanded) {
                 if (!seen.add(combo.hashCode())) {
                     throw new IllegalArgumentException("duplicate combo in range: " + combo);
                 }

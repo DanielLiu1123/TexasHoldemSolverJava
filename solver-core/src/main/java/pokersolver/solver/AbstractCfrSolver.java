@@ -133,6 +133,11 @@ abstract class AbstractCfrSolver extends Solver {
         return ranges[player];
     }
 
+    @Override
+    public final long getInitialBoardMask() {
+        return initialBoardLong;
+    }
+
     final float[][] getReachProbs() {
         float[][] reachProbs = new float[PLAYER_COUNT][];
         for (int player = 0; player < PLAYER_COUNT; player++) {
@@ -203,6 +208,14 @@ abstract class AbstractCfrSolver extends Solver {
      */
     @Override
     public final void train() throws IOException {
+        try {
+            trainIterations();
+        } finally {
+            onTrainingFinished();
+        }
+    }
+
+    private void trainIterations() throws IOException {
         setTrainable(getTree().getRoot());
         GameTreeNode root = getTree().getRoot();
         BestResponse bestResponse = new BestResponse(ranges, PLAYER_COUNT, privateCards, riverRanges);
@@ -219,26 +232,25 @@ abstract class AbstractCfrSolver extends Solver {
                 for (int player = 0; player < PLAYER_COUNT; player++) {
                     traverse(player, root, reachProbs, iteration, initialBoardLong, sampleRoundDeals());
                 }
-                if (iteration % printInterval != 0) continue;
+                int completed = iteration + 1;
+                if (completed != 1 && completed % printInterval != 0 && completed != iterationNumber && !stopRequested)
+                    continue;
 
                 long elapsedMs = (System.nanoTime() - since) / 1_000_000;
                 float exploitability = exploitability(bestResponse, root, pot);
                 log.info(
                         "iteration {}: exploitability {}% of pot ({} ms)",
-                        iteration + 1, format(exploitability), elapsedMs);
+                        completed, format(exploitability), elapsedMs);
 
                 ObjectNode entry = MAPPER.createObjectNode();
-                entry.put("iteration", iteration);
+                entry.put("iteration", completed);
                 entry.put("exploitability", exploitability);
                 entry.put("timeMs", elapsedMs);
                 trace.write(entry + "\n");
 
-                progressListener.onProgress(iteration, exploitability, elapsedMs);
-                since = System.nanoTime();
+                progressListener.onProgress(completed, exploitability, elapsedMs);
                 if (stopExploitability > 0 && exploitability < stopExploitability) break;
             }
-        } finally {
-            onTrainingFinished();
         }
     }
 
@@ -321,8 +333,9 @@ abstract class AbstractCfrSolver extends Solver {
         List<Card> cards = node.getCards();
         int cardSlots = cards.size();
         int availableCards = cardSlots - Card.cardCount(board);
-        // Two of the remaining cards are in the opponent's hand, so they cannot be dealt.
-        int possibleDeals = availableCards - 2;
+        // Conditional on a compatible pair of hands, all four private cards are unavailable.
+        // Both ranges filter the dealt card, so the mass sums over exactly these legal runouts.
+        int possibleDeals = availableCards - 4;
 
         if (monteCarloAlg == MonteCarloAlg.PUBLIC) {
             return sampledChanceUtility(player, node, reachProbs, iteration, board, deals, availableCards);
@@ -366,7 +379,10 @@ abstract class AbstractCfrSolver extends Solver {
             Card card = cards.get(slot);
             if (Card.boardsHasIntercept(card.mask(), board)) continue;
             if (++seen == target) {
-                float[][] reach = splitReach(reachProbs, card.getCardInt(), 1f);
+                // The proposal samples all non-board cards, including private-card collisions
+                // (which contribute zero). Importance weighting matches full enumeration.
+                float[][] reach =
+                        splitReach(reachProbs, card.getCardInt(), (float) availableCards / (availableCards - 4));
                 return cfr(player, node.getChildren().get(slot), reach, iteration, board | card.mask(), deals);
             }
         }

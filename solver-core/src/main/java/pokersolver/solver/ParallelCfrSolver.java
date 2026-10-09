@@ -46,6 +46,8 @@ public final class ParallelCfrSolver extends AbstractCfrSolver {
                 };
         requireProbability(forkProbAction, "fork-at-action");
         requireProbability(forkProbChance, "fork-at-chance");
+        if (forkEveryNDepth < 1) throw new IllegalArgumentException("fork-every-n-depth must be >= 1");
+        if (noForkSubtreeSize < 0) throw new IllegalArgumentException("no-fork-subtree-size must be >= 0");
 
         this.forkJoinPool = new ForkJoinPool(parallelism);
         this.forkProbAction = forkProbAction;
@@ -56,7 +58,7 @@ public final class ParallelCfrSolver extends AbstractCfrSolver {
     }
 
     private static void requireProbability(double value, String name) {
-        if (value < 0 || value > 1) {
+        if (!Double.isFinite(value) || value < 0 || value > 1) {
             throw new IllegalArgumentException("%s must be in [0, 1], got %s".formatted(name, value));
         }
     }

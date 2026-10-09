@@ -24,6 +24,10 @@ public final class PrivateCards {
     float relativeProb;
 
     public PrivateCards(int card1, int card2, float weight) {
+        if (card1 < 0 || card1 >= 52 || card2 < 0 || card2 >= 52 || card1 == card2)
+            throw new IllegalArgumentException("a hand must contain two distinct cards in [0, 52)");
+        if (!Float.isFinite(weight) || weight < 0 || weight > 1)
+            throw new IllegalArgumentException("range weight must be finite and in [0, 1]");
         this.card1 = card1;
         this.card2 = card2;
         this.weight = weight;

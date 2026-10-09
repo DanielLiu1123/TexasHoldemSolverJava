@@ -79,7 +79,7 @@ final class BestResponse {
                 if (Card.boardsHasIntercept(opponentHand.mask(), initialBoard | playerHand.mask())) continue;
                 availableOpponentMass += opponentHand.weight;
             }
-            ev += evPerHand[hand] * playerHand.relativeProb() / availableOpponentMass;
+            if (availableOpponentMass > 0) ev += evPerHand[hand] * playerHand.relativeProb() / availableOpponentMass;
         }
         return ev;
     }
@@ -138,7 +138,7 @@ final class BestResponse {
 
     private float[] chanceBestResponse(ChanceNode node, int player, float[][] reachProbs, long board) {
         List<Card> cards = node.getCards();
-        int possibleDeals = cards.size() - Card.cardCount(board) - 2;
+        int possibleDeals = cards.size() - Card.cardCount(board) - 4;
         float share = 1f / possibleDeals;
 
         float[] total = new float[reachProbs[player].length];

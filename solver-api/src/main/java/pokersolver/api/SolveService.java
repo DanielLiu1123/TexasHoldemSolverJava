@@ -33,10 +33,10 @@ public final class SolveService implements AutoCloseable {
     private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
     public SolveJob create(SolveRequest request) {
-        validate(request);
+        PreparedScenario scenario = validate(request);
         SolveJob job = new SolveJob(UUID.randomUUID().toString());
         jobs.put(job.id(), job);
-        executor.execute(() -> run(job, request));
+        executor.execute(() -> run(job, request, scenario));
         return job;
     }
 
@@ -44,30 +44,80 @@ public final class SolveService implements AutoCloseable {
         return jobs.get(id);
     }
 
-    private static void validate(SolveRequest request) {
+    private record PreparedScenario(int[] board, PrivateCards[] ip, PrivateCards[] oop) {}
+
+    private static PreparedScenario validate(SolveRequest request) {
         require(request.board() != null && !request.board().isBlank(), "board is required");
         require(request.rangeIp() != null && !request.rangeIp().isBlank(), "rangeIp is required");
         require(request.rangeOop() != null && !request.rangeOop().isBlank(), "rangeOop is required");
-        require(request.pot() != null && request.pot() > 0, "pot must be > 0");
-        require(request.effectiveStack() != null && request.effectiveStack() > 0, "effectiveStack must be > 0");
-        int boardSize = Objects.requireNonNull(request.board()).split(",").length;
-        require(boardSize >= 3 && boardSize <= 5, "board must have 3 (flop), 4 (turn) or 5 (river) cards");
+        require(
+                request.pot() != null && Float.isFinite(request.pot()) && request.pot() > 0,
+                "pot must be finite and > 0");
+        require(
+                request.effectiveStack() != null
+                        && Float.isFinite(request.effectiveStack())
+                        && request.effectiveStack() > 0,
+                "effectiveStack must be finite and > 0");
+        int[] board = Arrays.stream(Objects.requireNonNull(request.board()).split(",", -1))
+                .map(String::trim)
+                .mapToInt(Card::strCard2int)
+                .toArray();
+        require(board.length >= 3 && board.length <= 5, "board must have 3 (flop), 4 (turn) or 5 (river) cards");
+        long boardMask = Card.boardInts2long(board);
+        require(Card.cardCount(boardMask) == board.length, "board cards must be distinct");
+        PrivateCards[] ip = PrivateRangeConverter.rangeStr2Cards(Objects.requireNonNull(request.rangeIp()), board);
+        PrivateCards[] oop = PrivateRangeConverter.rangeStr2Cards(Objects.requireNonNull(request.rangeOop()), board);
+        require(hasCompatiblePair(ip, oop), "ranges have no compatible positive-weight hand pair on the board");
         if (request.iterations() != null) require(request.iterations() > 0, "iterations must be > 0");
         if (request.progressInterval() != null) require(request.progressInterval() > 0, "progressInterval must be > 0");
         if (request.algorithm() != null) Algorithm.fromId(request.algorithm());
         if (request.monteCarlo() != null) MonteCarloAlg.fromId(request.monteCarlo());
+        if (request.raiseLimit() != null) require(request.raiseLimit() >= 0, "raiseLimit must be >= 0");
+        if (request.threads() != null)
+            require(
+                    request.threads() == -1 || (request.threads() > 0 && request.threads() <= 32767),
+                    "threads must be -1 or in [1, 32767]");
+        if (request.stopExploitability() != null)
+            require(
+                    Double.isFinite(request.stopExploitability()) && request.stopExploitability() >= 0,
+                    "stopExploitability must be finite and >= 0");
+        for (SolveRequest.StreetSpec spec : new SolveRequest.StreetSpec[] {
+            request.flop(),
+            request.turn(),
+            request.river(),
+            request.flopIp(),
+            request.turnIp(),
+            request.riverIp(),
+            request.flopOop(),
+            request.turnOop(),
+            request.riverOop()
+        }) {
+            if (spec == null) continue;
+            validateSizes(spec.betSizes());
+            validateSizes(spec.raiseSizes());
+            validateSizes(spec.donkSizes());
+        }
+        return new PreparedScenario(board, ip, oop);
+    }
+
+    private static boolean hasCompatiblePair(PrivateCards[] ip, PrivateCards[] oop) {
+        for (PrivateCards first : ip)
+            for (PrivateCards second : oop) if (!Card.boardsHasIntercept(first.mask(), second.mask())) return true;
+        return false;
+    }
+
+    private static void validateSizes(float @Nullable [] sizes) {
+        if (sizes != null)
+            for (float size : sizes) require(Float.isFinite(size) && size > 0, "bet sizes must be finite and > 0");
     }
 
     private static void require(boolean condition, String message) {
         if (!condition) throw new IllegalArgumentException(message);
     }
 
-    private void run(SolveJob job, SolveRequest request) {
+    private void run(SolveJob job, SolveRequest request, PreparedScenario scenario) {
         try {
-            int[] board = Arrays.stream(Objects.requireNonNull(request.board()).split(","))
-                    .map(String::trim)
-                    .mapToInt(Card::strCard2int)
-                    .toArray();
+            int[] board = scenario.board();
             GameRound round =
                     switch (board.length) {
                         case 3 -> GameRound.FLOP;
@@ -75,10 +125,8 @@ public final class SolveService implements AutoCloseable {
                         default -> GameRound.RIVER;
                     };
 
-            PrivateCards[] rangeIp =
-                    PrivateRangeConverter.rangeStr2Cards(Objects.requireNonNull(request.rangeIp()), board);
-            PrivateCards[] rangeOop =
-                    PrivateRangeConverter.rangeStr2Cards(Objects.requireNonNull(request.rangeOop()), board);
+            PrivateCards[] rangeIp = scenario.ip();
+            PrivateCards[] rangeOop = scenario.oop();
 
             float pot = Objects.requireNonNull(request.pot());
             float effectiveStack = Objects.requireNonNull(request.effectiveStack());

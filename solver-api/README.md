@@ -41,9 +41,14 @@ curl -N -H 'Accept: text/event-stream' localhost:8080/api/v1/solves/<id>/events
 curl -s localhost:8080/api/v1/solves/<id>/strategy > strategy.json
 ```
 
-Optional request fields and defaults: `game` (holdem), `raiseLimit` (5),
+Only standard 52-card hold’em is supported. Optional request fields and defaults: `raiseLimit` (5),
 `iterations` (100), `progressInterval` (10), `algorithm` (discounted_cfr; also
-pcfr_plus, cfr_plus, cfr), `monteCarlo` (none), `threads` (-1 = all cores),
+pdcfr, pdcfr_plus, pcfr_plus, cfr_plus, cfr), `monteCarlo` (none), `threads` (-1 = all cores),
 `stopExploitability` (0 = run all iterations), and per-street sizing
 `flop`/`turn`/`river`: `{"betSizes":[50],"raiseSizes":[50],"donkSizes":[],"allin":true}`
 in percent of the pot (defaults: 50% bets/raises, all-in on turn and river).
+
+Progress events report completed iteration counts (starting at 1) and cumulative `elapsedMs`.
+The first iteration, each report interval, and the final iteration are reported. `COMPLETED`
+means the run finished; it may have reached its iteration limit before the requested threshold.
+Invalid boards, ranges, weights and solver settings return `400` before a job is created.

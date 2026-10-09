@@ -9,7 +9,7 @@ interface Props {
 
 const STATE_LABEL: Record<JobState, string> = {
   RUNNING: "solving",
-  COMPLETED: "converged",
+  COMPLETED: "completed",
   FAILED: "failed",
   CANCELLED: "cancelled",
 };
@@ -18,7 +18,7 @@ const STATE_LABEL: Record<JobState, string> = {
 export function ProgressPanel({ state, events, onCancel }: Props) {
   const progress = events.filter((e) => e.type === "progress");
   const last = progress.at(-1);
-  const elapsed = progress.reduce((sum, e) => sum + e.elapsedMs, 0);
+  const elapsed = last?.elapsedMs ?? 0;
 
   return (
     <div>
@@ -33,6 +33,7 @@ export function ProgressPanel({ state, events, onCancel }: Props) {
           </button>
         )}
       </div>
+      {state === "FAILED" && <p className="error">{events.filter((e) => e.type === "failed").at(-1)?.error}</p>}
       {progress.length > 1 && <ConvergenceChart points={progress} />}
     </div>
   );
@@ -65,7 +66,7 @@ function ConvergenceChart({ points }: { points: ProgressEvent[] }) {
 
   const x = (iteration: number) => padLeft + (iteration / maxIteration) * (width - padLeft - padRight);
   const y = (value: number) => {
-    const t = (Math.log10(Math.max(value, FLOOR)) - lo) / Math.max(hi - lo, 1);
+    const t = (Math.log10(Math.max(value, FLOOR)) - lo) / (hi - lo);
     return height - padBottom - t * (height - padTop - padBottom);
   };
 
@@ -79,7 +80,7 @@ function ConvergenceChart({ points }: { points: ProgressEvent[] }) {
       viewBox={`0 0 ${width} ${height}`}
       className="chart"
       role="img"
-      aria-label={`Exploitability fell to ${points.at(-1)?.exploitability.toFixed(3)}% of pot over ${maxIteration} iterations`}
+      aria-label={`Exploitability ${points.at(-1)?.exploitability.toFixed(3)}% of pot at iteration ${maxIteration}`}
     >
       {decades.map((decade) => (
         <g key={decade}>
@@ -97,9 +98,7 @@ function ConvergenceChart({ points }: { points: ProgressEvent[] }) {
       <path className="curve" d={curve} />
       {points.map((p) => (
         <circle className="point" key={p.iteration} cx={x(p.iteration)} cy={y(p.exploitability)} r="2.5">
-          <title>
-            iteration {p.iteration}: {p.exploitability.toFixed(3)}% of pot
-          </title>
+          <title>{`iteration ${p.iteration}: ${p.exploitability.toFixed(3)}% of pot`}</title>
         </circle>
       ))}
     </svg>

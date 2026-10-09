@@ -17,12 +17,12 @@ import pokersolver.trainable.TrainableFactory;
  * <pre>
  *                    river     river     river       turn
  *                    (narrow)  (wide)    (broadway)
- *   cfr              0.0465    0.0413    0.2196      1.506
- *   cfr_plus         0.0066    0.0099    0.0100      0.204
- *   pcfr_plus        0.0035    0.0103    0.0251      0.137
- *   pdcfr_plus       0.0027    0.0381    0.0213      0.209
- *   pdcfr            0.0023    0.0089    0.0174      0.0714
- *   discounted_cfr   0.0010    0.0013    0.0051      0.0400   &lt;- default
+ *   cfr              0.0870    0.0462    0.1747    1.563
+ *   cfr_plus         0.0056    0.0094    0.0087    0.188
+ *   pcfr_plus        0.0029    0.0083    0.0242    0.142
+ *   pdcfr_plus       0.0018    0.0372    0.0178    0.200
+ *   pdcfr            0.0016    0.0070    0.0150    0.0638
+ *   discounted_cfr   0.0011    0.0013    0.0038    0.0404   &lt;- default
  * </pre>
  *
  * <p>{@link #DISCOUNTED_CFR} wins every scenario, so it is the default. The optimistic variants lead

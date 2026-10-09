@@ -1,9 +1,9 @@
 package pokersolver.solver;
 
 /**
- * Receives training progress at the same cadence as {@code printInterval} (the iterations where
- * exploitability is evaluated). Implementations must be fast and thread-safe; the callback runs on
- * the training thread.
+ * Receives training progress after the first completed iteration, every {@code printInterval}
+ * iterations, and the final iteration. Iterations are one-based; elapsedMs is cumulative training
+ * time. Implementations must be fast and thread-safe; the callback runs on the training thread.
  */
 @FunctionalInterface
 public interface TrainingProgressListener {

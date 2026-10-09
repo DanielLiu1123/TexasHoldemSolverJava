@@ -78,6 +78,7 @@ public final class PrivateCardsManager {
             float total = 0;
 
             for (PrivateCards hand : range) {
+                hand.relativeProb = 0;
                 if (Card.boardsHasIntercept(hand.mask(), initialBoard)) continue;
                 float unblockedOpponentMass = 0;
                 for (PrivateCards oppoHand : opponent) {
@@ -87,6 +88,8 @@ public final class PrivateCardsManager {
                 hand.relativeProb = unblockedOpponentMass * hand.weight;
                 total += hand.relativeProb;
             }
+            if (total <= 0 || !Float.isFinite(total))
+                throw new IllegalArgumentException("ranges have no compatible positive-weight hand pair on the board");
             for (PrivateCards hand : range) hand.relativeProb /= total;
         }
     }

@@ -84,12 +84,15 @@ cd solver-core
 
 ## 解读求解结果
 
-求解过程中，每 `-i` 次迭代输出一次可利用度（以底池百分比计）：
+求解过程会报告第 1 次、每 `-i` 次以及最后一次迭代的可利用度（以底池百分比计）。
+耗时为累计时间，随运行环境而变化：
 
 ```text
 iteration 0:  exploitability 20.737505% of pot
-iteration 21: exploitability 0.191139% of pot (14 ms)
-iteration 41: exploitability 0.056625% of pot (9 ms)
+iteration 1:  exploitability 20.737505% of pot (8 ms)
+iteration 20: exploitability 0.233378% of pot (30 ms)
+...
+iteration 100: exploitability 0.006241% of pot (51 ms)
 ```
 
 可利用度衡量的是：一个采取最佳应对的对手，能从当前策略上赢走多少。它恰好在纳什均衡处归零；
@@ -120,12 +123,12 @@ iteration 41: exploitability 0.056625% of pot (9 ms)
 
 |                                                               | river（宽 range） | river（大牌 range） | turn       |
 | ------------------------------------------------------------- | ---------------- | ------------------ | ---------- |
-| `cfr` —— 经典 CFR（Zinkevich 2007）                            | 0.0413           | 0.2196             | 1.506      |
-| `cfr_plus` —— regret-matching⁺（Tammelin 2014）                | 0.0099           | 0.0100             | 0.204      |
-| `pcfr_plus` —— predictive CFR+（Farina 2021）                  | 0.0103           | 0.0251             | 0.137      |
-| `pdcfr_plus` —— predictive discounted CFR+（Xu 2024）          | 0.0381           | 0.0213             | 0.209      |
-| `pdcfr` —— predictive discounted CFR（Xu 2024）                | 0.0089           | 0.0174             | 0.0714     |
-| **`discounted_cfr`** —— discounted CFR（Brown & Sandholm 2019） | **0.0013**       | **0.0051**         | **0.0400** |
+| `cfr` —— 经典 CFR（Zinkevich 2007）                            | 0.0462 | 0.1747 | 1.563 |
+| `cfr_plus` —— regret-matching⁺（Tammelin 2014）                | 0.0094 | 0.0087 | 0.188 |
+| `pcfr_plus` —— predictive CFR+（Farina 2021）                  | 0.0083 | 0.0242 | 0.142 |
+| `pdcfr_plus` —— predictive discounted CFR+（Xu 2024）          | 0.0372 | 0.0178 | 0.200 |
+| `pdcfr` —— predictive discounted CFR（Xu 2024）                | 0.0070 | 0.0150 | 0.0638 |
+| **`discounted_cfr`** —— discounted CFR（Brown & Sandholm 2019） | **0.0013** | **0.0038** | **0.0404** |
 
 Discounted CFR 在所有实测场景中都胜出，因此作为默认变体。乐观（optimistic）系变体在矩阵博弈上领先、
 在这里落后，这与它们各自论文的结论一致。详见

@@ -18,6 +18,9 @@ public abstract class Solver {
         return tree;
     }
 
+    /** The public cards present at the root, for consumers navigating dealt-card edges. */
+    public abstract long getInitialBoardMask();
+
     /**
      * Requests training to stop at the next iteration boundary. Safe to call from any thread;
      * {@link #train()} returns normally once the current iteration completes.

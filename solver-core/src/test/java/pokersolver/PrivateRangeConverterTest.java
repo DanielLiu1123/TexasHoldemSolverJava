@@ -8,6 +8,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import pokersolver.ranges.PrivateCards;
 import pokersolver.utils.PrivateRangeConverter;
 
@@ -66,6 +67,17 @@ class PrivateRangeConverterTest {
     @Test
     void zeroWeightedEntriesAreDropped() {
         assertThat(parse("AA,KK:0", NO_BOARD)).hasSize(6);
+    }
+
+    @Test
+    void whitespaceAroundTokensIsAccepted() {
+        assertThat(parse(" AA , KQs : 0.5 ", NO_BOARD)).hasSize(10);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"AA:-0.1", "AA:1.1", "AA:NaN", "AA:Infinity", "XX:0"})
+    void invalidWeightsAndZeroWeightedMalformedTokensAreRejected(String range) {
+        assertThatThrownBy(() -> parse(range, NO_BOARD)).isInstanceOf(RuntimeException.class);
     }
 
     @Test

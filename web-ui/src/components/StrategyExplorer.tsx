@@ -115,19 +115,19 @@ function ActionNodeView({ node, onDescend }: { node: ActionStrategyNode; onDesce
   const shares = useMemo(() => {
     const totals = new Array<number>(node.strategy.actions.length).fill(0);
     let count = 0;
-    for (const probs of cellMix.values()) {
+    for (const probs of Object.values(node.strategy.strategy)) {
       for (let i = 0; i < probs.length; i++) totals[i] += probs[i];
       count += 1;
     }
     return totals.map((t) => (count > 0 ? t / count : 0));
-  }, [node, cellMix]);
+  }, [node]);
 
   const navigable = useMemo(() => new Set(node.childActions), [node]);
 
   return (
     <div>
       <p className="actor">
-        {node.player === 0 ? "In position" : "Out of position"} to act. Each cell is filled by the mix above.
+        {node.player === 0 ? "In position" : "Out of position"} to act. Shares average the available combinations.
       </p>
       <div className="actions">
         {node.strategy.actions.map((action, i) => (

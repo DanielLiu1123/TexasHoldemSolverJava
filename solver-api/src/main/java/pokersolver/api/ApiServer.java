@@ -40,6 +40,9 @@ public final class ApiServer implements AutoCloseable {
             }
             config.routes.exception(IllegalArgumentException.class, (e, ctx) -> ctx.status(HttpStatus.BAD_REQUEST)
                     .json(Map.of("error", String.valueOf(e.getMessage()))));
+            config.routes.exception(
+                    pokersolver.exceptions.SolverException.class, (e, ctx) -> ctx.status(HttpStatus.BAD_REQUEST)
+                            .json(Map.of("error", String.valueOf(e.getMessage()))));
             config.routes.exception(tools.jackson.core.JacksonException.class, (e, ctx) -> ctx.status(
                             HttpStatus.BAD_REQUEST)
                     .json(Map.of("error", String.format("malformed request body: %s", e.getOriginalMessage()))));
@@ -65,7 +68,8 @@ public final class ApiServer implements AutoCloseable {
                 }
                 // Lazy, per-node: ?path=CHECK,BET 10.0,Ah walks to one node (no path = root).
                 ctx.contentType("application/json")
-                        .result(StrategyNodeView.atPath(solver.getTree(), ctx.queryParam("path"))
+                        .result(StrategyNodeView.atPath(
+                                        solver.getTree(), ctx.queryParam("path"), solver.getInitialBoardMask())
                                 .toString());
             });
             config.routes.get("/api/v1/health", ctx -> ctx.json(Map.of("status", "ok")));

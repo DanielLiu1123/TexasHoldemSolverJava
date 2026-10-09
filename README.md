@@ -87,12 +87,15 @@ cd solver-core
 
 ## Reading the output
 
-While solving, exploitability is logged every `-i` iterations, as a percentage of the pot:
+Exploitability is logged after the first iteration, every `-i` iterations, and at the final
+iteration, as a percentage of the pot. Times are cumulative and depend on the machine:
 
 ```text
 iteration 0:  exploitability 20.737505% of pot
-iteration 21: exploitability 0.191139% of pot (14 ms)
-iteration 41: exploitability 0.056625% of pot (9 ms)
+iteration 1:  exploitability 20.737505% of pot (8 ms)
+iteration 20: exploitability 0.233378% of pot (30 ms)
+...
+iteration 100: exploitability 0.006241% of pot (51 ms)
 ```
 
 Exploitability is what a best-responding opponent could win against the current strategy. It reaches
@@ -125,12 +128,12 @@ single-threaded iterations, measured by `AlgorithmBakeoff`:
 
 |                                                               | river (wide) | river (broadway) | turn       |
 | ------------------------------------------------------------- | ------------ | ---------------- | ---------- |
-| `cfr` — vanilla CFR (Zinkevich 2007)                          | 0.0413       | 0.2196           | 1.506      |
-| `cfr_plus` — regret-matching⁺ (Tammelin 2014)                 | 0.0099       | 0.0100           | 0.204      |
-| `pcfr_plus` — predictive CFR+ (Farina 2021)                   | 0.0103       | 0.0251           | 0.137      |
-| `pdcfr_plus` — predictive discounted CFR+ (Xu 2024)           | 0.0381       | 0.0213           | 0.209      |
-| `pdcfr` — predictive discounted CFR (Xu 2024)                 | 0.0089       | 0.0174           | 0.0714     |
-| **`discounted_cfr`** — discounted CFR (Brown & Sandholm 2019) | **0.0013**   | **0.0051**       | **0.0400** |
+| `cfr` — vanilla CFR (Zinkevich 2007)                          | 0.0462 | 0.1747 | 1.563 |
+| `cfr_plus` — regret-matching⁺ (Tammelin 2014)                 | 0.0094 | 0.0087 | 0.188 |
+| `pcfr_plus` — predictive CFR+ (Farina 2021)                   | 0.0083 | 0.0242 | 0.142 |
+| `pdcfr_plus` — predictive discounted CFR+ (Xu 2024)           | 0.0372 | 0.0178 | 0.200 |
+| `pdcfr` — predictive discounted CFR (Xu 2024)                 | 0.0070 | 0.0150 | 0.0638 |
+| **`discounted_cfr`** — discounted CFR (Brown & Sandholm 2019) | **0.0013** | **0.0038** | **0.0404** |
 
 Discounted CFR wins every scenario measured, so it is the default. The optimistic variants lead on
 matrix games and trail here, which their own papers predict. See

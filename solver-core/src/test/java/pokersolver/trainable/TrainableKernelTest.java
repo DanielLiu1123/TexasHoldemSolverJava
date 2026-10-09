@@ -160,7 +160,7 @@ class TrainableKernelTest {
 
     private static PrivateCards[] range(int hands) {
         PrivateCards[] range = new PrivateCards[hands];
-        for (int i = 0; i < hands; i++) range[i] = new PrivateCards(2 * i, 2 * i + 1, 1f);
+        for (int i = 0; i < hands; i++) range[i] = new PrivateCards(0, i + 1, 1f);
         return range;
     }
 

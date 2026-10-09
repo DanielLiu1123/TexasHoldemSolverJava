@@ -42,6 +42,9 @@ export function App() {
   const [job, setJob] = useState<JobView | null>(null);
   const [events, setEvents] = useState<ProgressEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const pending = useRef(false);
+  const activeId = useRef<string | null>(null);
   const unsubscribe = useRef<(() => void) | null>(null);
   const resultRef = useRef<HTMLDivElement | null>(null);
 
@@ -49,22 +52,42 @@ export function App() {
   const running = job?.state === "RUNNING";
   const solved = job?.state === "COMPLETED" || job?.state === "CANCELLED";
 
-  useEffect(() => () => unsubscribe.current?.(), []);
+  useEffect(() => () => {
+    activeId.current = null;
+    unsubscribe.current?.();
+  }, []);
 
   const runSolve = useCallback(async (request: SolveRequest) => {
+    if (pending.current) return;
+    pending.current = true;
+    setSubmitting(true);
+    unsubscribe.current?.();
+    activeId.current = null;
     setError(null);
     setEvents([]);
+    setJob(null);
     try {
       const created = await createSolve(request);
+      activeId.current = created.id;
       setJob(created);
       requestAnimationFrame(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
-      unsubscribe.current?.();
       unsubscribe.current = subscribe(created.id, async (event) => {
+        if (activeId.current !== created.id) return;
         setEvents((prev) => [...prev, event]);
-        if (event.type !== "progress") setJob(await getJob(created.id));
+        if (event.type !== "progress") {
+          try {
+            const finished = await getJob(created.id);
+            if (activeId.current === created.id) setJob(finished);
+          } catch (e) {
+            if (activeId.current === created.id) setError(e instanceof Error ? e.message : String(e));
+          }
+        }
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      pending.current = false;
+      setSubmitting(false);
     }
   }, []);
 
@@ -108,7 +131,7 @@ export function App() {
       <header className="masthead">
         <span className="wordmark">Poker Solver</span>
         <p>Post-flop equilibrium for heads-up hold&rsquo;em.</p>
-        <button type="button" className="link" onClick={loadExample}>
+        <button type="button" className="link" disabled={submitting || running} onClick={loadExample}>
           load example
         </button>
       </header>
@@ -173,8 +196,8 @@ export function App() {
       </details>
 
       <div className="solve-bar">
-        <button type="button" className="solve-button" disabled={!ready || running} onClick={solve}>
-          {running ? "Solving" : "Solve"}
+        <button type="button" className="solve-button" disabled={!ready || submitting || running} onClick={solve}>
+          {submitting ? "Submitting" : running ? "Solving" : "Solve"}
         </button>
         {!ready && <span className="muted">Pick at least three board cards</span>}
         {error && <span className="error">{error}</span>}
@@ -189,14 +212,21 @@ export function App() {
             <ProgressPanel
               state={job.state}
               events={events}
-              onCancel={async () => setJob(await cancelJob(job.id))}
+              onCancel={async () => {
+                try {
+                  const cancelled = await cancelJob(job.id);
+                  if (activeId.current === job.id) setJob(cancelled);
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : String(e));
+                }
+              }}
             />
           </Section>
         )}
 
         {job && solved && (
           <Section label="Strategy" note="Click an action to descend into it. Nodes load on demand.">
-            <StrategyExplorer solveId={job.id} />
+            <StrategyExplorer key={job.id} solveId={job.id} />
           </Section>
         )}
       </div>

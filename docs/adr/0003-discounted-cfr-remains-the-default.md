@@ -48,17 +48,20 @@ Fix all four. Add the two variants from Xu et al. (IJCAI 2024), which combine DC
 PCFR+'s optimistic prediction: `PDCFR_PLUS` (regret-matching⁺ accumulator) and `PDCFR` (signed
 accumulator).
 
+Re-measured on 2026-10-09 after correcting the chance-node probability denominator and reporting
+the actual final iteration (earlier progress stopped short of the stated iteration count).
+
 Then **measure**, rather than assume the newest paper wins. `AlgorithmBakeoff` reports exploitability
 (percentage of the pot, lower is better) after 200 single-threaded iterations:
 
 | | river (narrow) | river (wide) | river (broadway) | turn |
 |---|---|---|---|---|
-| `cfr` | 0.0465 | 0.0413 | 0.2196 | 1.506 |
-| `cfr_plus` | 0.0066 | 0.0099 | 0.0100 | 0.204 |
-| `pcfr_plus` | 0.0035 | 0.0103 | 0.0251 | 0.137 |
-| `pdcfr_plus` | 0.0027 | 0.0381 | 0.0213 | 0.209 |
-| `pdcfr` | 0.0023 | 0.0089 | 0.0174 | 0.0714 |
-| **`discounted_cfr`** | **0.0010** | **0.0013** | **0.0051** | **0.0400** |
+| `cfr` | 0.0870 | 0.0462 | 0.1747 | 1.563 |
+| `cfr_plus` | 0.0056 | 0.0094 | 0.0087 | 0.188 |
+| `pcfr_plus` | 0.0029 | 0.0083 | 0.0242 | 0.142 |
+| `pdcfr_plus` | 0.0018 | 0.0372 | 0.0178 | 0.200 |
+| `pdcfr` | 0.0016 | 0.0070 | 0.0150 | 0.0638 |
+| **`discounted_cfr`** | **0.0011** | **0.0013** | **0.0038** | **0.0404** |
 
 **Discounted CFR wins every scenario, so it stays the default.**
 
@@ -76,17 +79,17 @@ wide-range river:
 
 | iterations | 50 | 100 | 200 | 800 |
 |---|---|---|---|---|
-| `cfr_plus` | 0.1159 | 0.0401 | 0.0099 | 0.00058 |
-| `pcfr_plus` | 0.1081 | 0.0379 | 0.0103 | 0.00010 |
-| `pdcfr_plus` | 0.0913 | 0.0237 | 0.0381 | 0.00079 |
-| `pdcfr` | 0.0687 | 0.0167 | 0.0089 | 0.00012 |
-| `discounted_cfr` | 0.0539 | 0.0127 | 0.0013 | 0.000065 |
+| `cfr_plus` | 0.0916 | 0.0346 | 0.0094 | 0.00055 |
+| `pcfr_plus` | 0.0901 | 0.0333 | 0.0083 | 0.000093 |
+| `pdcfr_plus` | 0.0646 | 0.0198 | 0.0372 | 0.00078 |
+| `pdcfr` | 0.0465 | 0.0143 | 0.0070 | 0.00012 |
+| `discounted_cfr` | 0.0359 | 0.0090 | 0.0013 | 0.000067 |
 
 `pdcfr_plus` rises between 100 and 200 iterations and then resumes falling: optimistic prediction
 overshoots on a non-stationary regret sequence. It is oscillation, not divergence. And the optimistic
 variants do close most of the gap asymptotically — on the narrow-range river `pcfr_plus` actually
 passes DCFR by 800 iterations — which is their tighter regret bound arriving. But a solve runs at
-50-200 iterations, not 800, and DCFR leads by 3-6× there.
+50-200 iterations, not 800; DCFR leads all four measured scenarios at 200 iterations.
 
 ## Consequences
 
@@ -95,16 +98,16 @@ Every variant's solved strategy changed, so `StrategyRegressionTest`'s golden ta
 `pcfr_plus`'s golden values came out **bit-identical to the pre-refactor baseline**. It is the one
 variant whose semantics this work did not touch — it already dumped the average and accumulated it
 correctly. That coincidence is load-bearing evidence: the hand evaluator, the struct-of-arrays range
-layout, the rewritten tree builder, and the SIMD kernels are all exactly equivalent to what they
-replaced. Only the three bugs moved.
+layout, the rewritten tree builder, and the SIMD kernels are equivalent on that river scenario.
+The later chance-node probability correction changes turn/flop strategies; river goldens remain unchanged.
 
 Convergence improved across the board. On the wide-range river at 100 iterations:
 
 | | before | after |
 |---|---|---|
-| `cfr` | 0.6% ceiling (test) | 0.106% |
-| `cfr_plus` | 0.05% ceiling (test) | 0.040% |
-| `discounted_cfr` | 0.02% ceiling (test) | 0.0127% |
+| `cfr` | 0.6% ceiling (test) | 0.124% |
+| `cfr_plus` | 0.05% ceiling (test) | 0.0346% |
+| `discounted_cfr` | 0.02% ceiling (test) | 0.0090% |
 
 `SolverConvergenceTest` now asserts exploitability directly, per variant, with ceilings ~40% above
 measurement — and asserts the ordering (`cfr_plus < cfr`, `discounted_cfr < cfr_plus`, `pdcfr <

@@ -2,6 +2,7 @@ package pokersolver.solver;
 
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
+import pokersolver.Card;
 import pokersolver.GameTree;
 import pokersolver.ranges.PrivateCards;
 import pokersolver.trainable.TrainableFactory;
@@ -34,6 +35,30 @@ public record SolverConfig(
         MonteCarloAlg monteCarloAlg,
         double stopExploitability,
         TrainingProgressListener progressListener) {
+
+    // Error Prone 2.42's literal token scanner crashes inside a compact record constructor on JDK 25.
+    @SuppressWarnings("StringConcatToTextBlock")
+    public SolverConfig {
+        Objects.requireNonNull(tree, "tree");
+        Objects.requireNonNull(range1, "range1");
+        Objects.requireNonNull(range2, "range2");
+        Objects.requireNonNull(initialBoard, "initialBoard");
+        Objects.requireNonNull(trainerFactory, "trainerFactory");
+        Objects.requireNonNull(monteCarloAlg, "monteCarloAlg");
+        Objects.requireNonNull(progressListener, "progressListener");
+        if (initialBoard.length < 3
+                || initialBoard.length > 5
+                || initialBoard.length != tree.getRoot().getRound().number() + 1)
+            throw new IllegalArgumentException("board must have 3-5 cards and match the tree's starting round");
+        if (Card.cardCount(Card.boardInts2long(initialBoard)) != initialBoard.length)
+            throw new IllegalArgumentException("board cards must be distinct");
+        if (iterationNumber < 1 || printInterval < 1)
+            throw new IllegalArgumentException("iterations and print interval must be >= 1");
+        if (!Double.isFinite(stopExploitability) || stopExploitability < 0)
+            throw new IllegalArgumentException("stop exploitability must be finite and >= 0");
+        if (!Double.isFinite(tree.getRoot().getPot()) || tree.getRoot().getPot() <= 0)
+            throw new IllegalArgumentException("initial pot must be finite and > 0");
+    }
 
     public static Builder builder() {
         return new Builder();
