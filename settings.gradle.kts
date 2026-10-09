@@ -16,7 +16,7 @@ pluginManagement {
 
 rootProject.name = "texas-holdem-solver"
 
-include(":riversolver")
+include(":solver-core")
 include(":benchmarks")
 include(":solver-api")
 include(":web-ui")

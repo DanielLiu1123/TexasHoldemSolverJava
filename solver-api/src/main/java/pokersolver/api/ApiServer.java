@@ -3,7 +3,6 @@ package pokersolver.api;
 import io.javalin.Javalin;
 import io.javalin.http.HttpStatus;
 import io.javalin.http.NotFoundResponse;
-import java.nio.file.Path;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -21,11 +20,13 @@ import java.util.function.Consumer;
  */
 public final class ApiServer implements AutoCloseable {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ApiServer.class);
+
     private final SolveService service;
     private final Javalin app;
 
-    public ApiServer(Path resourcesDir) {
-        this.service = new SolveService(new GameResources(resourcesDir));
+    public ApiServer() {
+        this.service = new SolveService();
         // Javalin 7: all routes, handlers and lifecycle configuration go into the create block.
         this.app = Javalin.create(config -> {
             config.startup.showJavalinBanner = false;
@@ -39,6 +40,9 @@ public final class ApiServer implements AutoCloseable {
             }
             config.routes.exception(IllegalArgumentException.class, (e, ctx) -> ctx.status(HttpStatus.BAD_REQUEST)
                     .json(Map.of("error", String.valueOf(e.getMessage()))));
+            config.routes.exception(
+                    pokersolver.exceptions.SolverException.class, (e, ctx) -> ctx.status(HttpStatus.BAD_REQUEST)
+                            .json(Map.of("error", String.valueOf(e.getMessage()))));
             config.routes.exception(tools.jackson.core.JacksonException.class, (e, ctx) -> ctx.status(
                             HttpStatus.BAD_REQUEST)
                     .json(Map.of("error", String.format("malformed request body: %s", e.getOriginalMessage()))));
@@ -64,16 +68,11 @@ public final class ApiServer implements AutoCloseable {
                 }
                 // Lazy, per-node: ?path=CHECK,BET 10.0,Ah walks to one node (no path = root).
                 ctx.contentType("application/json")
-                        .result(StrategyNodeView.atPath(solver.getTree(), ctx.queryParam("path"))
+                        .result(StrategyNodeView.atPath(
+                                        solver.getTree(), ctx.queryParam("path"), solver.getInitialBoardMask())
                                 .toString());
             });
-            config.routes.get(
-                    "/api/v1/health",
-                    ctx -> ctx.json(Map.of(
-                            "status",
-                            "ok", //
-                            "loadedGames",
-                            service.resources().loadedGames())));
+            config.routes.get("/api/v1/health", ctx -> ctx.json(Map.of("status", "ok")));
             config.routes.sse("/api/v1/solves/{id}/events", client -> {
                 SolveJob job = job(client.ctx().pathParam("id"));
                 client.keepAlive();
@@ -111,19 +110,10 @@ public final class ApiServer implements AutoCloseable {
 
     public static void main(String[] args) {
         int port = 8080;
-        Path resources = Path.of(".");
         for (int i = 0; i < args.length - 1; i++) {
-            switch (args[i]) {
-                case "--port" -> port = Integer.parseInt(args[i + 1]);
-                case "--resources" -> resources = Path.of(args[i + 1]);
-                default -> {
-                    // positional/unknown tokens are ignored; flags are self-describing
-                }
-            }
+            if (args[i].equals("--port")) port = Integer.parseInt(args[i + 1]);
         }
-        ApiServer server = new ApiServer(resources).start(port);
-        System.out.printf(
-                "solver-api listening on http://localhost:%d (resources: %s)%n",
-                server.port(), resources.toAbsolutePath().normalize());
+        ApiServer server = new ApiServer().start(port);
+        log.info("solver-api listening on http://localhost:{}", server.port());
     }
 }

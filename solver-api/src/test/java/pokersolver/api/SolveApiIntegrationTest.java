@@ -8,19 +8,20 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.time.Duration;
-import java.util.Objects;
+import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import pokersolver.utils.JsonUtil;
 import tools.jackson.databind.JsonNode;
 
 /**
- * End-to-end test against a real server on a random port, using the shortdeck dictionary (7MB)
- * to keep startup fast.
+ * End-to-end test against a real server on a random port. Nothing is read from disk: the hand
+ * evaluator derives its lookup tables from the rules of the game, so the server needs no data files.
  */
 class SolveApiIntegrationTest {
 
@@ -30,9 +31,7 @@ class SolveApiIntegrationTest {
 
     @BeforeAll
     static void start() {
-        Path resources = Path.of(Objects.requireNonNull(
-                System.getProperty("solver.testResources"), "solver.testResources system property not set"));
-        server = new ApiServer(resources).start(0);
+        server = new ApiServer().start(0);
         client = HttpClient.newHttpClient();
         base = String.format("http://localhost:%d/api/v1", server.port());
     }
@@ -44,7 +43,6 @@ class SolveApiIntegrationTest {
 
     static final String SOLVE_REQUEST = """
             {
-              "game": "shortdeck",
               "board": "Kd,Jd,Td,7s,8s",
               "rangeIp": "AA,KK,QQ,JJ,TT,99,88,77,66,AK,AQ,AJ,AT,A9,A8,KQ,KJ,KT,QJ,QT,JT,98,97,87,86,76",
               "rangeOop": "AA,KK,QQ,JJ,TT,99,88,77,66,AK,AQ,AJ,AT,A9,A8,KQ,KJ,KT,QJ,QT,JT,98,97,87,86,76",
@@ -72,6 +70,11 @@ class SolveApiIntegrationTest {
         assertThat(finished.get("state").asString()).isEqualTo("COMPLETED");
         assertThat(finished.get("events").size()).isGreaterThanOrEqualTo(2);
         assertThat(finished.get("events").get(0).get("type").asString()).isEqualTo("progress");
+        List<JsonNode> progress = new java.util.ArrayList<>();
+        for (JsonNode event : finished.get("events"))
+            if (event.get("type").asString().equals("progress")) progress.add(event);
+        assertThat(progress.getFirst().get("iteration").asInt()).isEqualTo(1);
+        assertThat(progress.getLast().get("iteration").asInt()).isEqualTo(20);
 
         HttpResponse<String> strategy = client.send(
                 HttpRequest.newBuilder(URI.create(base + "/solves/" + id + "/strategy"))
@@ -142,6 +145,44 @@ class SolveApiIntegrationTest {
                         .build(),
                 HttpResponse.BodyHandlers.ofString());
         assertThat(missing.statusCode()).isEqualTo(404);
+    }
+
+    @Test
+    void healthNeedsNoDataFiles() throws Exception {
+        HttpResponse<String> health = client.send(
+                HttpRequest.newBuilder(URI.create(base + "/health")).GET().build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertThat(health.statusCode()).isEqualTo(200);
+        assertThat(JsonUtil.MAPPER.readTree(health.body()).get("status").asString())
+                .isEqualTo("ok");
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "{\"board\":\"Kd,Jd,Td,7s,7s\"}",
+                "{\"board\":\"Kd,Jd,Td,7s,Xs\"}",
+                "{\"rangeIp\":\"AA:NaN\"}",
+                "{\"rangeIp\":\"AA:-0.5\"}",
+                "{\"rangeIp\":\"AA:0\"}",
+                "{\"rangeIp\":\"KK\",\"board\":\"Kc,Kd,Kh,Ks,2c\"}",
+                "{\"threads\":0}",
+                "{\"raiseLimit\":-1}",
+                "{\"stopExploitability\":-1}",
+                "{\"river\":{\"betSizes\":[-50]}}"
+            })
+    void malformedScenariosAreRejectedBeforeCreatingAJob(String overrides) throws Exception {
+        var request = (tools.jackson.databind.node.ObjectNode) JsonUtil.MAPPER.readTree(SOLVE_REQUEST);
+        var fields = JsonUtil.MAPPER.readTree(overrides);
+        for (String name : fields.propertyNames()) request.set(name, fields.get(name));
+        var response = client.send(
+                HttpRequest.newBuilder(URI.create(base + "/solves"))
+                        .POST(HttpRequest.BodyPublishers.ofString(request.toString()))
+                        .header("Content-Type", "application/json")
+                        .build(),
+                HttpResponse.BodyHandlers.ofString());
+        assertThat(response.statusCode()).isEqualTo(400);
+        assertThat(response.body()).contains("error").doesNotContain("\"id\"");
     }
 
     private JsonNode awaitTerminal(String id, Duration timeout) throws Exception {

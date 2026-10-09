@@ -57,4 +57,4 @@ jobs:
       - uses: gradle/actions/setup-gradle@v5
 
       - name: Test
-        run: ./gradlew test -Perrorprone.enabled=false --no-daemon
+        run: ./gradlew check -Perrorprone.enabled=false --no-daemon

@@ -1,6 +1,6 @@
 # TexasHoldemSolver
 
-一个基于 CFR（Counterfactual Regret Minimization，反事实遗憾最小化）的德州扑克翻牌后求解器，计算双人对局中接近纳什均衡的混合策略。支持标准德扑和短牌（short-deck）变体。
+一个基于 CFR（Counterfactual Regret Minimization，反事实遗憾最小化）的德州扑克翻牌后求解器，计算双人对局中接近纳什均衡的混合策略。只支持标准 52 张牌德州扑克。
 
 ## Language
 
@@ -17,7 +17,7 @@ _Avoid_: decision tree, 决策树（泛指时）
 发公共牌的节点，子节点按发出的牌枚举。
 
 **ShowdownNode（摊牌节点）**:
-双方亮牌比大小的终局节点，收益由 Compairer 决定。
+双方亮牌比大小的终局节点，收益由 HandEvaluator 决定。
 
 **TerminalNode（弃牌终局节点）**:
 一方 fold 导致的终局节点，收益直接由底池归属决定。
@@ -32,16 +32,27 @@ _Avoid_: fold node
 范围中的单个两张底牌组合，带权重。
 _Avoid_: hole cards（代码语境下）
 
-**Compairer（比牌器）**:
-判定摊牌时五张牌牌力强弱的组件。现有实现 Dic5Compairer 通过预先排序的字典文件（约 260 万行）查表得到牌力等级。
+**HandEvaluator（手牌评估器）**:
+判定五到七张牌牌力强弱的组件。按德扑规则在类初始化时生成完美哈希表，返回稠密 rank（1 = 皇家同花顺，7462 = 最小高牌，越小越强，相等即平局）。全静态、无实例、无数据文件。
+_Avoid_: 比牌器
+
+**Deck（牌组）**:
+固定的 52 张牌，按 card id 排序（`Deck.card(i).getCardInt() == i`）。ChanceNode 的子节点与它同序，第 i 条边发的就是 `Deck.card(i)`。
+
+**RiverRange（河牌范围）**:
+一名玩家的范围投影到某个完整公共牌面后的结果：未被牌面阻断的手牌，各自带 rank，按弱到强排序。以列存（struct-of-arrays）布局，摊牌 kernel 直接线性扫描。
 
 ### 求解
 
 **Solver（求解器）**:
-在 GameTree 上迭代训练直至策略收敛的算法骨架。具体实现有单线程 CfrPlusRiverSolver 和基于 ForkJoin 的 ParallelCfrPlusSolver 等。
+在 GameTree 上迭代训练直至策略收敛的算法骨架。遍历与训练主循环在 AbstractCfrSolver，两个具体实现只决定子节点如何调度：SequentialCfrSolver 顺序遍历，ParallelCfrSolver 用 ForkJoin 分叉。
 
 **Trainable（可训练单元）**:
-挂在每个 ActionNode 上的策略存储与更新单元，记录 regret 和平均策略。三种实现对应三种 CFR 变体：cfr / cfr_plus / discounted_cfr。
+挂在每个 ActionNode 上的策略存储与更新单元，记录 regret 并累积平均策略。六种实现对应六种 CFR 变体：cfr / cfr_plus / pcfr_plus / pdcfr_plus / pdcfr / discounted_cfr（默认）。
+
+**Average strategy（平均策略）**:
+CFR 收敛到纳什均衡的那个策略——历次迭代所打策略的 reach 加权平均。区别于 current strategy（当前策略），后者只有在 CFR+ 家族里才近似收敛，vanilla CFR 的当前策略会绕着均衡振荡。策略导出的永远是平均策略。
+_Avoid_: current strategy（作为"解"时）
 
 **Exploitability（可利用度）**:
 衡量当前策略离纳什均衡的距离，由 BestResponse 计算；低于阈值即视为收敛、停止迭代。
